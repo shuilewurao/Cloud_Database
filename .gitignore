@@ -3,3 +3,5 @@ M2/M2.iml
 M2/*.MF
 M2/logs/
 M2/bin/
+M2/*.jar
+
