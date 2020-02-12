@@ -1,13 +1,122 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="45eac116-7a26-4593-b447-9850608a333e" name="Default Changelist" comment="" />
+    <list default="true" id="687d9b14-9586-4fd7-bd65-55271dd9ee79" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/dist_maven.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/jtoaster_1_0_4.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/jtoaster_1_0_41.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/lib.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/lib1.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/zookeeper_3_4_11.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/zookeeper_3_4_11_ZooInspector.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/zookeeper_3_4_11_fatjar.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/zookeeper_3_4_11_loggraph.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/zookeeper_3_4_11_recipes_election.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/zookeeper_3_4_11_recipes_lock.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/zookeeper_3_4_11_recipes_queue.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/zookeeper_3_4_11_rest.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/M2.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/contrib/ZooInspector/ZooInspector.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/contrib/fatjar/fatjar1.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/contrib/loggraph/loggraph1.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/election/election3.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/election/src/election.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/lock/lock.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/lock/src/lock3.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/queue/queue3.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/queue/src/queue1.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/fatjar/fatjar.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/loggraph/loggraph.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/rest/rest.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/zooinspector/zooinspector.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/java/zookeeper-3.4.11.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/election/election1.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/election/src/election2.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/lock/lock2.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/lock/src/lock1.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/queue/queue2.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/queue/src/queue.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/ant.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/.idea/ant.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/.idea/libraries/libs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/.idea/workspace.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvClient/IKVClient$SocketStatus.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvClient/IKVClient.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvClient/KVClient.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/CacheManager/CachePolicy.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/CacheManager/FIFO$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/CacheManager/FIFO.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/CacheManager/LFU$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/CacheManager/LFU.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/CacheManager/LRU$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/CacheManager/LRU.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/Database/IKVDatabase.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/Database/KVDatabase.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/Database/KVEntry.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/IKVServer$CacheStrategy.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/IKVServer.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/app_kvServer/KVServer.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/client/ClientSocketListener$SocketStatus.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/client/ClientSocketListener.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/client/KVCommInterface.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/client/KVStore.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/logger/LogSetup.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/shared/ObjectFactory.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/shared/communication/ClientConnection.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/shared/messages/KVConvertMessage.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/shared/messages/KVMessage$StatusType.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/shared/messages/KVMessage.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/shared/messages/TextMessage.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/testing/AdditionalTest.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/testing/AllTests.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/testing/ConnectionTest.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/bin/testing/InteractionTest.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/build.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/libs/junit-4.10.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/libs/log4j-1.2.17.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvClient/IKVClient.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvClient/KVClient.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvServer/CacheManager/CachePolicy.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvServer/CacheManager/FIFO.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvServer/CacheManager/LFU.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvServer/CacheManager/LRU.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvServer/Database/IKVDatabase.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvServer/Database/KVDatabase.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvServer/Database/KVEntry.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvServer/IKVServer.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/app_kvServer/KVServer.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/client/ClientSocketListener.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/client/KVCommInterface.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/client/KVStore.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/logger/LogSetup.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/shared/ObjectFactory.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/shared/communication/ClientConnection.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/shared/messages/KVConvertMessage.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/shared/messages/KVMessage.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/shared/messages/TextMessage.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/testing/AdditionalTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/testing/AllTests.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/testing/ConnectionTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ece419_M1/src/testing/InteractionTest.java" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ProjectId" id="1XgmCYRp8aNKsON513TLAi6m2zd" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectId" id="1Xh3DlyvZVJ2ure7bHp4K5ynKoI" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showExcludedFiles" value="true" />
@@ -15,70 +124,92 @@
   </component>
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
   </component>
-  <component name="RunManager">
-    <configuration name="AllTests" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+  <component name="RunManager" selected="Application.KVClient">
+    <configuration name="KVClient" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="app_kvClient.KVClient" />
       <module name="M2" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="testing.*" />
+          <option name="PATTERN" value="app_kvClient.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="PACKAGE_NAME" value="testing" />
-      <option name="MAIN_CLASS_NAME" value="testing.AllTests" />
-      <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="KVServer" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="app_kvServer.KVServer" />
+      <module name="M2" />
+      <option name="PROGRAM_PARAMETERS" value="50000 10 FIFO" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="app_kvServer.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.KVServer" />
+      <item itemvalue="Application.KVClient" />
+    </list>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.AllTests" />
+        <item itemvalue="Application.KVClient" />
+        <item itemvalue="Application.KVServer" />
       </list>
     </recent_temporary>
-  </component>
-  <component name="ServiceViewManager">
-    <option name="viewStates">
-      <list>
-        <serviceView>
-          <treeState>
-            <expand />
-            <select />
-          </treeState>
-        </serviceView>
-      </list>
-    </option>
   </component>
   <component name="SvnConfiguration">
     <configuration />
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="45eac116-7a26-4593-b447-9850608a333e" name="Default Changelist" comment="" />
-      <created>1581475984709</created>
+      <changelist id="687d9b14-9586-4fd7-bd65-55271dd9ee79" name="Default Changelist" comment="" />
+      <created>1581484382361</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1581475984709</updated>
+      <updated>1581484382361</updated>
     </task>
     <servers />
   </component>
   <component name="WindowStateProjectService">
-    <state width="1238" height="212" key="GridCell.Tab.0.bottom" timestamp="1581476182916">
-      <screen x="0" y="0" width="1280" height="800" />
+    <state x="184" y="85" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1581484531784">
+      <screen x="0" y="23" width="1440" height="800" />
     </state>
-    <state width="1238" height="212" key="GridCell.Tab.0.bottom/0.0.1280.800@0.0.1280.800" timestamp="1581476182916" />
-    <state width="1238" height="212" key="GridCell.Tab.0.center" timestamp="1581476182910">
-      <screen x="0" y="0" width="1280" height="800" />
+    <state x="184" y="85" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.23.1440.800@0.23.1440.800" timestamp="1581484531784" />
+    <state x="258" y="25" key="CommitChangelistDialog2" timestamp="1581484853556">
+      <screen x="0" y="23" width="1440" height="800" />
     </state>
-    <state width="1238" height="212" key="GridCell.Tab.0.center/0.0.1280.800@0.0.1280.800" timestamp="1581476182910" />
-    <state width="1238" height="212" key="GridCell.Tab.0.left" timestamp="1581476182908">
-      <screen x="0" y="0" width="1280" height="800" />
+    <state x="258" y="25" key="CommitChangelistDialog2/0.23.1440.800@0.23.1440.800" timestamp="1581484853556" />
+    <state width="1398" height="205" key="GridCell.Tab.0.bottom" timestamp="1581484638042">
+      <screen x="0" y="23" width="1440" height="800" />
     </state>
-    <state width="1238" height="212" key="GridCell.Tab.0.left/0.0.1280.800@0.0.1280.800" timestamp="1581476182908" />
-    <state width="1238" height="212" key="GridCell.Tab.0.right" timestamp="1581476182913">
-      <screen x="0" y="0" width="1280" height="800" />
+    <state width="1398" height="205" key="GridCell.Tab.0.bottom/0.23.1440.800@0.23.1440.800" timestamp="1581484638042" />
+    <state width="1398" height="205" key="GridCell.Tab.0.center" timestamp="1581484638040">
+      <screen x="0" y="23" width="1440" height="800" />
     </state>
-    <state width="1238" height="212" key="GridCell.Tab.0.right/0.0.1280.800@0.0.1280.800" timestamp="1581476182913" />
+    <state width="1398" height="205" key="GridCell.Tab.0.center/0.23.1440.800@0.23.1440.800" timestamp="1581484638040" />
+    <state width="1398" height="205" key="GridCell.Tab.0.left" timestamp="1581484638039">
+      <screen x="0" y="23" width="1440" height="800" />
+    </state>
+    <state width="1398" height="205" key="GridCell.Tab.0.left/0.23.1440.800@0.23.1440.800" timestamp="1581484638039" />
+    <state width="1398" height="205" key="GridCell.Tab.0.right" timestamp="1581484638041">
+      <screen x="0" y="23" width="1440" height="800" />
+    </state>
+    <state width="1398" height="205" key="GridCell.Tab.0.right/0.23.1440.800@0.23.1440.800" timestamp="1581484638041" />
+    <state x="332" y="124" key="NewModule_or_Project.wizard" timestamp="1581484690336">
+      <screen x="0" y="23" width="1440" height="800" />
+    </state>
+    <state x="332" y="124" key="NewModule_or_Project.wizard/0.23.1440.800@0.23.1440.800" timestamp="1581484690336" />
+    <state x="397" y="255" key="com.intellij.ide.util.TipDialog" timestamp="1581484385391">
+      <screen x="0" y="23" width="1440" height="800" />
+    </state>
+    <state x="397" y="255" key="com.intellij.ide.util.TipDialog/0.23.1440.800@0.23.1440.800" timestamp="1581484385391" />
   </component>
 </project>

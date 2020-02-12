@@ -3,6 +3,26 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/M2.iml" filepath="$PROJECT_DIR$/M2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/contrib/ZooInspector/ZooInspector.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/contrib/ZooInspector/ZooInspector.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/recipes/election/src/election.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/election/src/election.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/election/election1.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/election/election1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/election/src/election2.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/election/src/election2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/recipes/election/election3.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/election/election3.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/fatjar/fatjar.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/fatjar/fatjar.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/contrib/fatjar/fatjar1.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/contrib/fatjar/fatjar1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/recipes/lock/lock.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/lock/lock.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/lock/src/lock1.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/lock/src/lock1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/lock/lock2.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/lock/lock2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/recipes/lock/src/lock3.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/lock/src/lock3.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/loggraph/loggraph.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/loggraph/loggraph.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/contrib/loggraph/loggraph1.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/contrib/loggraph/loggraph1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/queue/src/queue.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/queue/src/queue.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/recipes/queue/src/queue1.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/queue/src/queue1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/queue/queue2.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/recipes/queue/queue2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/recipes/queue/queue3.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/recipes/queue/queue3.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/rest/rest.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/rest/rest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/zooinspector/zooinspector.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/contrib/zooinspector/zooinspector.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zookeeper-3.4.11/src/java/zookeeper-3.4.11.iml" filepath="$PROJECT_DIR$/zookeeper-3.4.11/src/java/zookeeper-3.4.11.iml" />
     </modules>
   </component>
 </project>
