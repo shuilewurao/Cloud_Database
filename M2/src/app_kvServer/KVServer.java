@@ -21,6 +21,9 @@ import logger.LogSetup;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.*;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.data.Stat;
 import shared.communication.ClientConnection;
 import shared.HashingFunction.MD5;
 
@@ -29,7 +32,6 @@ import app_kvServer.CacheManager.FIFO;
 import app_kvServer.CacheManager.LFU;
 import shared.messages.KVMessage;
 
-import org.apache.zookeeper.*;
 
 
 public class KVServer implements IKVServer, Runnable {
@@ -482,9 +484,9 @@ public class KVServer implements IKVServer, Runnable {
     private void subscribeZooKeeper(){
         try {
             // need to connect to ZK before running
-            CountDownLatch connected_signal = new CountDownLatch(1);
+            final CountDownLatch connected_signal = new CountDownLatch(1);
 
-            zk = new ZooKeeper(zkHostName + ":" + zkPort, 300000000, new Watcher() {
+            zk = new ZooKeeper(zkHostName +":"+ zkPort, 300000000, new Watcher() {
                 @Override
                 public void process(WatchedEvent we) {
                     if (we.getState() == Event.KeeperState.SyncConnected) {
