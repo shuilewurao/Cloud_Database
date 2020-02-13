@@ -1,5 +1,10 @@
 package app_kvServer;
 
+import app_kvServer.DataObjects.MetaData;
+
+import java.math.BigInteger;
+import java.util.*;
+
 public interface IKVServer {
     public enum CacheStrategy {
         None,
@@ -7,6 +12,14 @@ public interface IKVServer {
         LFU,
         FIFO
     };
+
+    public enum ServerStateType {
+        IDLE,
+        STOPPED,
+        STARTED,
+        SHUT_DOWN,
+        ERROR
+    }
 
     /**
      * Get the port number of the server
@@ -86,4 +99,55 @@ public interface IKVServer {
      * Gracefully stop the server, can perform any additional actions
      */
     public void close();
+
+    /**
+     * ECS-related initialization
+     */
+    public void initKVServer(MetaData metadata, int cacheSize, String replacementStrategy);
+
+    /**
+     *  ECS-related start, start processing all client requests and all ECS requests
+     */
+    public void start();
+
+    /**
+     * ECS-related stop, reject all client requests and only process ECS requests
+     */
+    public void stop();
+
+    /**
+     *  ECS-related shutdown, exit the KVServer application
+     */
+    public void shutdown();
+
+    /**
+     * ECS-related lock, for write operations
+     */
+    public void lockWrite();
+
+    /**
+     * ECS-related unlock, for write operations
+     */
+    public void unLockWrite();
+
+    /**
+     * TODO: range
+     * ECS-related moveData, move the given hashRange to the server going by the targetName
+     */
+    public boolean moveData(String[] range, String server);
+
+    /**
+     * ECS-related update, update the metadata repo of this server
+     * @param metadata
+     */
+    public void update(MetaData metadata);
+
+    public ServerStateType getServerState();
+
+    public boolean isWriteLocked();
+
+    public TreeMap<BigInteger, MetaData> getMetaData();
+
+
+
 }

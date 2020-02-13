@@ -1,14 +1,18 @@
 package app_kvServer;
 
+import java.math.BigInteger;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.TreeMap;
 
 
 import app_kvServer.CacheManager.CachePolicy;
+import app_kvServer.DataObjects.MetaData;
 import app_kvServer.Database.KVDatabase;
+
 import logger.LogSetup;
 
 import org.apache.log4j.Level;
@@ -37,6 +41,18 @@ public class KVServer implements IKVServer, Runnable {
 
     private CachePolicy Cache;
     private KVDatabase DB;
+
+    // ECS-related variables
+    private ServerStateType serverState;
+    private boolean writeLocked;
+
+    private int zkPort;
+    private String zkHostName;
+    private String serverName;
+
+    // TODO
+    private TreeMap<BigInteger, MetaData> metaDataTree;
+
 
     /**
      * Start KV Server at given port
@@ -77,6 +93,27 @@ public class KVServer implements IKVServer, Runnable {
 
         this.DB = new KVDatabase(port);
     }
+
+    public KVServer(String name, String zkHostname, int zkPort) {
+        this.zkPort = zkPort;
+        this.zkHostName = zkHostname;
+        this.serverName = name;
+        threadList = new ArrayList<Thread>();
+        serverThread = null;
+//        String[] serverInfo = this.serverName.split(":");
+//        this.port = Integer.parseInt(serverInfo[2]);
+        this.DB = new KVDatabase(port);
+        this.serverState = ServerStateType.STOPPED;
+        this.writeLocked = false;
+//        connectZooKeeper(zkHostName, zkPort);
+//        getMetaDataFromZK();
+//        initKVServer(metaData, cacheSize, strategy);
+//        initialized = true;
+
+        // start the server in stopped state
+        // this.run();
+    }
+
 
     @Override
     public int getPort() {
@@ -265,6 +302,121 @@ public class KVServer implements IKVServer, Runnable {
         }
     }
 
+
+    /**
+     * ECS-related initialization
+     * TODO: where to put
+     */
+    public void initKVServer(MetaData metadata, int cacheSize, String replacementStrategy){
+
+        // TODO: metadata
+        this.cacheSize = cacheSize;
+
+        this.strategy = CacheStrategy.valueOf(replacementStrategy);
+
+        switch (replacementStrategy) {
+            case "FIFO":
+                Cache = new FIFO(cacheSize);
+                break;
+            case "LRU":
+                Cache = new LRU(cacheSize);
+                break;
+            case "LFU":
+                Cache = new LFU(cacheSize);
+                break;
+            default:
+                this.strategy = CacheStrategy.None;
+                logger.error("Invalid Cache Strategy!");
+                // TODO: handling
+                break;
+        }
+
+    }
+
+    /**
+     *  ECS-related start, start processing all client requests and all ECS requests
+     */
+    public void start(){
+        serverState = ServerStateType.STARTED;
+    }
+
+    /**
+     * ECS-related stop, reject all client requests and only process ECS requests
+     */
+    public void stop(){
+        serverState = ServerStateType.STOPPED;
+    }
+
+    /**
+     *  ECS-related shutdown, exit the KVServer application
+     */
+    public void shutdown(){
+        serverState = ServerStateType.SHUT_DOWN;
+    }
+
+    /**
+     * ECS-related lock, for write operations
+     */
+    public void lockWrite(){
+        logger.info("--Lock Write");
+        this.writeLocked = true;
+    }
+
+    /**
+     * TODO
+     * ECS-related unlock, for write operations
+     */
+    public void unLockWrite(){
+        logger.info("--Unlock Write");
+        this.writeLocked = false;
+    }
+
+    /**
+     * TODO: range
+     * ECS-related moveData, move the given hashRange to the server going by the targetName
+     * @param range
+     * @param server
+     * @return true if data transfer is completed
+     */
+    public boolean moveData(String[] range, String server){
+        return true;
+    }
+
+    /**
+     * ECS-related update, update the metadata repo of this server
+     * @param metadata
+     * TODO
+     */
+    public void update(MetaData metadata){
+
+    }
+
+
+    /**
+     *
+     * @return server's current state
+     */
+    public ServerStateType getServerState(){
+        return serverState;
+    }
+
+    /**
+     *
+     * @return whether it is locked for write
+     */
+    public boolean isWriteLocked(){
+        return writeLocked;
+    }
+
+    /**
+     * TODO
+     * @return
+     */
+    public TreeMap<BigInteger, MetaData> getMetaData(){
+        return null;
+    }
+
+
     public static void main(String[] args) throws IOException {
         try {
             new LogSetup("logs/server.log", Level.ALL);
@@ -272,13 +424,13 @@ public class KVServer implements IKVServer, Runnable {
                 logger.error("Error! Invalid number of arguments!");
                 logger.error("Usage: Server <port> <cacheSize> <strategy>!");
             } else {
-                int port = Integer.parseInt(args[0]);
-                int cacheSize = Integer.parseInt(args[1]);
-                String strategy = args[2];
+                String serverName = args[0];
+                String zkHostName = args[1];
+                int zkPort = Integer.parseInt(args[2]);
                 KVServer server = new KVServer(
-                        port,
-                        cacheSize,
-                        strategy
+                        serverName,
+                        zkHostName,
+                        zkPort
                 );
                 new Thread(server).start();
             }

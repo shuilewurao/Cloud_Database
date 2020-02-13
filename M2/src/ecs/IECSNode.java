@@ -1,6 +1,22 @@
 package ecs;
 
+import app_kvServer.DataObjects.MetaData;
+
+import java.math.BigInteger;
+import java.util.TreeMap;
+
 public interface IECSNode {
+
+    public enum ECSNodeFlag{
+        STOP,
+        START,
+        STATE_CHANGE,
+        KV_TRANSFER,
+        SHUT_DOWN,
+        UPDATE,
+        TRANSFER_FINISH,
+        ERROR
+    }
 
     /**
      * @return  the name of the node (ie "Server 8.8.8.8")
@@ -21,5 +37,11 @@ public interface IECSNode {
      * @return  array of two strings representing the low and high range of the hashes that the given node is responsible for
      */
     public String[] getNodeHashRange();
+
+    public void setFlag(ECSNodeFlag flag);
+
+    public ECSNodeFlag getFlag();
+
+    public TreeMap<BigInteger, MetaData> getMetaData();
 
 }
