@@ -1,5 +1,6 @@
 package shared.communication;
 
+import app_kvServer.IKVServer;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
 import app_kvServer.KVServer;
@@ -75,43 +76,12 @@ public class ClientConnection implements Runnable {
                         key = tokens[1];
                     }
 
-                    TextMessage msg_send;
                     logger.info("CMD: " + cmd);
                     logger.info("key: " + key);
 
-                    switch (cmd) {
-                        case "PUT":
+                    // TODO: handle server state and ECS requests
 
-                            String value = "null";
-                            if (tokens.length == 3) {
-                                value = tokens[2];
-                            }
-                            try {
-                                msg_send = new TextMessage(cmdPut(key, value));
-                            } catch (Exception e) {
-                                msg_send = new TextMessage("PUT_ERROR + exception");
-                            }
-
-                            break;
-                        case "GET":
-                            try {
-                                String value_return = cmdGet(key);
-
-                                if (value_return.equals("GET_ERROR")) {
-                                    msg_send = new TextMessage("GET_ERROR");
-                                } else {
-                                    msg_send = new TextMessage("GET_SUCCESS" + DELIMITER + key + DELIMITER + value_return);
-                                }
-                            } catch (Exception e) {
-                                msg_send = new TextMessage("GET_ERROR + exception");
-                            }
-
-                            break;
-                        default:
-                            msg_send = new TextMessage("CMD NOT RECOGNIZED: " + cmd);
-                    }
-
-                    sendMessage(msg_send);
+                    handleClientRequest(cmd, key, tokens);
 
                     /* connection either terminated by the client or lost due to
                      * network problems*/
@@ -268,6 +238,45 @@ public class ClientConnection implements Runnable {
                 + clientSocket.getPort() + ">: '"
                 + msg.getMsg().trim() + "'");
         return msg;
+    }
+
+
+    private void handleClientRequest(String cmd, String key, String[] tokens) throws IOException{
+        TextMessage msg_send;
+
+        switch (cmd) {
+            case "PUT":
+
+                String value = "null";
+                if (tokens.length == 3) {
+                    value = tokens[2];
+                }
+                try {
+                    msg_send = new TextMessage(cmdPut(key, value));
+                } catch (Exception e) {
+                    msg_send = new TextMessage("PUT_ERROR + exception");
+                }
+
+                break;
+            case "GET":
+                try {
+                    String value_return = cmdGet(key);
+
+                    if (value_return.equals("GET_ERROR")) {
+                        msg_send = new TextMessage("GET_ERROR");
+                    } else {
+                        msg_send = new TextMessage("GET_SUCCESS" + DELIMITER + key + DELIMITER + value_return);
+                    }
+                } catch (Exception e) {
+                    msg_send = new TextMessage("GET_ERROR + exception");
+                }
+
+                break;
+            default:
+                msg_send = new TextMessage("CMD NOT RECOGNIZED: " + cmd);
+        }
+
+        sendMessage(msg_send);
     }
 
 }

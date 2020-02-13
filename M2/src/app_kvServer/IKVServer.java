@@ -3,6 +3,7 @@ package app_kvServer;
 import app_kvServer.DataObjects.MetaData;
 
 import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public interface IKVServer {
@@ -134,7 +135,7 @@ public interface IKVServer {
      * TODO: range
      * ECS-related moveData, move the given hashRange to the server going by the targetName
      */
-    public boolean moveData(String[] range, String server);
+    public boolean moveData(String[] range, String server) throws NoSuchAlgorithmException;
 
     /**
      * ECS-related update, update the metadata repo of this server

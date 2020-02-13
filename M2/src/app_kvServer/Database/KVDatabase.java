@@ -1,6 +1,7 @@
 package app_kvServer.Database;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
@@ -12,7 +13,9 @@ import java.io.ObjectInputStream;
 import java.io.FileInputStream;
 import java.io.File;
 
+import java.util.ArrayList;
 import org.apache.log4j.Logger;
+import shared.HashingFunction.MD5;
 import shared.messages.KVMessage.StatusType;
 
 
@@ -23,6 +26,7 @@ public class KVDatabase implements IKVDatabase {
     private static final String DELIM = ESCAPER + ",";
     private static final String ESCAPED_ESCAPER = ESCAPER + "d";
 
+    private int portNo;
     private String DBFileName;
 
     private String LUTName;
@@ -36,6 +40,7 @@ public class KVDatabase implements IKVDatabase {
         this.DBFileName = "DB-Server" + portno + ".txt";
         this.synchLUT = null;
         this.LUTName = "LUT-" + portno + ".txt";
+        this.portNo=portno;
         initializeDB();
     }
 
@@ -373,5 +378,76 @@ public class KVDatabase implements IKVDatabase {
         return new String(Value).trim();
 
     }
+
+
+    /**
+     * Get the data to be moved
+     * @param hashRange
+     * @return
+     * @throws Exception
+     */
+    public String getPreMovedData(String[] hashRange) throws Exception {
+
+        String startRange=hashRange[0];
+        String endRange=hashRange[1];
+        //assume I get port Number and Address
+        ArrayList<Byte> ByteArray;
+        // using for-each loop for iteration over Map.entrySet()
+        StringBuilder Stringlist= new StringBuilder();
+        logger.debug("Get Hash Range from "+hashRange[0]+" to "+hashRange[1]);
+        //System.out.println("Get Hash Range from "+hashRange[0]+" to "+hashRange[1]);
+
+        for (Map.Entry<String,KVEntry> entry : synchLUT.entrySet())
+        {
+
+            BigInteger key= MD5.HashInBI(entry.getKey());
+            KVEntry kve= entry.getValue();
+            //System.out.println("Key: "+entry.getKey()+ " in Server:"+this.PortNumber%10);
+            logger.debug("Key "+entry.getKey()+ "in port:"+this.portNo);
+
+            if(MD5.IsKeyinRange(key,startRange,endRange))//Check for key in range or not
+            {
+
+                byte[] result= readKVMsg(kve);
+                String kvresult = new String(result, "UTF-8");
+                Stringlist.append(kvresult);
+                logger.debug("Send Key: "+entry.getKey());
+            }
+        }
+        String result = Stringlist.toString();
+
+        return result;
+    }
+
+
+    public synchronized boolean deleteKVPairByRange(String[]hashRange) throws Exception
+    {
+
+        String startRange=hashRange[0];
+        String endRange=hashRange[1];
+        logger.info("Remove Keys from look up table from "+startRange+" to"+endRange);
+
+        ArrayList<String> toDelete = new ArrayList<>();
+        for (Map.Entry<String,KVEntry> entry : synchLUT.entrySet())
+        {
+
+            BigInteger key=MD5.HashInBI(entry.getKey());
+            KVEntry kve= entry.getValue();
+            if(MD5.IsKeyinRange(key,startRange,endRange))//Check for key in range or not
+            {
+                toDelete.add(entry.getKey());
+                //synchronizedMap.remove(entry.getKey());
+            }
+        }
+        for (String key : toDelete){
+            synchLUT.remove(key);
+            logger.debug("Delete Key: "+ key);
+        }
+        saveLUT();
+
+        return true;
+
+    }
+
 
 }

@@ -5,24 +5,31 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.IOException;
+import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
 
 
 import app_kvServer.CacheManager.CachePolicy;
 import app_kvServer.DataObjects.MetaData;
 import app_kvServer.Database.KVDatabase;
 
+import ecs.ECSNode;
 import logger.LogSetup;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import shared.communication.ClientConnection;
+import shared.HashingFunction.MD5;
 
 import app_kvServer.CacheManager.LRU;
 import app_kvServer.CacheManager.FIFO;
 import app_kvServer.CacheManager.LFU;
 import shared.messages.KVMessage;
+
+import org.apache.zookeeper.*;
 
 
 public class KVServer implements IKVServer, Runnable {
@@ -51,6 +58,7 @@ public class KVServer implements IKVServer, Runnable {
     private String serverName;
 
     // TODO
+    private ZooKeeper zk;
     private TreeMap<BigInteger, MetaData> metaDataTree;
 
 
@@ -337,6 +345,7 @@ public class KVServer implements IKVServer, Runnable {
      *  ECS-related start, start processing all client requests and all ECS requests
      */
     public void start(){
+        // TODO: move run() & main() to this function
         serverState = ServerStateType.STARTED;
     }
 
@@ -378,13 +387,60 @@ public class KVServer implements IKVServer, Runnable {
      * @param server
      * @return true if data transfer is completed
      */
-    public boolean moveData(String[] range, String server){
-        return true;
+    public boolean moveData(String[] range, String server) throws NoSuchAlgorithmException {
+
+        // TODO: change meta data?
+        writeLocked = true;
+
+        BigInteger hashTarget = MD5.HashInBI(server);
+        MetaData targetServer = this.metaDataTree.get(hashTarget);
+
+        if(targetServer == null){
+            // TODO
+
+        }
+
+        int port = targetServer.getPort();
+
+        //Need addresss & port
+        if (range.length < 2) {
+            writeLocked = false;
+            return false;
+        }
+        //return byte array of Data
+        try{
+            String DataResult = DB.getPreMovedData(range);
+        }catch(Exception e){
+            logger.error("Exceptions in getting moved data");
+            writeLocked = false;
+            return false;
+        }
+
+        //Build a connection to Server as a Temp Client
+
+        /*
+        TODO
+
+        KVStore tempClient = new KVStore(address, port);
+        tempClient.connect();
+        KVMessage result = tempClient.moveData(DataResult);
+        tempClient.disconnect();
+
+        if (result.getCommunicationType() == KVMessage.CommunicationType.ECS_ReceiveDataFinished) {
+            DB.deleteKVPairinRange(hashRange);
+            writeLocked = false;
+            return true;
+        }
+        */
+
+        //
+        System.out.println("IT SHOULD NOT REACH HERE!!!!!!");
+        return false;
+
     }
 
     /**
      * ECS-related update, update the metadata repo of this server
-     * @param metadata
      * TODO
      */
     public void update(MetaData metadata){
@@ -414,6 +470,35 @@ public class KVServer implements IKVServer, Runnable {
      */
     public TreeMap<BigInteger, MetaData> getMetaData(){
         return null;
+    }
+
+    private void inquireECS(){
+
+    }
+
+    /**
+     * should
+     */
+    private void subscribeZooKeeper(){
+        try {
+            // need to connect to ZK before running
+            CountDownLatch connected_signal = new CountDownLatch(1);
+
+            zk = new ZooKeeper(zkHostName + ":" + zkPort, 300000000, new Watcher() {
+                @Override
+                public void process(WatchedEvent we) {
+                    if (we.getState() == Event.KeeperState.SyncConnected) {
+                        connected_signal.countDown();
+                    }
+                }
+            });
+            connected_signal.await();
+        } catch (IOException ioe) {
+            logger.debug("Unable to connect to zookeeper");
+        } catch (InterruptedException ie) {
+            ie.printStackTrace();
+        }
+
     }
 
 

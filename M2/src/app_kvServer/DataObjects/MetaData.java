@@ -34,9 +34,9 @@ public class MetaData implements Serializable{
         return host;
     }
 
-//    public int getPort(){
-//        return port;
-//    }
+    public int getPort(){
+        return port;
+    }
 
     public String[] getHashRange(){
         String[] hashes = new String[2];

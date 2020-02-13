@@ -59,6 +59,17 @@ public class ECSNode implements IECSNode, Serializable {
         return range;
     }
 
+    /**
+     * This sets the new hash range for this ECS node
+     * @param start
+     * @param end
+     */
+    public void setHashRanges(BigInteger start, BigInteger end){
+        this.startHash = start; //start.add(new BigInteger(("1")));  // TODO
+        this.endHash = end;
+    }
+
+
     public void setFlag(ECSNodeFlag newFlag){
         flag = newFlag;
     }
@@ -70,6 +81,9 @@ public class ECSNode implements IECSNode, Serializable {
     public TreeMap<BigInteger, MetaData> getMetaData(){
         return metaData;
     }
+
+
+
 
 
 }
