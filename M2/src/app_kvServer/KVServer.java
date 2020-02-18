@@ -16,6 +16,7 @@ import app_kvServer.CacheManager.CachePolicy;
 import app_kvServer.DataObjects.MetaData;
 import app_kvServer.Database.KVDatabase;
 
+import client.KVStore;
 import ecs.ECSNode;
 import logger.LogSetup;
 
@@ -115,6 +116,7 @@ public class KVServer implements IKVServer, Runnable {
         this.DB = new KVDatabase(port);
         this.serverState = ServerStateType.STOPPED;
         this.writeLocked = false;
+        subscribeZooKeeper();
 //        connectZooKeeper(zkHostName, zkPort);
 //        getMetaDataFromZK();
 //        initKVServer(metaData, cacheSize, strategy);
@@ -174,6 +176,8 @@ public class KVServer implements IKVServer, Runnable {
         try {
             String result = null;
 
+            //TODO: test ONLY
+            /*
             if (getCacheStrategy() != CacheStrategy.None && Cache != null) {
                 result = Cache.getKV(key);
                 if (result != null) {
@@ -181,6 +185,7 @@ public class KVServer implements IKVServer, Runnable {
                     return result;
                 }
             }
+             */
 
             // not in Cache, then retrieve from DB
             String value = DB.getKV(key); // TODO: get this from DB
@@ -389,55 +394,54 @@ public class KVServer implements IKVServer, Runnable {
      * @param server
      * @return true if data transfer is completed
      */
-    public boolean moveData(String[] range, String server) throws NoSuchAlgorithmException {
+    public boolean moveData(String[] range, String server) {
 
+        if(range.length < 2){
+            logger.debug("Invalid hash range for move data");
+            return false;
+        }
         // TODO: change meta data?
-        writeLocked = true;
+       this.lockWrite();
 
         BigInteger hashTarget = MD5.HashInBI(server);
         MetaData targetServer = this.metaDataTree.get(hashTarget);
 
         if(targetServer == null){
-            // TODO
-
+// TODO
         }
 
         int port = targetServer.getPort();
+        String address = targetServer.getHost();
 
-        //Need addresss & port
-        if (range.length < 2) {
-            writeLocked = false;
-            return false;
-        }
+
         //return byte array of Data
         try{
             String DataResult = DB.getPreMovedData(range);
-        }catch(Exception e){
-            logger.error("Exceptions in getting moved data");
-            writeLocked = false;
-            return false;
-        }
-
-        //Build a connection to Server as a Temp Client
+            KVStore tempClient = new KVStore(address, port);
+            tempClient.connect();
+            //KVMessage result = tempClient.sendMovedData(DataResult);
+            tempClient.disconnect();
 
         /*
         TODO
-
-        KVStore tempClient = new KVStore(address, port);
-        tempClient.connect();
-        KVMessage result = tempClient.moveData(DataResult);
-        tempClient.disconnect();
-
         if (result.getCommunicationType() == KVMessage.CommunicationType.ECS_ReceiveDataFinished) {
             DB.deleteKVPairinRange(hashRange);
-            writeLocked = false;
+            this.unLockWrite();
             return true;
+
         }
         */
 
-        //
-        System.out.println("IT SHOULD NOT REACH HERE!!!!!!");
-        return false;
+        }catch(Exception e){
+            logger.error("Exceptions in getting moved data");
+
+        }finally{
+            // if not returned yet, it is a failure
+            this.unLockWrite();
+            return false;
+
+        }
+
 
     }
 
@@ -511,9 +515,12 @@ public class KVServer implements IKVServer, Runnable {
                 logger.error("Error! Invalid number of arguments!");
                 logger.error("Usage: Server <port> <cacheSize> <strategy>!");
             } else {
-                String serverName = args[0];
-                String zkHostName = args[1];
-                int zkPort = Integer.parseInt(args[2]);
+                //String serverName = args[0];
+                //String zkHostName = args[1];
+                //int zkPort = Integer.parseInt(args[2]);
+                int serverName = Integer.parseInt(args[0]);
+                int zkHostName = Integer.parseInt(args[1]);
+                String zkPort = args[2];
                 KVServer server = new KVServer(
                         serverName,
                         zkHostName,

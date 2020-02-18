@@ -8,3 +8,5 @@ M2/.DS_Store
 M2/.idea/workspace.xml
 M2/zookeeper-3.4.11/*/*.jar
 M2/zookeeper-3.4.11/*/*.jar.*
+M2/MyStore/
+M2/out/

@@ -1,40 +1,59 @@
 package shared.HashingFunction;
 
-import java.security.*;
-import java.math.*;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+import org.apache.log4j.Logger;
 
 public class MD5
 {
-    public static BigInteger HashInBI(String s) throws NoSuchAlgorithmException {
-        MessageDigest m = MessageDigest.getInstance("MD5");
-        m.update(s.getBytes(),0,s.length());
-        return new BigInteger(1,m.digest());
+    private static Logger logger = Logger.getRootLogger();
+
+    public static BigInteger HashInBI(String s){
+        try{
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(s.getBytes(),0,s.length());
+            return new BigInteger(1,md.digest());
+
+        }catch (NoSuchAlgorithmException e){
+            //logger.fatal("Unable to find hashing algorithm", e);
+            e.printStackTrace();
+            return null;
+        }
     }
 
-    public static String HashInStr(String s) throws NoSuchAlgorithmException {
-        MessageDigest m = MessageDigest.getInstance("MD5");
-        m.update(s.getBytes(),0,s.length());
-        String hashStr = new BigInteger(1,m.digest()).toString(16);
+    public static String HashInStr(String s) {
+        try{
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(s.getBytes(),0,s.length());
 
-        if(hashStr.length() < 32)
-        {
-            int padding = 32 - hashStr.length();
-            // null padding
-            String pad = new String(new char[padding]).replace("\0", "0");
-            hashStr = pad + hashStr;
+            String hashStr = new BigInteger(1,md.digest()).toString(16);
+
+            if(hashStr.length() < 32)
+            {
+                int padding = 32 - hashStr.length();
+                // zero padding
+                String pad = new String(new char[padding]).replace("\0", "0");
+                hashStr = pad + hashStr;
+            }
+            return hashStr;
+
+
+        }catch (NoSuchAlgorithmException e){
+            logger.fatal("Unable to find hashing algorithm", e);
+            e.printStackTrace();
+            return null;
         }
-        return hashStr;
     }
 
 
     public static boolean IsKeyinRange(BigInteger keyHash, String StartHash, String Endhash)
 
     {
-        //String Minvalue = new String(new char[32]).replace("\0", "0");
-        //String MaxValue = new String(new char[32]).replace("\0", "f");
+
         BigInteger upper = new BigInteger(StartHash);
         BigInteger lower = new BigInteger(Endhash);
-        //BigInteger keyHash= new BigInteger(keyhash);
 
         boolean descend = upper.compareTo(lower) == 1;
         if(keyHash.compareTo(upper) == 0 || keyHash.compareTo(lower) == 0){
