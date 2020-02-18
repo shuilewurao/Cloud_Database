@@ -39,9 +39,9 @@ public interface IECSNode {
      */
     public String[] getNodeHashRange();
 
-    public void setFlag(ECSNodeFlag flag);
+    public void setFlag(ECSNodeMessage.ECSNodeFlag flag);
 
-    public ECSNodeFlag getFlag();
+    public ECSNodeMessage.ECSNodeFlag getFlag();
 
     public KVMessage.ServerStateType getServerStateType();
 
