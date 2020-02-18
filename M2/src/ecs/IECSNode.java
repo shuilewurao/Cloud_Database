@@ -1,6 +1,7 @@
 package ecs;
 
 import app_kvServer.DataObjects.MetaData;
+import shared.messages.KVMessage;
 
 import java.math.BigInteger;
 import java.util.TreeMap;
@@ -42,6 +43,10 @@ public interface IECSNode {
 
     public ECSNodeFlag getFlag();
 
-    public TreeMap<BigInteger, MetaData> getMetaData();
+    public KVMessage.ServerStateType getServerStateType();
+
+    public ECSNode getNextNode();
+
+    public ECSMetaData getMetaData();
 
 }

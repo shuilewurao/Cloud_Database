@@ -1,89 +1,123 @@
 package ecs;
 
-import java.io.Serializable;
+import shared.messages.KVMessage;
+
 import java.math.BigInteger;
-import java.util.TreeMap;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
-import app_kvServer.DataObjects.MetaData;
+public class ECSNode implements IECSNode {
 
-public class ECSNode implements IECSNode, Serializable {
+    private static final String HASH_DELIMITER = ":";
 
-    private String name;
-    private String host;
-    private int port;
-    private BigInteger startHash;
-    private BigInteger endHash;
-    private TreeMap<BigInteger, MetaData> metaData;
-//    private String cacheStrategy;
-//    private int cacheSize;
-    private ECSNodeFlag flag;
+    private ECSMetaData metaData;
 
-    public ECSNode(String name, String host, int port){
-        this.name = name;
-        this.host = host;
-        this.port = port;
-        this.startHash = null;
-        this.endHash = null;
-        metaData = new TreeMap<>();
-        flag = ECSNodeFlag.STOP;
-    }
+    /*
 
-    /**
-     * @return  the name of the node (ie "Server 8.8.8.8")
+    Server responsible for KV pairs between next to current
+
      */
-    public String getNodeName(){
-        return name;
+
+    private ECSNode nextNode;
+    private ECSNode prevNode;
+    private ECSNodeMessage.ECSNodeFlag flag = ECSNodeMessage.ECSNodeFlag.STOP;
+
+    public ECSNode() {
     }
 
-    /**
-     * @return  the hostname of the node (ie "8.8.8.8")
-     */
-    public String getNodeHost(){
-        return host;
+    public ECSNode(String name, String host, int port) {
+        this.metaData = new ECSMetaData(name, host, port);
     }
 
-    /**
-     * @return  the port number of the node (ie 8080)
-     */
-    public int getNodePort(){
-        return port;
+    // TODO
+    /*
+     * ECSNode should also cover key value pair??
+     * */
+
+
+    @Override
+    public String getNodeName() {
+        return this.metaData.getName();
     }
 
-    /**
-     * @return  array of two strings representing the low and high range of the hashes that the given node is responsible for
-     */
-    public String[] getNodeHashRange(){
-        String[] range = new String[2];
-        range[0] = startHash.toString();
-        range[1] = endHash.toString();
-        return range;
+    @Override
+    public String getNodeHost() {
+        return this.metaData.getHost();
     }
 
-    /**
-     * This sets the new hash range for this ECS node
-     * @param start
-     * @param end
-     */
-    public void setHashRanges(BigInteger start, BigInteger end){
-        this.startHash = start; //start.add(new BigInteger(("1")));  // TODO
-        this.endHash = end;
+    @Override
+    public int getNodePort() {
+        return this.metaData.getPort();
     }
 
-
-    public void setFlag(ECSNodeFlag newFlag){
-        flag = newFlag;
+    public void setNodeHash(BigInteger hash) {
+        this.metaData.setStartHash(hash);
     }
 
-    public ECSNodeFlag getFlag(){
-        return flag;
+    public BigInteger getNodeHash() {
+        return this.metaData.getStartHash();
     }
 
-    public TreeMap<BigInteger, MetaData> getMetaData(){
-        return metaData;
+    @Override
+    public String[] getNodeHashRange() {
+        BigInteger[] hashRange = this.metaData.getHashRange();
+        return new String[]{
+                hashRange[0].toString(),
+                hashRange[1].toString()
+        };
     }
 
+    public void setServerStateType(KVMessage.ServerStateType stateType) {
+        this.metaData.setServerStateType(stateType);
+    }
 
+    @Override
+    public KVMessage.ServerStateType getServerStateType() {
+        return this.metaData.getServerStateType();
+    }
 
+    public void setNextNode(ECSNode node) {
+        this.nextNode = node;
+    }
 
+    @Override
+    public ECSNode getNextNode() {
+        return this.nextNode;
+    }
 
+    public void setPrevNode(ECSNode node) {
+        this.prevNode = node;
+    }
+
+    public ECSNode getPrevNode() {
+        return this.prevNode;
+    }
+
+    public void setFlag(ECSNodeMessage.ECSNodeFlag flag) {
+        this.flag = flag;
+    }
+
+    public ECSNodeMessage.ECSNodeFlag getFlag() {
+        return this.flag;
+    }
+
+    public ECSMetaData getMetaData() {
+        return this.metaData;
+    }
+
+    public int getCacheSize() {
+        return this.metaData.getCacheSize();
+    }
+
+    public void setCacheSize(int cacheSize) {
+        this.metaData.setCacheSize(cacheSize);
+    }
+
+    public String getReplacementStrategy() {
+        return this.metaData.getReplacementStrategy();
+    }
+
+    public void setReplacementStrategy(String replacementStrategy) {
+        this.metaData.setReplacementStrategy(replacementStrategy);
+    }
 }
