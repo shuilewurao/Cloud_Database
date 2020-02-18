@@ -295,4 +295,17 @@ public class KVStore implements KVCommInterface {
         logger.info("Valid Key and Value ");
         return true;
     }
+
+
+    /**
+     *
+     * @param movedData
+     * @return
+     * @throws IOException
+     */
+    public TextMessage sendMovedData(String movedData) throws IOException{
+        sendMessage(new TextMessage("Transferring_Data" + DELIMITER + movedData));
+        return receiveMessage();
+
+    }
 }

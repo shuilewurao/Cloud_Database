@@ -18,8 +18,7 @@ public interface IKVServer {
         IDLE,
         STOPPED,
         STARTED,
-        SHUT_DOWN,
-        ERROR
+        SHUT_DOWN
     }
 
     /**

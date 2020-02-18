@@ -17,6 +17,7 @@ import app_kvServer.DataObjects.MetaData;
 import app_kvServer.Database.KVDatabase;
 
 import client.KVStore;
+import ecs.ECSHashRing;
 import ecs.ECSNode;
 import logger.LogSetup;
 
@@ -32,7 +33,7 @@ import app_kvServer.CacheManager.LRU;
 import app_kvServer.CacheManager.FIFO;
 import app_kvServer.CacheManager.LFU;
 import shared.messages.KVMessage;
-
+import shared.messages.TextMessage;
 
 
 public class KVServer implements IKVServer, Runnable {
@@ -63,6 +64,8 @@ public class KVServer implements IKVServer, Runnable {
     // TODO
     private ZooKeeper zk;
     private TreeMap<BigInteger, MetaData> metaDataTree;
+
+    private ECSHashRing hashRing;
 
 
     /**
@@ -407,7 +410,7 @@ public class KVServer implements IKVServer, Runnable {
         MetaData targetServer = this.metaDataTree.get(hashTarget);
 
         if(targetServer == null){
-// TODO
+            // TODO
         }
 
         int port = targetServer.getPort();
@@ -419,18 +422,20 @@ public class KVServer implements IKVServer, Runnable {
             String DataResult = DB.getPreMovedData(range);
             KVStore tempClient = new KVStore(address, port);
             tempClient.connect();
-            //KVMessage result = tempClient.sendMovedData(DataResult);
+
+            // TODO: Needs a message here and check its status
+            TextMessage result = tempClient.sendMovedData(DataResult);
             tempClient.disconnect();
 
-        /*
-        TODO
-        if (result.getCommunicationType() == KVMessage.CommunicationType.ECS_ReceiveDataFinished) {
-            DB.deleteKVPairinRange(hashRange);
-            this.unLockWrite();
-            return true;
+            if(result.getMsg().equals("Transferring_Data_SUCCESS")){
+                DB.deleteKVPairByRange(range);
+                this.unLockWrite();
+                return true;
+            }
 
-        }
-        */
+            this.unLockWrite();
+            return false;
+
 
         }catch(Exception e){
             logger.error("Exceptions in getting moved data");
@@ -442,16 +447,16 @@ public class KVServer implements IKVServer, Runnable {
 
         }
 
-
     }
 
+    @Override
     /**
      * ECS-related update, update the metadata repo of this server
-     * TODO
      */
-    public void update(MetaData metadata){
-
+    public void update(MetaData metadata) {
+        // TODO
     }
+
 
 
     /**
@@ -475,7 +480,7 @@ public class KVServer implements IKVServer, Runnable {
      * @return
      */
     public TreeMap<BigInteger, MetaData> getMetaData(){
-        return null;
+        return metaDataTree;
     }
 
     private void inquireECS(){
@@ -505,6 +510,16 @@ public class KVServer implements IKVServer, Runnable {
             ie.printStackTrace();
         }
 
+    }
+
+    public String getServerName(){
+        return this.serverName;
+    }
+
+
+    public ECSHashRing getHashRing(){
+        // TODO: get hash ring from ZK
+        return null;
     }
 
 

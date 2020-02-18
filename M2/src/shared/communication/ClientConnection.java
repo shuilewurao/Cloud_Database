@@ -1,6 +1,9 @@
 package shared.communication;
 
 import app_kvServer.IKVServer;
+import ecs.ECSHashRing;
+import ecs.ECSNode;
+import shared.HashingFunction.MD5;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
 import app_kvServer.KVServer;
@@ -156,6 +159,12 @@ public class ClientConnection implements Runnable {
 
     }
 
+    public boolean cmdTransfer(String transferred_data){
+        // TODO
+        return true;
+
+    }
+
     /**
      * Method sends a TextMessage using this socket.
      *
@@ -244,39 +253,80 @@ public class ClientConnection implements Runnable {
     private void handleClientRequest(String cmd, String key, String[] tokens) throws IOException{
         TextMessage msg_send;
 
-        switch (cmd) {
-            case "PUT":
-
-                String value = "null";
-                if (tokens.length == 3) {
-                    value = tokens[2];
-                }
-                try {
-                    msg_send = new TextMessage(cmdPut(key, value));
-                } catch (Exception e) {
-                    msg_send = new TextMessage("PUT_ERROR + exception");
-                }
-
-                break;
-            case "GET":
-                try {
-                    String value_return = cmdGet(key);
-
-                    if (value_return.equals("GET_ERROR")) {
-                        msg_send = new TextMessage("GET_ERROR");
-                    } else {
-                        msg_send = new TextMessage("GET_SUCCESS" + DELIMITER + key + DELIMITER + value_return);
+        // checks for distributed servers
+        if(this.server.getServerState()== IKVServer.ServerStateType.STOPPED){
+            msg_send = new TextMessage(KVMessage.StatusType.SERVER_STOPPED.name());
+        }else if(!isResponsible(key)){
+            msg_send = new TextMessage(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name());
+        }else if(this.server.isWriteLocked() && cmd.equals("PUT")){ // TODO: if other commands skip this lock
+            msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
+        }else{
+            switch (cmd) {
+                case "PUT":
+                    String value = "null";
+                    if (tokens.length == 3) {
+                        value = tokens[2];
                     }
-                } catch (Exception e) {
-                    msg_send = new TextMessage("GET_ERROR + exception");
-                }
+                    try {
+                        msg_send = new TextMessage(cmdPut(key, value));
+                    } catch (Exception e) {
+                        msg_send = new TextMessage("PUT_ERROR + exception");
+                    }
 
-                break;
-            default:
-                msg_send = new TextMessage("CMD NOT RECOGNIZED: " + cmd);
+                    break;
+                case "GET":
+                    try {
+                        String value_return = cmdGet(key);
+
+                        if (value_return.equals("GET_ERROR")) {
+                            msg_send = new TextMessage("GET_ERROR");
+                        } else {
+                            msg_send = new TextMessage("GET_SUCCESS" + DELIMITER + key + DELIMITER + value_return);
+                        }
+                    } catch (Exception e) {
+                        msg_send = new TextMessage("GET_ERROR + exception");
+                    }
+
+                    break;
+                case "Transferring_Data":
+                    try{
+                        boolean result = cmdTransfer(key+"\\"+DELIMITER+tokens);
+                        if(result==true){
+                            msg_send = new TextMessage("Transferring_Data_SUCCESS");
+                        }else{
+                            msg_send = new TextMessage("Transferring_Data_ERROR");
+                        }
+                    }catch(Exception e){
+                        // TODO: will this be sent?
+                        logger.error("Exception in data transfer");
+                        msg_send = new TextMessage("Transferring_Data_ERROR");
+                    }
+                default:
+                    msg_send = new TextMessage("CMD NOT RECOGNIZED: " + cmd);
+            }
         }
 
         sendMessage(msg_send);
     }
 
+    private boolean isResponsible(String key){
+
+        return true;
+        // TODO: decomment the below after getHashRing() implemented in KVServer
+        /*
+        ECSHashRing hashRing = server.getHashRing();
+
+        ECSNode node = hashRing.getNodeByHash(MD5.HashInBI(key));
+        if (node == null) {
+            logger.error("No node in hash ring is responsible for key " + key);
+            return false;
+        }
+
+        String serverName = server.getServerName();
+        Boolean responsible = node.getNodeName().equals(serverName);
+
+        return responsible;
+
+         */
+    }
 }
