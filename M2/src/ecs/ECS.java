@@ -42,7 +42,7 @@ public class ECS implements IECSClient {
     private static final String ZK_HOST = "localhost";
     private static final int ZK_TIMEOUT = 2000;
     private int ZK_PORT;
-    private static final String ZK_ACTIVE_PATH = "/root";
+    private static final String ZK_ROOT_PATH = "/root";
     private static final String ZK_SERVER_PATH = "/server";
 
     private final CountDownLatch connectedSignal = new CountDownLatch(1);
@@ -56,7 +56,8 @@ public class ECS implements IECSClient {
 
         logger.info("[ECS] Starting new ECS...");
 
-        String cmd = "/Users/xuanchen/Desktop/ece419/M2/zookeeper-3.4.11/bin/zkServer.sh start";
+
+        String cmd = System.getProperty("user.dir") + "/zookeeper-3.4.11/bin/zkServer.sh start";
 
         try {
             Process process = Runtime.getRuntime().exec(cmd);
@@ -82,7 +83,8 @@ public class ECS implements IECSClient {
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            logger.error("[ECS] ZooKeeper cannot start!" + e);
+            logger.error("[ECS] ZooKeeper cannot start! " + e);
+            System.exit(1);
         }
 
         /*
@@ -143,12 +145,9 @@ public class ECS implements IECSClient {
          */
         logger.info("[ECS] Starting new ZooKeeper...");
 
-        zk = new ZooKeeper(ZK_HOST, ZK_TIMEOUT, new Watcher() {
-            @Override
-            public void process(WatchedEvent watchedEvent) {
-                if (watchedEvent.getState() == Event.KeeperState.SyncConnected) {
-                    connectedSignal.countDown();
-                }
+        zk = new ZooKeeper(ZK_HOST, ZK_TIMEOUT, watchedEvent -> {
+            if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
+                connectedSignal.countDown();
             }
         });
 
@@ -265,8 +264,8 @@ public class ECS implements IECSClient {
 
         try {
 
-            if (zk.exists(ZK_ACTIVE_PATH, true) == null) { // Stat checks the path of the znode
-                zk.create(ZK_ACTIVE_PATH, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            if (zk.exists(ZK_ROOT_PATH, true) == null) { // Stat checks the path of the znode
+                zk.create(ZK_ROOT_PATH, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             }
 
             if (zk.exists(ZK_SERVER_PATH, true) == null) { // Stat checks the path of the znode
@@ -279,7 +278,8 @@ public class ECS implements IECSClient {
                 IECSNode node = addNode(cacheStrategy, cacheSize);
                 result.add(node);
 
-                byte[] metaData = SerializationUtils.serialize((Serializable) node.getMetaData());
+                byte[] metaData = SerializationUtils.serialize((Serializable) node.getMetaData().getHost());
+
 
                 String nodePath = ZK_SERVER_PATH + "/" + node.getNodeName();
 
@@ -293,9 +293,7 @@ public class ECS implements IECSClient {
                 }
             }
 
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (KeeperException e) {
+        } catch (InterruptedException | KeeperException e) {
             e.printStackTrace();
         }
         assert result.size() != 0;
@@ -305,6 +303,7 @@ public class ECS implements IECSClient {
     @Override
     public boolean awaitNodes(int count, int timeout) throws Exception {
         // TODO
+
 
         return false;
     }
@@ -318,28 +317,32 @@ public class ECS implements IECSClient {
             assert name != null;
 
             if (availableNodeKeys.contains(name)) {
-                logger.error("[ECS] node is not in Hash Ring: " + name);
+                ECSNode node = availableServers.get(name);
+                assert node != null;
+                /*
+                Transfer meta data??
+                 */
+
+                // TODO
+
+                // Remove from ring??
+
+
+
+                hashRing.removeNode(node);
+
+                // Adding back to available servers
+                availableNodeKeys.add(name);
+
+                // Set new state??
+                availableServers.get(name).setServerStateType(KVMessage.ServerStateType.STOPPED);
             } else {
                 logger.info("[ECS] Removing node: " + name);
 
                 try {
-                    ECSNode node = availableServers.get(name);
 
-                    /*
-                    Transfer meta data??
-                     */
 
-                    // TODO
-
-                    // Remove from ring??
-
-                    hashRing.removeNode(node);
-
-                    // Adding back to available servers
-                    availableNodeKeys.add(name);
-
-                    // Set new state??
-                    availableServers.get(name).setServerStateType(KVMessage.ServerStateType.STOPPED);
+                    logger.error("[ECS] node is not in Hash Ring: " + name);
                 } catch (Exception e) {
                     logger.error("[ECS] Error removing nodes!" + e);
                     e.printStackTrace();

@@ -118,7 +118,11 @@ public class ECSHashRing {
     }
 
     public void removeNode(ECSNode node) {
-        logger.info("[ECS_tmp Hash Ring] Removing node:");
+
+        // TODO make sure removing a node that exists
+
+        logger.info("[ECSHashRing] Removing node:");
+
         printNode(node);
 
         ECSNode nextNode = node.getNextNode();
