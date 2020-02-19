@@ -27,13 +27,13 @@ public class ECSHashRing {
     public ECSHashRing(String jsonData) {
         Collection<ECSNode> nodes = new Gson().fromJson(
                 jsonData,
-                new TypeToken<List<ECSNode>>() {}.getType());
+                new TypeToken<List<ECSNode>>() {
+                }.getType());
 
         for (ECSNode node : nodes) {
             addNode(new ECSNode(node));
         }
     }
-
 
 
     public int getSize() {
@@ -51,7 +51,10 @@ public class ECSHashRing {
     }
 
     public ECSNode getNodeByHash(BigInteger hash) {
-        if(this.activeNodes.lastKey() == hash){
+        if (this.activeNodes.size() == 0)
+            return null;
+
+        if (this.activeNodes.lastKey().equals(hash)) {
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
@@ -60,9 +63,11 @@ public class ECSHashRing {
 
 
     // TODO
-    public ECSNode getNodeByName(String keyName){
+    public ECSNode getNodeByName(String keyName) {
+        if (this.activeNodes.size() == 0)
+            return null;
         BigInteger hash = MD5.HashInBI(keyName);
-        if(this.activeNodes.lastKey() == hash){
+        if (this.activeNodes.lastKey().equals(hash)) {
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
@@ -71,8 +76,10 @@ public class ECSHashRing {
 
 
     public ECSNode getPrevNode(String hashName) {
+        if (this.activeNodes.size() == 0)
+            return null;
         BigInteger currKey = MD5.HashInBI(hashName);
-        if(this.activeNodes.firstKey() == currKey){
+        if (this.activeNodes.firstKey().equals(currKey)) {
             // return the last entry given the smallest
             return this.activeNodes.lastEntry().getValue();
         }
@@ -81,7 +88,9 @@ public class ECSHashRing {
     }
 
     public ECSNode getPrevNode(BigInteger currKey) {
-        if(this.activeNodes.firstKey() == currKey){
+        if (this.activeNodes.size() == 0)
+            return null;
+        if (this.activeNodes.firstKey().equals(currKey)) {
             // return the last entry given the smallest
             return this.activeNodes.lastEntry().getValue();
         }
@@ -90,8 +99,10 @@ public class ECSHashRing {
     }
 
     public ECSNode getNextNode(String hashName) {
+        if (this.activeNodes.size() == 0)
+            return null;
         BigInteger currKey = MD5.HashInBI(hashName);
-        if(this.activeNodes.lastKey() == currKey){
+        if (this.activeNodes.lastKey().equals(currKey)) {
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
@@ -101,7 +112,9 @@ public class ECSHashRing {
     }
 
     public ECSNode getNextNode(BigInteger currKey) {
-        if(this.activeNodes.lastKey() == currKey){
+        if (this.activeNodes.size() == 0)
+            return null;
+        if (this.activeNodes.lastKey().equals(currKey)) {
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
@@ -114,13 +127,13 @@ public class ECSHashRing {
         printNode(node);
 
         ECSNode prevNode = this.getPrevNode(node.getNodeHash());
-        if(prevNode != null){
+        if (prevNode != null) {
             node.setNodeStartHash(prevNode.getNodeHash());
             this.activeNodes.put(prevNode.getNodeHash(), prevNode);
         }
 
         ECSNode nextNode = this.getNextNode(node.getNodeHash());
-        if(nextNode != null){
+        if (nextNode != null) {
             nextNode.setNodeStartHash(node.getNodeHash());
             this.activeNodes.put(nextNode.getNodeHash(), nextNode);
         }
@@ -131,8 +144,6 @@ public class ECSHashRing {
 
     public String[] removeNode(ECSNode node) {
 
-        // TODO make sure removing a node that exists
-
         logger.info("[ECSHashRing] Removing node:");
 
         printNode(node);
@@ -140,7 +151,7 @@ public class ECSHashRing {
         String[] hashRange = node.getNodeHashRange();
 
         ECSNode nextNode = this.getNextNode(node.getNodeHash());
-        if(nextNode != null){
+        if (nextNode != null) {
             nextNode.setNodeStartHash(node.getNodeStartHash());
             this.activeNodes.put(nextNode.getNodeHash(), nextNode);
         }
