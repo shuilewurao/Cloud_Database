@@ -123,7 +123,8 @@ public class ECSHashRing {
     }
 
     public void addNode(ECSNode node) {
-        logger.info("[ECSHashRing] Adding node: " + node.getNodeName());
+        logger.debug("Current ring size: " + this.activeNodes.size());
+        logger.debug("[ECSHashRing] Adding node: " + node.getNodeName());
         printNode(node);
 
         ECSNode prevNode = this.getPrevNode(node.getNodeHash());
@@ -144,7 +145,7 @@ public class ECSHashRing {
 
     public String[] removeNode(ECSNode node) {
 
-        logger.info("[ECSHashRing] Removing node:");
+        logger.debug("[ECSHashRing] Removing node:");
 
         printNode(node);
 
@@ -161,8 +162,9 @@ public class ECSHashRing {
     }
 
     public void printNode(ECSNode node) {
-        logger.info("    node name: " + node.getNodeName());
-        logger.info("    node host: " + node.getNodeHost());
+        logger.info("\t\tnode name: " + node.getNodeName());
+        logger.info("\t\tnode host: " + node.getNodeHost());
+        logger.info("\t\tnode hash: " + node.getNodeHash());
     }
 
 

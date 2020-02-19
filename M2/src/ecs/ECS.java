@@ -221,7 +221,6 @@ public class ECS implements IECSClient {
 
             assert rNode.getNodeHash() != null;
 
-            logger.info("[ECS] Adding node to Hash Ring...");
             hashRing.addNode(rNode);
 
 
@@ -307,6 +306,7 @@ public class ECS implements IECSClient {
         logger.info("[ECS] Removing nodes from Hash Ring...");
 
         for (String name : nodeNames) {
+            logger.debug("[ECS] Removing node: " + name);
 
             assert name != null;
 
@@ -321,27 +321,22 @@ public class ECS implements IECSClient {
 
                 // Remove from ring??
 
-
-
-                hashRing.removeNode(node);
-
-                // Adding back to available servers
-                availableNodeKeys.add(name);
-
-                // Set new state??
-                availableServers.get(name).setServerStateType(KVMessage.ServerStateType.STOPPED);
-            } else {
-                logger.info("[ECS] Removing node: " + name);
-
                 try {
+                    hashRing.removeNode(node);
 
+                    // Adding back to available servers
+                    availableNodeKeys.add(name);
 
-                    logger.error("[ECS] node is not in Hash Ring: " + name);
+                    // Set new state??
+                    availableServers.get(name).setServerStateType(KVMessage.ServerStateType.STOPPED);
                 } catch (Exception e) {
                     logger.error("[ECS] Error removing nodes!" + e);
                     e.printStackTrace();
                     return false;
                 }
+            } else {
+
+                logger.error("[ECS] node is not in Hash Ring: " + name);
 
             }
         }
@@ -351,6 +346,8 @@ public class ECS implements IECSClient {
     @Override
     public Map<String, IECSNode> getNodes() {
 
+        logger.info("[ECS] getting nodes...");
+
         Map<String, IECSNode> result = new HashMap<String, IECSNode>();
 
         assert hashRing.getSize() != 0;
@@ -359,6 +356,9 @@ public class ECS implements IECSClient {
         for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
             ECSNode node = entry.getValue();
             result.put(node.getNodeName(), (IECSNode) node);
+
+            logger.debug("[ECS] node: " + node.getNodeName());
+
         }
 
         return result;

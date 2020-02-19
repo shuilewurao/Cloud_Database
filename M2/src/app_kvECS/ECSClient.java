@@ -176,6 +176,7 @@ public class ECSClient implements IECSClient {
             }
 
         } else if (tokens[0].equals("help")) {
+
             printHelp();
         } else {
             printError("Unknown command!");
