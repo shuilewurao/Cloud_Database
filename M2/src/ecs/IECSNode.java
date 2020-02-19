@@ -44,7 +44,8 @@ public interface IECSNode {
 
     public KVMessage.ServerStateType getServerStateType();
 
-    public ECSNode getNextNode();
+    // TODO
+    //public ECSNode getNextNode();
 
     public ECSMetaData getMetaData();
 

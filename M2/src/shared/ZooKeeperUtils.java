@@ -21,7 +21,7 @@ public interface ZooKeeperUtils {
                 zk.create(dir, newData,
                         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             } else {
-                zk.setData(ZK_METADATA_ROOT, newData,
+                zk.setData(dir, newData,
                         exists.getVersion());
             }
         } catch (InterruptedException e) {

@@ -8,13 +8,13 @@ import java.security.NoSuchAlgorithmException;
 
 public class ECSNode implements IECSNode {
 
-    private static final String HASH_DELIMITER = ":";
-
     private ECSMetaData metaData;
 
     protected String name;
     protected String host;
     protected Integer port;
+
+    // TODO: flag
 
     /*
 
@@ -22,7 +22,7 @@ public class ECSNode implements IECSNode {
 
      */
 
-    private ECSNode nextNode;
+   // private ECSNode nextNode;
     //private ECSNode prevNode;
     private ECSNodeMessage.ECSNodeFlag flag = ECSNodeMessage.ECSNodeFlag.STOP;
 
@@ -59,11 +59,15 @@ public class ECSNode implements IECSNode {
         return this.metaData.getPort();
     }
 
-    public void setNodeHash(BigInteger hash) {
+    public void setNodeStartHash(BigInteger hash) {
         this.metaData.setStartHash(hash);
     }
 
     public BigInteger getNodeHash() {
+        return this.metaData.getEndHash();
+    }
+
+    public BigInteger getNodeStartHash() {
         return this.metaData.getStartHash();
     }
 
@@ -85,15 +89,15 @@ public class ECSNode implements IECSNode {
         return this.metaData.getServerStateType();
     }
 
-    // TODO: call this function
-    public void setNextNode(ECSNode node) {
-        this.nextNode = node;
-    }
-
-    @Override
-    public ECSNode getNextNode() {
-        return this.nextNode;
-    }
+//    // TODO: call this function
+//    public void setNextNode(ECSNode node) {
+//        this.nextNode = node;
+//    }
+//
+//    @Override
+//    public ECSNode getNextNode() {
+//        return this.nextNode;
+//    }
 //
 //    public void setPrevNode(ECSNode node) {
 //        this.prevNode = node;

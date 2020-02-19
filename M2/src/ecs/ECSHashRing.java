@@ -19,8 +19,6 @@ public class ECSHashRing {
     private Logger logger = Logger.getRootLogger();
     private TreeMap<BigInteger, ECSNode> activeNodes = new TreeMap<>();
 
-    // private ECSNode root = null;
-    private int ringSize = 0;
 
     public ECSHashRing() {
     }
@@ -39,7 +37,7 @@ public class ECSHashRing {
 
 
     public int getSize() {
-        return ringSize;
+        return this.activeNodes.size();
     }
 
     public TreeMap<BigInteger, ECSNode> getActiveNodes() {
@@ -62,8 +60,8 @@ public class ECSHashRing {
 
 
     // TODO
-    public ECSNode getNodeByName(String name){
-        BigInteger hash = MD5.HashInBI(name);
+    public ECSNode getNodeByName(String keyName){
+        BigInteger hash = MD5.HashInBI(keyName);
         if(this.activeNodes.lastKey() == hash){
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
@@ -71,8 +69,9 @@ public class ECSHashRing {
         return this.activeNodes.ceilingEntry(hash).getValue();
     }
 
-    public ECSNode getPrevNode(String nodeName) {
-        BigInteger currKey = MD5.HashInBI(nodeName);
+
+    public ECSNode getPrevNode(String hashName) {
+        BigInteger currKey = MD5.HashInBI(hashName);
         if(this.activeNodes.firstKey() == currKey){
             // return the last entry given the smallest
             return this.activeNodes.lastEntry().getValue();
@@ -81,8 +80,27 @@ public class ECSHashRing {
 
     }
 
-    public ECSNode getNextNode(String nodeName) {
-        BigInteger currKey = MD5.HashInBI(nodeName);
+    public ECSNode getPrevNode(BigInteger currKey) {
+        if(this.activeNodes.firstKey() == currKey){
+            // return the last entry given the smallest
+            return this.activeNodes.lastEntry().getValue();
+        }
+        return this.activeNodes.lowerEntry(currKey).getValue();
+
+    }
+
+    public ECSNode getNextNode(String hashName) {
+        BigInteger currKey = MD5.HashInBI(hashName);
+        if(this.activeNodes.lastKey() == currKey){
+            // return the first entry given the largest
+            return this.activeNodes.firstEntry().getValue();
+        }
+        // TODO: if works for a node not added yet
+        return this.activeNodes.lowerEntry(currKey).getValue();
+
+    }
+
+    public ECSNode getNextNode(BigInteger currKey) {
         if(this.activeNodes.lastKey() == currKey){
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
@@ -95,11 +113,23 @@ public class ECSHashRing {
         logger.info("[ECSHashRing] Adding node: " + node.getNodeName());
         printNode(node);
 
+        ECSNode prevNode = this.getPrevNode(node.getNodeHash());
+        if(prevNode != null){
+            node.setNodeStartHash(prevNode.getNodeHash());
+            this.activeNodes.put(prevNode.getNodeHash(), prevNode);
+        }
+
+        ECSNode nextNode = this.getNextNode(node.getNodeHash());
+        if(nextNode != null){
+            nextNode.setNodeStartHash(node.getNodeHash());
+            this.activeNodes.put(nextNode.getNodeHash(), nextNode);
+        }
+
         this.activeNodes.put(node.getNodeHash(), node);
-        this.ringSize = this.activeNodes.size();
+
     }
 
-    public void removeNode(ECSNode node) {
+    public String[] removeNode(ECSNode node) {
 
         // TODO make sure removing a node that exists
 
@@ -107,13 +137,22 @@ public class ECSHashRing {
 
         printNode(node);
 
+        String[] hashRange = node.getNodeHashRange();
+
+        ECSNode nextNode = this.getNextNode(node.getNodeHash());
+        if(nextNode != null){
+            nextNode.setNodeStartHash(node.getNodeStartHash());
+            this.activeNodes.put(nextNode.getNodeHash(), nextNode);
+        }
 
         this.activeNodes.remove(node);
-        this.ringSize=this.activeNodes.size();
+        return hashRange;
     }
 
     public void printNode(ECSNode node) {
         logger.info("    node name: " + node.getNodeName());
         logger.info("    node host: " + node.getNodeHost());
     }
+
+
 }

@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import org.apache.log4j.Logger;
+import shared.Constants;
 
 public class MD5
 {
@@ -48,7 +49,19 @@ public class MD5
     }
 
 
-    public static boolean IsKeyinRange(BigInteger keyHash, String StartHash, String Endhash)
+    public static BigInteger HashFromHostAddress(String host, int port){
+
+        assert host != null;
+        assert port != -1;
+
+        String val = host + Constants.HASH_DELIMITER + port;
+
+        return MD5.HashInBI(val);
+
+    }
+
+
+    public static boolean isKeyinRange(BigInteger keyHash, String StartHash, String Endhash)
 
     {
 

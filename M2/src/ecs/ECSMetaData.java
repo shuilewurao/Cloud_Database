@@ -1,5 +1,6 @@
 package ecs;
 
+import shared.HashingFunction.MD5;
 import shared.messages.KVMessage;
 
 import java.math.BigInteger;
@@ -21,6 +22,7 @@ public class ECSMetaData {
         this.name = name;
         this.host = host;
         this.port = port;
+        this.endHash= MD5.HashFromHostAddress(host, port);
     }
 
     public ECSMetaData(int cacheSize, String replacementStrategy) {
@@ -65,8 +67,10 @@ public class ECSMetaData {
         this.startHash = startHash;
     }
 
-    public BigInteger getStartHash() {
-        return this.startHash;
+    public BigInteger getStartHash() { return this.startHash; }
+
+    public BigInteger getEndHash() {
+        return this.endHash;
     }
 
     public void setHashRange(BigInteger startHash, BigInteger endHash) {
@@ -81,9 +85,9 @@ public class ECSMetaData {
         };
     }
 
-    public void setPort(int port) {
-        this.port = port;
-    }
+//    public void setPort(int port) {
+//        this.port = port;
+//    }
 
     public int getPort() {
         return this.port;

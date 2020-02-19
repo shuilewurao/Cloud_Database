@@ -9,17 +9,18 @@ import java.util.Collections;
 
 import java.util.ArrayList;
 import org.apache.log4j.Logger;
+import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.messages.KVMessage.StatusType;
 
 
 public class KVDatabase implements IKVDatabase {
 
-    private static final String dir = "./MyStore";
-    private static final String ESCAPER = "-";
-    private static final String DELIM = ESCAPER + ",";
-    private static final String ESCAPED_ESCAPER = ESCAPER + "d";
-    private static final String DELIMITER = "+"; // delimiter used by KVStore
+    private static final String DIR = Constants.DB_DIR;
+    private static final String ESCAPER = Constants.ESCAPER;
+    private static final String DELIM = Constants.DELIM;
+    private static final String ESCAPED_ESCAPER = Constants.ESCAPED_ESCAPER;
+    private static final String DELIMITER =  Constants.DELIMITER; // delimiter used by KVStore
 
     private int portNo;
     private String DBFileName;
@@ -191,11 +192,11 @@ public class KVDatabase implements IKVDatabase {
     }
 
     public String getDBPath() {
-        return this.dir + "/" + this.DBFileName;
+        return this.DIR + "/" + this.DBFileName;
     }
 
     public String getLUTPath() {
-        return this.dir + "/" + this.LUTName;
+        return this.DIR + "/" + this.LUTName;
     }
 
     private void openFile() {
@@ -204,11 +205,11 @@ public class KVDatabase implements IKVDatabase {
         boolean fileDNE;
         try {
             // create directory of persisted storage
-            File dir = new File(this.dir);
+            File dir = new File(this.DIR);
             if (!dir.exists()) {
                 boolean mkdir_result = dir.mkdir();
                 if (!mkdir_result) {
-                    logger.error("Unable to create file " + this.dir);
+                    logger.error("Unable to create file " + this.DIR);
                     return;
                 }
             }
@@ -360,7 +361,7 @@ public class KVDatabase implements IKVDatabase {
             //System.out.println("Key: "+entry.getKey()+ " in Server:"+this.PortNumber%10);
             logger.debug("Key "+entry.getKey()+ "in port:"+this.portNo);
 
-            if(MD5.IsKeyinRange(key,startRange,endRange))//Check for key in range or not
+            if(MD5.isKeyinRange(key,startRange,endRange))//Check for key in range or not
             {
                 if(kve.isValid()==false){
                     logger.debug("Move an invalid KV entry");
@@ -403,7 +404,7 @@ public class KVDatabase implements IKVDatabase {
 
                 BigInteger key = MD5.HashInBI(entry.getKey());
                 KVEntry kve = entry.getValue();
-                if (MD5.IsKeyinRange(key, startRange, endRange))//Check for key in range or not
+                if (MD5.isKeyinRange(key, startRange, endRange))//Check for key in range or not
                 {
                     ModifyValidByte(kve.start_offset, kve.end_offset);
                     synchLUT.remove(entry.getKey());

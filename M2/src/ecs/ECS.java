@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
+import shared.HashingFunction.MD5;
 import shared.ZooKeeperUtils;
 import shared.messages.KVMessage;
 
@@ -22,8 +23,6 @@ public class ECS implements IECSClient {
 
     private static final int BUFFER_SIZE = 1024;
     private static final int DROP_SIZE = 1024 * BUFFER_SIZE;
-    private static final String DELIMITER = "+";
-    private static final String HASH_DELIMITER = ":";
 
     private OutputStream output;
     private InputStream input;
@@ -220,15 +219,7 @@ public class ECS implements IECSClient {
             rNode.setServerStateType(KVMessage.ServerStateType.IDLE);
             logger.info("[ECS] Adding node: " + rNode.getNodeName());
 
-            BigInteger serverHash = null;
-            try {
-                serverHash = mdHashServer(rNode.getNodeHost(), rNode.getNodePort());
-            } catch (NoSuchAlgorithmException e) {
-                logger.error("[ECS] Error!" + e);
-                e.printStackTrace();
-            }
-
-            rNode.setNodeHash(serverHash);
+            assert rNode.getNodeHash() != null;
 
             logger.info("[ECS] Adding node to Hash Ring...");
             hashRing.addNode(rNode);
@@ -379,7 +370,7 @@ public class ECS implements IECSClient {
 
         ECSNode node;
         try {
-            BigInteger keyHash = mdHashKey(Key);
+            BigInteger keyHash = MD5.HashInBI(Key);
             node = hashRing.getNodeByHash(keyHash);
         } catch (Exception e) {
             logger.error("[ECS]");
@@ -411,42 +402,10 @@ public class ECS implements IECSClient {
     }
 
     public BigInteger mdHashServer(String host, int port) throws NoSuchAlgorithmException {
-
-        assert host != null;
-        assert port != -1;
-
-        String val = host + HASH_DELIMITER + port;
-
-        return mdHash(val);
+        return MD5.HashFromHostAddress(host, port);
 
     }
 
-    public BigInteger mdHashKey(String key) throws NoSuchAlgorithmException {
-
-        assert key != null;
-
-        return mdHash(key);
-
-    }
-
-    public BigInteger mdHash(String val) throws NoSuchAlgorithmException {
-
-        MessageDigest md = null;
-
-        try {
-            md = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            logger.error("[ECS] Error!" + e);
-            e.printStackTrace();
-        }
-
-        assert md != null;
-        md.reset();
-
-        md.update(val.getBytes());
-
-        return new BigInteger(1, md.digest());
-    }
 
     /**
      * Synch changes on hashring with ZK

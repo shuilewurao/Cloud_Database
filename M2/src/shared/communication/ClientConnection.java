@@ -4,6 +4,7 @@ import app_kvServer.IKVServer;
 import com.google.gson.Gson;
 import ecs.ECSHashRing;
 import ecs.ECSNode;
+import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
@@ -37,7 +38,6 @@ public class ClientConnection implements Runnable {
     private InputStream input;
     private OutputStream output;
 
-    private static final String DELIMITER = "+";
 
     /**
      * Constructs a new CientConnection object for a given TCP socket.
@@ -71,7 +71,7 @@ public class ClientConnection implements Runnable {
                     String msg_received = latestMsg.getMsg().trim();
                     logger.info("MSG: " + msg_received);
 
-                    String[] tokens = msg_received.split("\\" + DELIMITER);
+                    String[] tokens = msg_received.split("\\" + Constants.DELIMITER);
 
                     String cmd = tokens[0];
                     String key = "null" ;
@@ -261,7 +261,7 @@ public class ClientConnection implements Runnable {
         }else if(!isResponsible(key)){
             String hashRingStr = new Gson().toJson(server.getHashRing());
             msg_send = new TextMessage(
-                    KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() + DELIMITER + hashRingStr);
+                    KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() +  Constants.DELIMITER + hashRingStr);
         }else if(this.server.isWriteLocked() && cmd.equals("PUT")){ // TODO: if other commands skip this lock
             msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
         }else{
@@ -285,7 +285,7 @@ public class ClientConnection implements Runnable {
                         if (value_return.equals("GET_ERROR")) {
                             msg_send = new TextMessage("GET_ERROR");
                         } else {
-                            msg_send = new TextMessage("GET_SUCCESS" + DELIMITER + key + DELIMITER + value_return);
+                            msg_send = new TextMessage("GET_SUCCESS" +  Constants.DELIMITER + key +  Constants.DELIMITER + value_return);
                         }
                     } catch (Exception e) {
                         msg_send = new TextMessage("GET_ERROR + exception");
@@ -294,7 +294,7 @@ public class ClientConnection implements Runnable {
                     break;
                 case "Transferring_Data":
                     try{
-                        boolean result = cmdTransfer(key+"\\"+DELIMITER+tokens);
+                        boolean result = cmdTransfer(key+"\\"+ Constants.DELIMITER+tokens);
                         if(result==true){
                             msg_send = new TextMessage("Transferring_Data_SUCCESS");
                         }else{

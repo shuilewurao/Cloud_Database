@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import ecs.ECSHashRing;
 import ecs.ECSNode;
 import org.apache.log4j.Logger;
+import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
@@ -35,14 +36,14 @@ public class KVStore implements KVCommInterface {
     private Logger logger = Logger.getRootLogger();
     private Set<IKVClient> listeners;
     private boolean running;
-    private static final String DELIMITER = "+";
+    private static final String DELIMITER = Constants.DELIMITER;
 
     private Socket clientSocket;
     private OutputStream output;
     private InputStream input;
 
-    private static final int BUFFER_SIZE = 1024;
-    private static final int DROP_SIZE = 1024 * BUFFER_SIZE;
+    private static final int BUFFER_SIZE = Constants.BUFFER_SIZE;
+    private static final int DROP_SIZE = Constants.DROP_SIZE;
 
     private String address;
     private int port;
