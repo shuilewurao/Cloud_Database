@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.data.Stat;
+import shared.ZooKeeperUtils;
 import shared.communication.ClientConnection;
 import shared.HashingFunction.MD5;
 
@@ -36,7 +37,7 @@ import shared.messages.KVMessage;
 import shared.messages.TextMessage;
 
 
-public class KVServer implements IKVServer, Runnable {
+public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
 
     private static Logger logger = Logger.getRootLogger();
 
@@ -66,6 +67,7 @@ public class KVServer implements IKVServer, Runnable {
     private TreeMap<BigInteger, MetaData> metaDataTree;
 
     private ECSHashRing hashRing;
+    private String hashRingString;
 
 
     /**
@@ -119,6 +121,7 @@ public class KVServer implements IKVServer, Runnable {
         this.DB = new KVDatabase(port);
         this.serverState = ServerStateType.STOPPED;
         this.writeLocked = false;
+        // TODO
         subscribeZooKeeper();
 //        connectZooKeeper(zkHostName, zkPort);
 //        getMetaDataFromZK();
@@ -370,6 +373,7 @@ public class KVServer implements IKVServer, Runnable {
      *  ECS-related shutdown, exit the KVServer application
      */
     public void shutdown(){
+        // TODO: clear storage
         serverState = ServerStateType.SHUT_DOWN;
     }
 
@@ -449,13 +453,13 @@ public class KVServer implements IKVServer, Runnable {
 
     }
 
-    @Override
-    /**
-     * ECS-related update, update the metadata repo of this server
-     */
-    public void update(MetaData metadata) {
-        // TODO
-    }
+//    @Override
+//    /**
+//     * ECS-related update, update the metadata repo of this server
+//     */
+//    public void update(MetaData metadata) {
+//        // TODO
+//    }
 
 
 
@@ -509,7 +513,86 @@ public class KVServer implements IKVServer, Runnable {
         } catch (InterruptedException ie) {
             ie.printStackTrace();
         }
+    }
 
+    /*
+     Listen on changes of HashRing
+     */
+    private void subscribeZKMetaData(ZooKeeper zk){
+        try {
+            // setup hashRing info
+            byte[] hashRingData = zk.getData(ZooKeeperUtils.ZK_METADATA_ROOT, new Watcher() {
+                // handle hashRing update
+                public void process(WatchedEvent we) {
+                    try {
+                        byte[] hashRingData = zk.getData(ZooKeeperUtils.ZK_METADATA_ROOT, this, null);
+                        hashRingString = new String(hashRingData);
+                        hashRing = new ECSHashRing(hashRingString);
+                        logger.info("Hash Ring updated");
+
+                        update(hashRing);
+
+                    } catch (KeeperException | InterruptedException e) {
+                        logger.error("Unable to update the metadata node");
+                        e.printStackTrace();
+                    }
+                }
+            }, null);
+            logger.debug("Hash Ring found");
+            hashRingString = new String(hashRingData);
+            hashRing = new ECSHashRing(hashRingString);
+
+
+        } catch (InterruptedException | KeeperException e) {
+            logger.debug("Unable to get metadata info");
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Update the forwarderList based on information in hashRing provided
+     *
+     * @param hashRing hashRing object
+     * @throws IOException socket connection issue
+     */
+    public void update(ECSHashRing hashRing){
+        ECSNode node = hashRing.getNodeByName(this.serverName);
+        if (node == null) {
+            // server idle or shutdown
+            this.clearStorage();
+            return;
+        }
+
+        //TODO
+
+        /*
+
+        List<KVServerForwarder> newList = hashRing.getReplicationNodes(node).stream()
+                .map(KVServerForwarder::new).collect(Collectors.toList());
+
+        // Can NOT replace with foreach since can NOT remove item
+        // while iterating
+        for (Iterator<KVServerForwarder> it = forwarderList.iterator();
+             it.hasNext(); ) {
+            KVServerForwarder forwarder = it.next();
+            // Remove forwarder not longer active
+            if (!newList.contains(forwarder)) {
+                logger.info(self.getNodeName() + " disconnect from " + forwarder.getName());
+                forwarder.disconnect();
+                it.remove();
+            }
+        }
+
+        for (KVServerForwarder forwarder : newList) {
+            if (!this.forwarderList.contains(forwarder)) {
+                logger.info(self.getNodeName() + " connects to " + forwarder.getName());
+                forwarder.setPrompt(self.getNodeName() + " to " + forwarder.getName());
+                forwarder.connect();
+                this.forwarderList.add(forwarder);
+            }
+        }
+
+         */
     }
 
     public String getServerName(){
@@ -518,8 +601,7 @@ public class KVServer implements IKVServer, Runnable {
 
 
     public ECSHashRing getHashRing(){
-        // TODO: get hash ring from ZK
-        return null;
+        return hashRing;
     }
 
 

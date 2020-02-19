@@ -1,6 +1,7 @@
 package shared.communication;
 
 import app_kvServer.IKVServer;
+import com.google.gson.Gson;
 import ecs.ECSHashRing;
 import ecs.ECSNode;
 import shared.HashingFunction.MD5;
@@ -254,10 +255,13 @@ public class ClientConnection implements Runnable {
         TextMessage msg_send;
 
         // checks for distributed servers
-        if(this.server.getServerState()== IKVServer.ServerStateType.STOPPED){
+        if(this.server.getServerState() != IKVServer.ServerStateType.STARTED){
+            // TODO: also needs to check if it is a ECS request
             msg_send = new TextMessage(KVMessage.StatusType.SERVER_STOPPED.name());
         }else if(!isResponsible(key)){
-            msg_send = new TextMessage(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name());
+            String hashRingStr = new Gson().toJson(server.getHashRing());
+            msg_send = new TextMessage(
+                    KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() + DELIMITER + hashRingStr);
         }else if(this.server.isWriteLocked() && cmd.equals("PUT")){ // TODO: if other commands skip this lock
             msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
         }else{
@@ -311,9 +315,7 @@ public class ClientConnection implements Runnable {
 
     private boolean isResponsible(String key){
 
-        return true;
-        // TODO: decomment the below after getHashRing() implemented in KVServer
-        /*
+
         ECSHashRing hashRing = server.getHashRing();
 
         ECSNode node = hashRing.getNodeByHash(MD5.HashInBI(key));
@@ -327,6 +329,6 @@ public class ClientConnection implements Runnable {
 
         return responsible;
 
-         */
+
     }
 }

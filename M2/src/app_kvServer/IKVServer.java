@@ -1,6 +1,7 @@
 package app_kvServer;
 
 import app_kvServer.DataObjects.MetaData;
+import ecs.ECSHashRing;
 
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
@@ -140,7 +141,7 @@ public interface IKVServer {
      * ECS-related update, update the metadata repo of this server
      * @param metadata
      */
-    public void update(MetaData metadata);
+    public void update(ECSHashRing metadata);
 
     public ServerStateType getServerState();
 

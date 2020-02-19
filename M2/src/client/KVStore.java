@@ -1,14 +1,20 @@
 package client;
 
 import app_kvClient.IKVClient;
+import com.google.gson.Gson;
+import ecs.ECSHashRing;
+import ecs.ECSNode;
 import org.apache.log4j.Logger;
+import shared.HashingFunction.MD5;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
 import shared.messages.KVConvertMessage;
 
+import javax.xml.soap.Text;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.HashSet;
@@ -119,7 +125,8 @@ public class KVStore implements KVCommInterface {
 
             sendMessage(msg_send);
 
-            TextMessage msg_receive = receiveMessage();
+            //TextMessage msg_receive = receiveMessage();
+            TextMessage msg_receive = handleServerNotResponsible(receiveMessage(), msg_send, key);
 
             logger.debug("From server: " + msg_receive.getMsg());
 
@@ -153,7 +160,8 @@ public class KVStore implements KVCommInterface {
 
             sendMessage(msg_send);
 
-            TextMessage msg_receive = receiveMessage();
+            //TextMessage msg_receive = receiveMessage();
+            TextMessage msg_receive = handleServerNotResponsible(receiveMessage(), msg_send, key);
 
             msg = msg_receive.getMsg().trim();
 
@@ -306,6 +314,50 @@ public class KVStore implements KVCommInterface {
     public TextMessage sendMovedData(String movedData) throws IOException{
         sendMessage(new TextMessage("Transferring_Data" + DELIMITER + movedData));
         return receiveMessage();
+
+    }
+
+
+    private TextMessage handleServerNotResponsible(TextMessage msg_received, TextMessage msg_sent, String key) throws IOException{
+        String msg = msg_received.getMsg();
+        logger.debug(msg); // TODO: remove this line
+        String[] tokens = msg.split("\\"+DELIMITER);
+        if(tokens[0].equals(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name())){
+
+            ECSHashRing hashRing = new ECSHashRing(tokens[1]);
+
+            BigInteger hash = MD5.HashInBI(key);
+            ECSNode newServer = hashRing.getNodeByHash(hash);
+
+            logger.info("Now connect to " + newServer);
+            logger.debug("Node hash range " + newServer.getNodeHashRange()[0]
+                    + " -> " + newServer.getNodeHashRange()[1]);
+            logger.debug("Key hash is " + hash);
+
+            this.address = newServer.getNodeHost();
+            this.port = newServer.getNodePort();
+            disconnect();
+
+            try{
+                connect();
+            }catch (UnknownHostException e ) {
+                e.printStackTrace();
+                logger.error("Unable to direct the client to server"+this.port);
+                return msg_received;
+            } catch (IOException e) {
+                e.printStackTrace();
+                logger.error("Unable to direct the client to server"+this.port);
+                return msg_received;
+            }
+
+            sendMessage(msg_sent);
+
+            TextMessage msg_receive = receiveMessage();
+
+            return msg_receive;
+
+        }
+        return msg_received;
 
     }
 }
