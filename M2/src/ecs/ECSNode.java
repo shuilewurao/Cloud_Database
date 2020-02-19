@@ -12,6 +12,10 @@ public class ECSNode implements IECSNode {
 
     private ECSMetaData metaData;
 
+    protected String name;
+    protected String host;
+    protected Integer port;
+
     /*
 
     Server responsible for KV pairs between next to current
@@ -19,13 +23,18 @@ public class ECSNode implements IECSNode {
      */
 
     private ECSNode nextNode;
-    private ECSNode prevNode;
+    //private ECSNode prevNode;
     private ECSNodeMessage.ECSNodeFlag flag = ECSNodeMessage.ECSNodeFlag.STOP;
 
-    public ECSNode() {
+    public ECSNode(ECSNode n) {
+        this(n.name, n.host, n.port);
     }
 
+
     public ECSNode(String name, String host, int port) {
+        this.name = name;
+        this.host = host;
+        this.port = port;
         this.metaData = new ECSMetaData(name, host, port);
     }
 
@@ -76,6 +85,7 @@ public class ECSNode implements IECSNode {
         return this.metaData.getServerStateType();
     }
 
+    // TODO: call this function
     public void setNextNode(ECSNode node) {
         this.nextNode = node;
     }
@@ -84,14 +94,14 @@ public class ECSNode implements IECSNode {
     public ECSNode getNextNode() {
         return this.nextNode;
     }
-
-    public void setPrevNode(ECSNode node) {
-        this.prevNode = node;
-    }
-
-    public ECSNode getPrevNode() {
-        return this.prevNode;
-    }
+//
+//    public void setPrevNode(ECSNode node) {
+//        this.prevNode = node;
+//    }
+//
+//    public ECSNode getPrevNode() {
+//        return this.prevNode;
+//    }
 
     public void setFlag(ECSNodeMessage.ECSNodeFlag flag) {
         this.flag = flag;
@@ -104,6 +114,7 @@ public class ECSNode implements IECSNode {
     public ECSMetaData getMetaData() {
         return this.metaData;
     }
+
 
     public int getCacheSize() {
         return this.metaData.getCacheSize();

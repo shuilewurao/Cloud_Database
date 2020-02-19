@@ -1,9 +1,11 @@
 package ecs;
 
 import app_kvECS.IECSClient;
+import com.google.gson.Gson;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
+import shared.ZooKeeperUtils;
 import shared.messages.KVMessage;
 
 import java.io.*;
@@ -46,6 +48,7 @@ public class ECS implements IECSClient {
     private static final String ZK_SERVER_PATH = "/server";
 
     private final CountDownLatch connectedSignal = new CountDownLatch(1);
+
 
     /**
      * @param configFilePath
@@ -361,9 +364,9 @@ public class ECS implements IECSClient {
 
         assert hashRing.getSize() != 0;
 
-        List<ECSNode> activeNodes = hashRing.getActiveNodes();
 
-        for (ECSNode node : activeNodes) {
+        for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
+            ECSNode node = entry.getValue();
             result.put(node.getNodeName(), (IECSNode) node);
         }
 
@@ -444,4 +447,31 @@ public class ECS implements IECSClient {
 
         return new BigInteger(1, md.digest());
     }
+
+    /**
+     * Synch changes on hashring with ZK
+     */
+    // TODO
+    private boolean updateMetadata() {
+
+        // return ZooKeeperUtils.update(ZooKeeperUtils.ZK_METADATA_ROOT, convertHashRingToJSON()().getBytes);
+        return true;
+
+    }
+
+    // TODO
+    /*
+    public String convertHashRingToJSON() {
+        List<ECSNode> activeNodes = nodeTable.values().stream()
+                .map(n -> (ECSNode) n)
+                .filter(n -> n.getStatus().equals(ECSNode.ECSNodeFlag.ACTIVE))
+                .map(RawECSNode::new)
+                .collect(Collectors.toList());
+
+        return new Gson().toJson(activeNodes);
+    }
+
+     */
+
+    // TODO: restore mechanism
 }

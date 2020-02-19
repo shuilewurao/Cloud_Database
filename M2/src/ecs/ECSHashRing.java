@@ -1,6 +1,10 @@
 package ecs;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.apache.log4j.Logger;
+import shared.HashingFunction.MD5;
+import shared.ZooKeeperUtils;
 
 import java.math.BigInteger; // radix = 16 is the hexadecimal form
 
@@ -13,68 +17,77 @@ import java.util.*;
 public class ECSHashRing {
 
     private Logger logger = Logger.getRootLogger();
-    private LinkedList<ECSNode> activeNodes = new LinkedList<>();
+    private TreeMap<BigInteger, ECSNode> activeNodes = new TreeMap<>();
 
-    private ECSNode root = null;
+    // private ECSNode root = null;
     private int ringSize = 0;
 
     public ECSHashRing() {
     }
 
+    // TODO: Check
+    public ECSHashRing(String jsonData) {
+        Collection<ECSNode> nodes = new Gson().fromJson(
+                jsonData,
+                new TypeToken<List<ECSNode>>() {}.getType());
+
+        for (ECSNode node : nodes) {
+            addNode(new ECSNode(node));
+        }
+    }
+
+
+
     public int getSize() {
         return ringSize;
     }
 
-    public List<ECSNode> getActiveNodes() {
+    public TreeMap<BigInteger, ECSNode> getActiveNodes() {
         return activeNodes;
     }
 
+    // TODO
     public ECSNode getNodeByHostPort(ECSNode node) {
         return null;
 
     }
 
     public ECSNode getNodeByHash(BigInteger hash) {
-        ECSNode curr = root;
-        if (root == null) {
-            return null;
+        if(this.activeNodes.lastKey() == hash){
+            // return the first entry given the largest
+            return this.activeNodes.firstEntry().getValue();
         }
+        return this.activeNodes.ceilingEntry(hash).getValue();
+    }
 
-        while (true) {
 
-            String[] hashRange = curr.getNodeHashRange();
-            assert hashRange != null;
-
-            BigInteger lowerBound = new BigInteger(hashRange[0], 16);
-            BigInteger upperBound = new BigInteger(hashRange[1], 16);
-
-            if (hash.compareTo(lowerBound) >= 0 && hash.compareTo(upperBound) <= 0) {
-                break;
-            }
-            curr = curr.getNextNode();
+    // TODO
+    public ECSNode getNodeByName(String name){
+        BigInteger hash = MD5.HashInBI(name);
+        if(this.activeNodes.lastKey() == hash){
+            // return the first entry given the largest
+            return this.activeNodes.firstEntry().getValue();
         }
-        return curr;
+        return this.activeNodes.ceilingEntry(hash).getValue();
     }
 
     public ECSNode getPrevNode(String nodeName) {
-        // TODO
-        ECSNode prevNode = new ECSNode();
-        if (ringSize < 1) {
-            return null;
-        } else {
-            return prevNode;
+        BigInteger currKey = MD5.HashInBI(nodeName);
+        if(this.activeNodes.firstKey() == currKey){
+            // return the last entry given the smallest
+            return this.activeNodes.lastEntry().getValue();
         }
+        return this.activeNodes.lowerEntry(currKey).getValue();
 
     }
 
     public ECSNode getNextNode(String nodeName) {
-        // TODO
-        ECSNode nextNode = new ECSNode();
-        if (ringSize < 1) {
-            return null;
-        } else {
-            return nextNode;
+        BigInteger currKey = MD5.HashInBI(nodeName);
+        if(this.activeNodes.lastKey() == currKey){
+            // return the first entry given the largest
+            return this.activeNodes.firstEntry().getValue();
         }
+        return this.activeNodes.lowerEntry(currKey).getValue();
 
     }
 
@@ -82,39 +95,8 @@ public class ECSHashRing {
         logger.info("[ECSHashRing] Adding node: " + node.getNodeName());
         printNode(node);
 
-        if (root == null) {
-            root = node;
-            // wrap around
-            root.setNextNode(node);
-            root.setPrevNode(node);
-        } else {
-
-            assert node.getNodeHost() != null;
-            assert node.getNodePort() != -1;
-
-            ECSNode currNode = getNodeByHash(node.getNodeHash());
-            ECSNode nextNode = currNode.getNextNode();
-
-            /*
-
-                -->
-            node * * Next
-            *          *
-            *          *
-            Curr * * * *
-                <--
-
-            * */
-            node.setNextNode(nextNode);
-            node.setPrevNode(currNode);
-
-            currNode.setNextNode(node);
-            nextNode.setPrevNode(node);
-
-        }
-
-        this.activeNodes.add(node);
-        this.ringSize++;
+        this.activeNodes.put(node.getNodeHash(), node);
+        this.ringSize = this.activeNodes.size();
     }
 
     public void removeNode(ECSNode node) {
@@ -125,24 +107,9 @@ public class ECSHashRing {
 
         printNode(node);
 
-        ECSNode nextNode = node.getNextNode();
-        ECSNode prevNode = node.getPrevNode();
-
-        if (nextNode.equals(node) && nextNode.equals(prevNode)) {
-            // one node in the ring
-
-            assert ringSize == 1;
-            root = null;
-        } else if (nextNode.equals(prevNode)) {
-            // more than one node in the ring
-
-            nextNode.setPrevNode(prevNode);
-            prevNode.setNextNode(nextNode);
-        }
-
 
         this.activeNodes.remove(node);
-        this.ringSize--;
+        this.ringSize=this.activeNodes.size();
     }
 
     public void printNode(ECSNode node) {
