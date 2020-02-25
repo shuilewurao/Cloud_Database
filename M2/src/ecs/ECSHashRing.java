@@ -164,7 +164,7 @@ public class ECSHashRing {
     public void printNode(ECSNode node) {
         logger.info("\t\tnode name: " + node.getNodeName());
         logger.info("\t\tnode host: " + node.getNodeHost());
-        logger.info("\t\tnode hash: " + node.getNodeHash());
+        logger.info("\t\tnode hash: " + node.getNodeHash()  );
     }
 
 

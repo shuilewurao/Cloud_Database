@@ -64,6 +64,7 @@ public class ECSClient implements IECSClient {
                     stop = true;
                     logger.info("[ECSClient] Application exit!");
                     System.out.println(PROMPT + "Application exit!");
+                    System.exit(0);
                 } else {
                     logger.error("[ECSClient] Cannot quit!");
                 }
@@ -75,6 +76,8 @@ public class ECSClient implements IECSClient {
                     int numberOfNodes = Integer.parseInt(tokens[1]);
                     int cacheSize = Integer.parseInt(tokens[2]);
                     String replacementStrategy = tokens[3];
+
+                    client = new ECS(config_file_path);
 
                     addNodes(numberOfNodes, replacementStrategy, cacheSize);
 
@@ -193,22 +196,21 @@ public class ECSClient implements IECSClient {
         sb.append("::::::::::::::::::::::::::::::::");
         sb.append("::::::::::::::::::::::::::::::::\n");
         sb.append(PROMPT).append("init <numberOfServers> <cacheSize> <replacementStrategy>\n");
-        sb.append("\t\t\t\t Initiates the storage service with user specified number of servers, cache size, and replacement strategy. \n");
+        sb.append("\t\t\t Initiates the storage service with user specified number of servers, cache size, and replacement strategy. \n");
         sb.append(PROMPT).append("add <cacheSize> <replacementStrategy>\n");
-        sb.append("\t\t\t\t Add a new KVServer with the specified cache size and replacement strategy to the storage service. \n");
+        sb.append("\t\t\t Add a new KVServer with the specified cache size and replacement strategy to the storage service. \n");
         sb.append(PROMPT).append("remove <indexOfServer>\n");
-        sb.append("\t\t\t\t Remove the specified server from the storage service. \n");
+        sb.append("\t\t\t Remove the specified server from the storage service. \n");
         sb.append(PROMPT).append("start\n");
-        sb.append("\t\t\t\t Starts the service by starting all participating KVServers. \n");
+        sb.append("\t\t\t Starts the service by starting all participating KVServers. \n");
         sb.append(PROMPT).append("stop\n");
-        sb.append("\t\t\t\t Stops the service; all participating KVServers are stopped for processing client requests. \n");
-        sb.append(PROMPT).append("logLevel");
-        sb.append("\t\t\t\t changes the logLevel \n");
-        sb.append(PROMPT).append("\t\t\t\t\t\t ");
-        sb.append("ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF \n");
+        sb.append("\t\t\t Stops the service; all participating KVServers are stopped for processing client requests. \n");
+        sb.append(PROMPT).append("logLevel\n");
+        sb.append("\t\t\t changes the logLevel\n");
+        sb.append("\t\t\t ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF \n");
 
         sb.append(PROMPT).append("quit ");
-        sb.append("\t\t\t\t\t exits the program");
+        sb.append("\t\t\t exits the program");
         System.out.println(sb.toString());
     }
 
@@ -253,27 +255,32 @@ public class ECSClient implements IECSClient {
 
     @Override
     public boolean start() {
-        // TODO
+        try {
+            return client.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return false;
     }
 
     @Override
     public boolean stop() {
-        // TODO
+        try {
+            return client.stop();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return false;
     }
 
     @Override
     public boolean shutdown() throws Exception {
-        // TODO
-
 
         return client.shutdown();
     }
 
     @Override
     public IECSNode addNode(String cacheStrategy, int cacheSize) {
-        // TODO
 
         return client.addNode(cacheStrategy, cacheSize);
 
@@ -281,17 +288,14 @@ public class ECSClient implements IECSClient {
 
     @Override
     public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) throws IOException {
-        // TODO
-
-        client = new ECS(config_file_path);
+        // Initial call
 
         return client.addNodes(count, cacheStrategy, cacheSize);
     }
 
     @Override
     public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
-        // TODO
-        return client.setupNodes(count, cacheStrategy, cacheSize);
+        return null;
     }
 
     @Override
@@ -351,6 +355,5 @@ public class ECSClient implements IECSClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 }

@@ -45,8 +45,12 @@ public class ECS implements IECSClient {
     private int ZK_PORT;
     private static final String ZK_ROOT_PATH = "/root";
     private static final String ZK_SERVER_PATH = "/server";
-
     private final CountDownLatch connectedSignal = new CountDownLatch(1);
+
+    private static final String PWD = System.getProperty("user.dir");
+    private static final String RUN_SERVER_SCRIPT = "script.sh";
+    private static final String RUN_ZKSERVER_SCRIPT = "zookeeper-3.4.11/bin/zkServer.sh start";
+    private static final String WHITESPACE = " ";
 
 
     /**
@@ -59,7 +63,7 @@ public class ECS implements IECSClient {
         logger.info("[ECS] Starting new ECS...");
 
 
-        String cmd = System.getProperty("user.dir") + "/zookeeper-3.4.11/bin/zkServer.sh start";
+        String cmd = PWD + "/" + RUN_ZKSERVER_SCRIPT;
 
         try {
             Process process = Runtime.getRuntime().exec(cmd);
@@ -171,28 +175,97 @@ public class ECS implements IECSClient {
 
     @Override
     public boolean start() throws Exception {
-        // TODO
+        // filter current activeNodes:
 
-        // start every active node??
-        // call script?
+        Collection<ECSNode> toStart = new ArrayList<>();
 
-        return false;
+        for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
+            ECSNode n = (ECSNode) entry.getValue();
+            if (n.getServerStateType().equals(KVMessage.ServerStateType.IDLE)) {
+                toStart.add(n);
+            } else {
+                logger.debug("[ECS] " + n.getNodeName() + " is not in IDLE state!");
+            }
+        }
+
+        // call start on Node using script.sh:
+        // server <port> <cacheSize> <cacheStrategy>
+        // java -jar $1/m2-server.jar $2 $3 $4  > "$1/logs/Server_$2.log" 2>&1
+
+        Process proc;
+        String script_path = PWD + "/" + RUN_SERVER_SCRIPT;
+
+
+        for (ECSNode n : toStart) {
+
+            String cmd_input = PWD + WHITESPACE + n.getNodePort() + WHITESPACE + n.getCacheSize() + WHITESPACE + n.getReplacementStrategy();
+
+            logger.info("[ECS] Running Server starting cmd: " + script_path + WHITESPACE + cmd_input);
+            Runtime run = Runtime.getRuntime();
+            try {
+                proc = run.exec(script_path + WHITESPACE + cmd_input);
+
+                logger.info("[ECS] Setting " + n.getNodeName() + " to STARTED state!");
+
+                hashRing.getNodeByName(n.name).setServerStateType(KVMessage.ServerStateType.STARTED);
+            } catch (IOException e) {
+                logger.error("[ECS] Error running cmd: " + e);
+                e.printStackTrace();
+            }
+        }
+
+        return true;
     }
 
     @Override
     public boolean stop() throws Exception {
-        // TODO
 
-        // for each active node, stop them? call KVStore??
+        Collection<ECSNode> allRunning = new ArrayList<>();
+
+        for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
+            ECSNode n = entry.getValue();
+            if (n.getServerStateType().equals(KVMessage.ServerStateType.STARTED)) {
+                allRunning.add(n);
+            } else {
+                logger.debug("[ECS] " + n.getNodeName() + " is not in IDLE state!");
+            }
+        }
+
+        for (ECSNode n : allRunning) {
+
+            logger.info("[ECS] Setting " + n.getNodeName() + " to STOPPED state!");
+
+            hashRing.getNodeByName(n.name).setServerStateType(KVMessage.ServerStateType.STOPPED);
+        }
+
         return false;
     }
 
     @Override
     public boolean shutdown() throws Exception {
-        // TODO
 
         // for each active node, disconnect them? call KVStore??
-        return true;
+
+        try {
+            for (Map.Entry<String, ECSNode> entry : availableServers.entrySet()) {
+
+                logger.info("[ECS] Setting " + entry.getValue().getNodeName() + " to STOPPED state!");
+                entry.getValue().setServerStateType(KVMessage.ServerStateType.STOPPED);
+            }
+
+            for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
+                hashRing.getNodeByName(entry.getValue().name).setServerStateType(KVMessage.ServerStateType.STOPPED);
+                hashRing.removeNode(entry.getValue());
+                availableNodeKeys.add(entry.getValue().name);
+            }
+
+            return true;
+        } catch (Exception e) {
+            logger.error("[ECS] Error shutting down..." + e);
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     @Override
@@ -222,7 +295,6 @@ public class ECS implements IECSClient {
             assert rNode.getNodeHash() != null;
 
             hashRing.addNode(rNode);
-
 
         } else {
             logger.error("[ECS] Trying to START a non STOPPED node: " + rNode.getNodeName());
@@ -290,12 +362,19 @@ public class ECS implements IECSClient {
             e.printStackTrace();
         }
         assert result.size() != 0;
+
+        // call start() to start all the nodes
+        try {
+            start();
+        } catch (Exception e) {
+            logger.error("[ECS] Error starting nodes: " + e);
+            e.printStackTrace();
+        }
         return result;
     }
 
     @Override
     public boolean awaitNodes(int count, int timeout) throws Exception {
-        // TODO
 
 
         return false;
@@ -322,7 +401,9 @@ public class ECS implements IECSClient {
                 // Remove from ring??
 
                 try {
-                    hashRing.removeNode(node);
+                    String[] newHashRange = hashRing.removeNode(node);
+
+                    logger.debug("[ECS] New hash range: " + newHashRange[0] + " : " + newHashRange[1]);
 
                     // Adding back to available servers
                     availableNodeKeys.add(name);
