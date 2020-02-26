@@ -64,13 +64,16 @@ public class ECSHashRing {
 
     // TODO
     public ECSNode getNodeByName(String keyName) {
-        if (this.activeNodes.size() == 0)
+        if (this.activeNodes.size() == 0) {
+            logger.debug("[ECSHashRing] ring size is 0!");
             return null;
+        }
         BigInteger hash = MD5.HashInBI(keyName);
         if (this.activeNodes.lastKey().equals(hash)) {
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
+
         return this.activeNodes.ceilingEntry(hash).getValue();
     }
 
@@ -94,6 +97,7 @@ public class ECSHashRing {
             // return the last entry given the smallest
             return this.activeNodes.lastEntry().getValue();
         }
+
         return this.activeNodes.lowerEntry(currKey).getValue();
 
     }

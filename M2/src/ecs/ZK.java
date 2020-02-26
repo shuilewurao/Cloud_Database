@@ -25,6 +25,7 @@ public class ZK {
         try {
             connectedSignal.await();
         } catch (InterruptedException e) {
+
         }
         return zk;
     }
@@ -43,6 +44,9 @@ public class ZK {
 
     public static void update (String path, byte[] data) throws KeeperException, InterruptedException {
         zk.setData(path, data, zk.exists(path, true).getVersion());
+        List<String> children = zk.getChildren(path, false);
+        for (int i = 0; i < children.size(); ++i)
+            delete(path + "/" + children.get(i));
     }
 
     public static void delete(String path) throws KeeperException, InterruptedException {
@@ -52,6 +56,14 @@ public class ZK {
     // ACL: access control list
     // authentication method
     // this returns {<scheme>, <who can access>}
+    /*
+    crdwa = 31
+    Create
+    Read
+    Delete
+    Write
+    Admin
+     */
     public static List<ACL> getacl (String path) throws KeeperException, InterruptedException {
         return zk.getACL(path, zk.exists(path, true));
     }

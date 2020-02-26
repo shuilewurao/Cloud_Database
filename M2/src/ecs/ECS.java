@@ -1,12 +1,10 @@
 package ecs;
 
 import app_kvECS.IECSClient;
-import com.google.gson.Gson;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import shared.HashingFunction.MD5;
-import shared.ZooKeeperUtils;
 import shared.messages.KVMessage;
 
 import java.io.*;
@@ -14,8 +12,6 @@ import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-
-import java.security.MessageDigest;
 
 public class ECS implements IECSClient {
 
@@ -39,6 +35,7 @@ public class ECS implements IECSClient {
     /*
     ZooKeeper instance
      */
+    private static ZK ZKAPP = new ZK();
     private ZooKeeper zk;
     private static final String ZK_HOST = "localhost";
     private static final int ZK_TIMEOUT = 2000;
@@ -49,7 +46,8 @@ public class ECS implements IECSClient {
 
     private static final String PWD = System.getProperty("user.dir");
     private static final String RUN_SERVER_SCRIPT = "script.sh";
-    private static final String RUN_ZKSERVER_SCRIPT = "zookeeper-3.4.11/bin/zkServer.sh start";
+    private static final String ZK_START_CMD = "zookeeper-3.4.11/bin/zkServer.sh start";
+    private static final String ZK_STOP_CMD = "zookeeper-3.4.11/bin/zkServer.sh stop";
     private static final String WHITESPACE = " ";
 
 
@@ -63,7 +61,7 @@ public class ECS implements IECSClient {
         logger.info("[ECS] Starting new ECS...");
 
 
-        String cmd = PWD + "/" + RUN_ZKSERVER_SCRIPT;
+        String cmd = PWD + "/" + ZK_START_CMD;
 
         try {
             Process process = Runtime.getRuntime().exec(cmd);
@@ -151,17 +149,7 @@ public class ECS implements IECSClient {
          */
         logger.info("[ECS] Starting new ZooKeeper...");
 
-        zk = new ZooKeeper(ZK_HOST, ZK_TIMEOUT, watchedEvent -> {
-            if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
-                connectedSignal.countDown();
-            }
-        });
-
-        try {
-            connectedSignal.await();
-        } catch (InterruptedException e) {
-            logger.error("[ECS] ZooKeeper connection error!" + e);
-        }
+        zk = ZKAPP.connect();
 
         logger.info("[ECS] ZooKeeper started!" + ZK_HOST);
 
@@ -255,13 +243,46 @@ public class ECS implements IECSClient {
 
             for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
                 hashRing.getNodeByName(entry.getValue().name).setServerStateType(KVMessage.ServerStateType.STOPPED);
-                hashRing.removeNode(entry.getValue());
+                if (hashRing.removeNode(entry.getValue()) == null)
+
                 availableNodeKeys.add(entry.getValue().name);
+            }
+
+            ZKAPP.close();
+
+            String cmd = PWD + "/" + ZK_START_CMD;
+
+            try {
+                Process process = Runtime.getRuntime().exec(cmd);
+
+                StringBuilder output = new StringBuilder();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+
+                int exitVal = process.waitFor();
+                if (exitVal == 0) {
+                    logger.info("[ECS] cmd success: " + cmd);
+                    logger.info(output);
+                    System.out.println("Success!");
+                    System.out.println(output);
+                } else {
+                    logger.error("[ECS] cmd abnormal: " + cmd);
+                    logger.error("[ECS] ZooKeeper cannot stop!");
+                }
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+                logger.error("[ECS] ZooKeeper cannot stop! " + e);
+                System.exit(1);
             }
 
             return true;
         } catch (Exception e) {
-            logger.error("[ECS] Error shutting down..." + e);
+            logger.error("[ECS] Error shutting down... " + e);
             e.printStackTrace();
         }
 
@@ -330,31 +351,28 @@ public class ECS implements IECSClient {
         try {
 
             if (zk.exists(ZK_ROOT_PATH, true) == null) { // Stat checks the path of the znode
-                zk.create(ZK_ROOT_PATH, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                ZKAPP.create(ZK_ROOT_PATH, data);
             }
 
             if (zk.exists(ZK_SERVER_PATH, true) == null) { // Stat checks the path of the znode
-                zk.create(ZK_SERVER_PATH, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                ZKAPP.create(ZK_SERVER_PATH, data);
             }
 
             for (int i = 0; i < count; ++i) {
 
-                // place on ring???
                 IECSNode node = addNode(cacheStrategy, cacheSize);
                 result.add(node);
 
-                byte[] metaData = SerializationUtils.serialize((Serializable) node.getMetaData().getHost());
+                byte[] metaData = SerializationUtils.serialize(node.getMetaData().getHost());
 
 
                 String nodePath = ZK_SERVER_PATH + "/" + node.getNodeName();
 
                 if (zk.exists(nodePath, true) == null) {
-                    zk.create(nodePath, metaData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    ZKAPP.create(nodePath, metaData);
                 } else {
-                    zk.setData(nodePath, metaData, zk.exists(nodePath, true).getVersion());
-                    List<String> children = zk.getChildren(nodePath, false);
-                    for (int j = 0; j < children.size(); ++j)
-                        zk.delete(nodePath + "/" + children.get(i), zk.exists(nodePath + "/" + children.get(i), false).getVersion());
+                    ZKAPP.update(nodePath, metaData);
+
                 }
             }
 
