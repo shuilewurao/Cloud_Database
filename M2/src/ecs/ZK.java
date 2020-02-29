@@ -25,7 +25,7 @@ public class ZK {
         try {
             connectedSignal.await();
         } catch (InterruptedException e) {
-
+            e.printStackTrace();
         }
         return zk;
     }

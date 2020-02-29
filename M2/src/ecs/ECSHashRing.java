@@ -8,6 +8,7 @@ import shared.HashingFunction.MD5;
 import java.math.BigInteger; // radix = 16 is the hexadecimal form
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class builds the Logical Hash Ring using a TreeMap
@@ -52,7 +53,7 @@ public class ECSHashRing {
         if (this.activeNodes.size() == 0)
             return null;
 
-        if (this.activeNodes.lastKey().equals(hash)) {
+        if (this.activeNodes.lastKey().compareTo(hash)==-1){
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
@@ -222,5 +223,12 @@ public class ECSHashRing {
             logger.debug("\t\tnode end hash: " + node.getNodeHashRange()[1]);
             logger.debug("\t\t**************************************************");
         }
+    }
+
+
+    public String getHashRingJson() {
+        List<ECSNode> activeNodes = getActiveNodes().values().stream()
+                .collect(Collectors.toList());
+        return new Gson().toJson(activeNodes);
     }
 }

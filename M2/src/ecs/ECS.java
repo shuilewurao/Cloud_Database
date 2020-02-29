@@ -4,6 +4,7 @@ import app_kvECS.IECSClient;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
+import org.apache.zookeeper.data.Stat;
 import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.messages.KVMessage;
@@ -30,9 +31,10 @@ public class ECS implements IECSClient {
      */
     private static ZK ZKAPP = new ZK();
     private ZooKeeper zk;
-    private static final String ZK_HOST = "localhost";
+    public static final String ZK_HOST = "localhost";
     private static final String ZK_ROOT_PATH = "/root";
-    private static final String ZK_SERVER_PATH = "/server";
+    public static final String ZK_SERVER_PATH = "/server";
+    public static final String ZK_HASH_TREE = "/metadata";
 
     private static final String PWD = System.getProperty("user.dir");
     private static final String RUN_SERVER_SCRIPT = "script.sh";
@@ -146,6 +148,7 @@ public class ECS implements IECSClient {
         logger.info("[ECS] Initializing Logical Hash Ring...");
 
         hashRing = new ECSHashRing();
+        pushHashRingInTree();
 
         logger.info("[ECS] New Logical Hash Ring with size: " + hashRing.getSize());
 
@@ -195,6 +198,8 @@ public class ECS implements IECSClient {
             }
         }
 
+        pushHashRingInTree();
+
         return true;
     }
 
@@ -217,7 +222,7 @@ public class ECS implements IECSClient {
             updateMetaData(hashRing.getNodeByName(n.name));
         }
 
-        return false;
+        return pushHashRingInTree();
     }
 
     @Override
@@ -245,6 +250,8 @@ public class ECS implements IECSClient {
 
                 removeNodes(toRemove);
             }
+
+            boolean metadata_backed = pushHashRingInTree();  // TODO: Check
 
             ZKAPP.close();
 
@@ -278,7 +285,8 @@ public class ECS implements IECSClient {
                 System.exit(1);
             }
 
-            return true;
+            return metadata_backed;
+            //return true;
         } catch (Exception e) {
             logger.error("[ECS] Error shutting down... " + e);
             e.printStackTrace();
@@ -385,6 +393,7 @@ public class ECS implements IECSClient {
 
         // call start() to start all the nodes
         try {
+
             start();
         } catch (Exception e) {
             logger.error("[ECS] Error starting nodes: " + e);
@@ -393,6 +402,8 @@ public class ECS implements IECSClient {
 
             e.printStackTrace();
         }
+
+        pushHashRingInTree();
         return result;
     }
 
@@ -448,7 +459,8 @@ public class ECS implements IECSClient {
 
             }
         }
-        return true;
+        boolean result = pushHashRingInTree();
+        return result;
     }
 
     @Override
@@ -560,19 +572,31 @@ public class ECS implements IECSClient {
 
     }
 
-    // TODO
     /*
-    public String convertHashRingToJSON() {
-        List<ECSNode> activeNodes = nodeTable.values().stream()
-                .map(n -> (ECSNode) n)
-                .filter(n -> n.getStatus().equals(ECSNode.ECSNodeFlag.ACTIVE))
-                .map(RawECSNode::new)
-                .collect(Collectors.toList());
-
-        return new Gson().toJson(activeNodes);
-    }
-
+     This pushes the latest hashRing to Zookeeper's metadata directory.
+     Note: only server nodes added to the hash ring
      */
-
+    private boolean pushHashRingInTree(){
+        try {
+            Stat stat = zk.exists(ZK_HASH_TREE, false);
+            if (zk.exists(ZK_HASH_TREE, false) == null) {
+                zk.create(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes(),
+                        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);  // NOTE: has to be persistent
+            } else {
+                zk.setData(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes(),
+                        stat.getVersion());
+            }
+        } catch (InterruptedException e) {
+            logger.error("Interrupted");
+            return false;
+        } catch (KeeperException e) {
+            logger.error(e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
     // TODO: restore mechanism
+
+
 }

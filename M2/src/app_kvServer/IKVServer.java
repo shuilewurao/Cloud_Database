@@ -1,7 +1,7 @@
 package app_kvServer;
 
-import app_kvServer.DataObjects.MetaData;
 import ecs.ECSHashRing;
+import ecs.ECSNode;
 
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
@@ -104,7 +104,7 @@ public interface IKVServer {
     /**
      * ECS-related initialization
      */
-    public void initKVServer(MetaData metadata, int cacheSize, String replacementStrategy);
+    public void initKVServer(ECSHashRing metadata, int cacheSize, String replacementStrategy);
 
     /**
      *  ECS-related start, start processing all client requests and all ECS requests
@@ -147,7 +147,7 @@ public interface IKVServer {
 
     public boolean isWriteLocked();
 
-    public TreeMap<BigInteger, MetaData> getMetaData();
+    public ECSHashRing getMetaData();
 
 
 

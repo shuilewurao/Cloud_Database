@@ -5,7 +5,7 @@ import shared.messages.KVMessage;
 
 import java.math.BigInteger;
 
-public class ECSMetaData {
+public class ECSMetaData{
 
     private String name;
     private String host = null;

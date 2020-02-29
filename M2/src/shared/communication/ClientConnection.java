@@ -258,11 +258,12 @@ public class ClientConnection implements Runnable {
         if(this.server.getServerState() != IKVServer.ServerStateType.STARTED){
             // TODO: also needs to check if it is a ECS request
             msg_send = new TextMessage(KVMessage.StatusType.SERVER_STOPPED.name());
-        }else if(!isResponsible(key)){
-            String hashRingStr = new Gson().toJson(server.getHashRing());
+        }else if(!server.isResponsible(key)){
+            String hashRingStr = server.getHashRingStr();
             msg_send = new TextMessage(
                     KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() +  Constants.DELIMITER + hashRingStr);
-        }else if(this.server.isWriteLocked() && cmd.equals("PUT")){ // TODO: if other commands skip this lock
+        }else if(this.server.isWriteLocked() && cmd.equals("PUT")){
+            // TODO: if other commands skip this lock
             msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
         }else{
             switch (cmd) {
@@ -313,22 +314,4 @@ public class ClientConnection implements Runnable {
         sendMessage(msg_send);
     }
 
-    private boolean isResponsible(String key){
-
-
-        ECSHashRing hashRing = server.getHashRing();
-
-        ECSNode node = hashRing.getNodeByHash(MD5.HashInBI(key));
-        if (node == null) {
-            logger.error("No node in hash ring is responsible for key " + key);
-            return false;
-        }
-
-        String serverName = server.getServerName();
-        Boolean responsible = node.getNodeName().equals(serverName);
-
-        return responsible;
-
-
-    }
 }

@@ -5,28 +5,24 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.IOException;
-import java.net.UnknownHostException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.TreeMap;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 
 import app_kvServer.CacheManager.CachePolicy;
-import app_kvServer.DataObjects.MetaData;
 import app_kvServer.Database.KVDatabase;
 
 import client.KVStore;
+import com.google.gson.Gson;
 import ecs.ECSHashRing;
+import ecs.ECSMetaData;
 import ecs.ECSNode;
 import logger.LogSetup;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.data.Stat;
-import shared.ZooKeeperUtils;
 import shared.communication.ClientConnection;
 import shared.HashingFunction.MD5;
 
@@ -36,10 +32,14 @@ import app_kvServer.CacheManager.LFU;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
 
+import static ecs.ECS.ZK_HOST;
+import static ecs.ECS.ZK_SERVER_PATH;
 
-public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
+
+public class KVServer implements IKVServer, Runnable, Watcher {
 
     private static Logger logger = Logger.getRootLogger();
+    private static boolean isHashed= true; // flag to distinguish from M1
 
     private int port;
     private int cacheSize;
@@ -62,12 +62,13 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
     private String zkHostName;
     private String serverName;
 
-    // TODO
-    private ZooKeeper zk;
-    private TreeMap<BigInteger, MetaData> metaDataTree;
+    private String serverHashing;
+    private String zkNodePath;
 
-    private ECSHashRing hashRing;
+    private ZooKeeper zk;
+
     private String hashRingString;
+    private ECSHashRing hashRing;
 
 
     /**
@@ -82,7 +83,6 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
      *                  and "LFU".
      */
     public KVServer(int port, int cacheSize, String strategy) {
-        // TODO Auto-generated method stub
         this.port = port;
         this.cacheSize = cacheSize;
         this.strategy = CacheStrategy.valueOf(strategy);
@@ -105,8 +105,6 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
                 // TODO: handling
                 break;
         }
-
-
         this.DB = new KVDatabase(port);
     }
 
@@ -114,22 +112,30 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
         this.zkPort = zkPort;
         this.zkHostName = zkHostname;
         this.serverName = name;
+
+
+        this.serverHashing = zkHostname +":"+ zkPort;
+        this.zkNodePath = ZK_SERVER_PATH + "/" + name;
+
         threadList = new ArrayList<Thread>();
         serverThread = null;
-//        String[] serverInfo = this.serverName.split(":");
-//        this.port = Integer.parseInt(serverInfo[2]);
+
         this.DB = new KVDatabase(port);
+        this.writeLocked = false;
+
         this.serverState = ServerStateType.STOPPED;
         this.writeLocked = false;
-        // TODO
-        subscribeZooKeeper();
-//        connectZooKeeper(zkHostName, zkPort);
-//        getMetaDataFromZK();
-//        initKVServer(metaData, cacheSize, strategy);
-//        initialized = true;
 
-        // start the server in stopped state
-        // this.run();
+        // connect to ZK
+        subscribeZooKeeper();
+        // create the server's ZK node
+        createZKNode();
+
+        getMetaDataTreeFromZK();
+        initKVServer(hashRing, cacheSize, strategy.name());
+
+        // Start the server in stopped state
+        this.run();
     }
 
 
@@ -159,7 +165,6 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
 
     @Override
     public boolean inStorage(String key) {
-        // TODO Auto-generated method stub
         try{
             return DB.inStorage(key);
         }catch(Exception e){
@@ -300,7 +305,27 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
     public void kill() {
         running = false;
         try {
-            serverSocket.close();
+            if(serverSocket != null){
+                serverSocket.close();
+            }
+            // TODO: need to check with ECS
+            /*
+            if(isHashed){
+                String curr_nodePath = ZK_HOST + "/" + this.serverName;
+                try{
+                    if (zk.exists(curr_nodePath, false) != null) {
+                        zk.delete(curr_nodePath, zk.exists(curr_nodePath, false).getVersion());
+                        logger.info( "Remove exist alive node");
+                    } else {
+                        logger.error(curr_nodePath + " NOT exist!");
+                    }
+                    zk.close();
+
+                }catch (InterruptedException | KeeperException e) {
+                    e.printStackTrace();
+                    logger.error("can not remove current node path");
+                }
+            }*/
         } catch (IOException e) {
             logger.error("Error! " +
                     "Unable to close socket on port: " + port, e);
@@ -310,32 +335,22 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
     @Override
     public void close() {
         running = false;
-        try {
-            for (int i = 0; i < threadList.size(); i++) {
-                threadList.get(i).interrupt();
-            }
-            if (serverThread != null)
-                serverThread.interrupt();
-            serverSocket.close();
-        } catch (IOException e) {
-            logger.error("Error! " +
-                    "Unable to close socket on port: " + port, e);
+        for (int i = 0; i < threadList.size(); i++) {
+            threadList.get(i).interrupt();
         }
+        if (serverThread != null)
+            serverThread.interrupt();
+        kill();
+        clearCache(); // TODO: or clear storage?
     }
 
 
     /**
      * ECS-related initialization
-     * TODO: where to put
      */
-    public void initKVServer(MetaData metadata, int cacheSize, String replacementStrategy){
+    public void initKVServer(ECSHashRing metadata, int cacheSize, String strategy){
 
-        // TODO: metadata
-        this.cacheSize = cacheSize;
-
-        this.strategy = CacheStrategy.valueOf(replacementStrategy);
-
-        switch (replacementStrategy) {
+        switch (strategy) {
             case "FIFO":
                 Cache = new FIFO(cacheSize);
                 break;
@@ -348,7 +363,6 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
             default:
                 this.strategy = CacheStrategy.None;
                 logger.error("Invalid Cache Strategy!");
-                // TODO: handling
                 break;
         }
 
@@ -367,6 +381,27 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
      */
     public void stop(){
         serverState = ServerStateType.STOPPED;
+        List<String> children;
+        try{
+            children = zk.getChildren(zkNodePath, false, null);
+            if (children.isEmpty()) {
+                // re-register the watch
+                zk.getChildren(zkNodePath, this, null);
+                return;
+            }
+            assert children.size() == 1;
+            String path = zkNodePath + "/" + children.get(0);
+            zk.delete(path, zk.exists(path, false).getVersion());
+            logger.info("Server shutdown");
+
+            // if still running, register the watch again
+            if (this.isRunning())
+                zk.getChildren(zkNodePath, this, null);
+
+        }catch (KeeperException | InterruptedException e) {
+            logger.debug("Unable to process the watcher event");
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -375,6 +410,24 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
     public void shutdown(){
         // TODO: clear storage
         serverState = ServerStateType.SHUT_DOWN;
+        List<String> children;
+        try{
+            children = zk.getChildren(zkNodePath, false, null);
+            if (children.isEmpty()) {
+                // re-register the watch
+                zk.getChildren(zkNodePath, this, null);
+                return;
+            }
+            assert children.size() == 1;
+            String path = zkNodePath + "/" + children.get(0);
+            zk.delete(path, zk.exists(path, false).getVersion());
+            close();
+            logger.info("Server shutdown");
+
+        }catch (KeeperException | InterruptedException e) {
+            logger.debug("Unable to process the watcher event");
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -395,7 +448,7 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
     }
 
     /**
-     * TODO: range
+     * TODO: range check
      * ECS-related moveData, move the given hashRange to the server going by the targetName
      * @param range
      * @param server
@@ -411,15 +464,20 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
        this.lockWrite();
 
         BigInteger hashTarget = MD5.HashInBI(server);
-        MetaData targetServer = this.metaDataTree.get(hashTarget);
-
-        if(targetServer == null){
-            // TODO
+        ECSNode targetServerNode = this.hashRing.getActiveNodes().get(hashTarget);
+        ECSMetaData targetServer;
+        if(targetServerNode != null){
+            targetServer = targetServerNode.getMetaData();
         }
+        else{
+            logger.error("Could not find the target server for moving data");
+            return false;
+        }
+
 
         int port = targetServer.getPort();
         String address = targetServer.getHost();
-
+        logger.info("Find the target server as ("+address+":"+port+")");
 
         //return byte array of Data
         try{
@@ -453,14 +511,6 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
 
     }
 
-//    @Override
-//    /**
-//     * ECS-related update, update the metadata repo of this server
-//     */
-//    public void update(MetaData metadata) {
-//        // TODO
-//    }
-
 
 
     /**
@@ -483,12 +533,8 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
      * TODO
      * @return
      */
-    public TreeMap<BigInteger, MetaData> getMetaData(){
-        return metaDataTree;
-    }
-
-    private void inquireECS(){
-
+    public ECSHashRing getMetaData(){
+        return hashRing;
     }
 
     /**
@@ -499,7 +545,7 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
             // need to connect to ZK before running
             final CountDownLatch connected_signal = new CountDownLatch(1);
 
-            zk = new ZooKeeper(zkHostName +":"+ zkPort, 300000000, new Watcher() {
+            zk = new ZooKeeper(this.serverHashing, 300000000, new Watcher() {
                 @Override
                 public void process(WatchedEvent we) {
                     if (we.getState() == Event.KeeperState.SyncConnected) {
@@ -515,22 +561,20 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
         }
     }
 
-    /*
-     Listen on changes of HashRing
-     */
-    private void subscribeZKMetaData(ZooKeeper zk){
+
+
+    private void getMetaDataTreeFromZK(){
         try {
             // setup hashRing info
-            byte[] hashRingData = zk.getData(ZooKeeperUtils.ZK_METADATA_ROOT, new Watcher() {
+            byte[] hashRingData = zk.getData(ZK_SERVER_PATH, new Watcher() {
                 // handle hashRing update
                 public void process(WatchedEvent we) {
                     try {
-                        byte[] hashRingData = zk.getData(ZooKeeperUtils.ZK_METADATA_ROOT, this, null);
+                        byte[] hashRingData = zk.getData(ZK_SERVER_PATH, this, null);
                         hashRingString = new String(hashRingData);
                         hashRing = new ECSHashRing(hashRingString);
-                        logger.info("Hash Ring updated");
 
-                        update(hashRing);
+                        logger.info("Hash Ring updated");
 
                     } catch (KeeperException | InterruptedException e) {
                         logger.error("Unable to update the metadata node");
@@ -538,7 +582,8 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
                     }
                 }
             }, null);
-            logger.debug("Hash Ring found");
+
+            // TODO
             hashRingString = new String(hashRingData);
             hashRing = new ECSHashRing(hashRingString);
 
@@ -547,7 +592,80 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
             logger.debug("Unable to get metadata info");
             e.printStackTrace();
         }
+
     }
+
+
+    private void createZKNode(){
+        try {
+            // the node should be created before init the server
+            if (zk.exists(zkNodePath, false) != null) {
+                // retrieve cache info from zookeeper
+                byte[] cacheData = zk.getData(zkNodePath, false, null);
+                String cacheString = new String(cacheData);
+
+                // TODO: if up-to-date
+                ECSMetaData metaData = new Gson().fromJson(cacheString, ECSMetaData.class);
+                this.cacheSize = metaData.getCacheSize();
+                this.strategy = CacheStrategy.valueOf(metaData.getReplacementStrategy());
+                logger.info("This server has been initialized as "+strategy + "with cache size:" + cacheSize);
+
+            } else {
+                logger.error("Server node dose not exist " + zkNodePath);
+            }
+        } catch (InterruptedException | KeeperException e) {
+            logger.error("Unable to retrieve cache info from " + zkNodePath);
+            // set up with some arbitrary default values,
+            this.strategy = CacheStrategy.FIFO;
+            this.cacheSize = 10;
+            e.printStackTrace();
+        }
+
+
+//        try {
+//            //TODO: remove the init message if have
+//            List<String> children = zk.getChildren(zkNodePath, true);
+//            if (!children.isEmpty()) {
+//                String messagePath = zkNodePath + "/" + children.get(0);
+//                byte[] data = zk.getData(messagePath, false, null);
+//                KVAdminMessage message = new Gson().fromJson(new String(data), KVAdminMessage.class);
+//                if (message.getOperationType().equals(KVAdminMessage.OperationType.INIT)) {
+//                    zk.delete(messagePath, zk.exists(messagePath, false).getVersion());
+//                    logger.info("Server "+serverName+ "already initialized with meta data");
+//                }
+//            }
+//        } catch (InterruptedException | KeeperException e) {
+//            logger.error("Unable to get child nodes");
+//            e.printStackTrace();
+//        }
+    }
+
+//    // TODO: check with ECS
+//    private void createFailureDetectionNode(){
+//        try {
+//            // add an alive node for failure detection
+//            if (zk.exists(ECS.ZK_ACTIVE_ROOT, false) != null) {
+//                String alivePath = ECS.ZK_ACTIVE_ROOT + "/" + this.serverName;
+//                zk.create(alivePath, "".getBytes(),
+//                        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+//                logger.info(prompt() + "Alive node created");
+//            } else {
+//                logger.fatal(prompt() + "Active root not exist!");
+//            }
+//
+//        } catch (KeeperException | InterruptedException e) {
+//            logger.error(prompt() + "Unable to create an ephemeral node");
+//            e.printStackTrace();
+//        }
+//    }
+
+    @Override
+    public void process(WatchedEvent event) {
+
+    }
+
+
+
 
     /**
      * Update the forwarderList based on information in hashRing provided
@@ -600,8 +718,24 @@ public class KVServer implements IKVServer, Runnable {// , Watcher { // TODO
     }
 
 
+    public String getHashRingStr(){
+        return hashRingString;
+    }
+
     public ECSHashRing getHashRing(){
         return hashRing;
+    }
+
+    public boolean isResponsible(String key){
+
+        ECSNode node = hashRing.getNodeByHash(MD5.HashInBI(key));
+        if (node == null) {
+            logger.error("No node in hash ring is responsible for key " + key);
+            return false;
+        }
+        Boolean responsible = node.getNodeName().equals(serverName);
+
+        return responsible;
     }
 
 
