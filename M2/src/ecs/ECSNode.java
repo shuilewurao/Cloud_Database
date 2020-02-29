@@ -22,8 +22,6 @@ public class ECSNode implements IECSNode {
 
      */
 
-   // private ECSNode nextNode;
-    //private ECSNode prevNode;
     private ECSNodeMessage.ECSNodeFlag flag = ECSNodeMessage.ECSNodeFlag.STOP;
 
     public ECSNode(ECSNode n) {
@@ -43,7 +41,6 @@ public class ECSNode implements IECSNode {
      * ECSNode should also cover key value pair??
      * */
 
-
     @Override
     public String getNodeName() {
         return this.metaData.getName();
@@ -59,16 +56,12 @@ public class ECSNode implements IECSNode {
         return this.metaData.getPort();
     }
 
-    public void setNodeStartHash(BigInteger hash) {
-        this.metaData.setStartHash(hash);
+    public void setHashRange(BigInteger startHash, BigInteger endHash) {
+        this.metaData.setHashRange(startHash, endHash);
     }
 
     public BigInteger getNodeHash() {
         return this.metaData.getEndHash();
-    }
-
-    public BigInteger getNodeStartHash() {
-        return this.metaData.getStartHash();
     }
 
     @Override
@@ -88,24 +81,6 @@ public class ECSNode implements IECSNode {
     public KVMessage.ServerStateType getServerStateType() {
         return this.metaData.getServerStateType();
     }
-
-//    // TODO: call this function
-//    public void setNextNode(ECSNode node) {
-//        this.nextNode = node;
-//    }
-//
-//    @Override
-//    public ECSNode getNextNode() {
-//        return this.nextNode;
-//    }
-//
-//    public void setPrevNode(ECSNode node) {
-//        this.prevNode = node;
-//    }
-//
-//    public ECSNode getPrevNode() {
-//        return this.prevNode;
-//    }
 
     public void setFlag(ECSNodeMessage.ECSNodeFlag flag) {
         this.flag = flag;

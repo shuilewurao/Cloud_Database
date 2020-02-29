@@ -22,7 +22,7 @@ public class ECSMetaData {
         this.name = name;
         this.host = host;
         this.port = port;
-        this.endHash= MD5.HashFromHostAddress(host, port);
+        this.endHash = MD5.HashFromHostAddress(host, port);
     }
 
     public ECSMetaData(int cacheSize, String replacementStrategy) {
@@ -63,19 +63,29 @@ public class ECSMetaData {
         return this.replacementStrategy;
     }
 
-    public void setStartHash(BigInteger startHash) {
-        this.startHash = startHash;
+    public BigInteger getStartHash() {
+        return this.startHash;
     }
-
-    public BigInteger getStartHash() { return this.startHash; }
 
     public BigInteger getEndHash() {
         return this.endHash;
     }
 
     public void setHashRange(BigInteger startHash, BigInteger endHash) {
-        this.startHash = startHash;
-        this.endHash = endHash;
+
+        if (startHash == null || startHash.equals("")) {
+
+        } else {
+            this.startHash = startHash;
+        }
+
+        if (endHash == null || endHash.equals("")) {
+
+        } else {
+            this.endHash = endHash;
+        }
+
+
     }
 
     public BigInteger[] getHashRange() {
