@@ -1,5 +1,6 @@
 package ecs;
 
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.ACL;
 
@@ -8,6 +9,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 public class ZK {
+    private static Logger logger = Logger.getRootLogger();
+
     private static ZooKeeper zk;
     private static final String ZK_HOST = "localhost";
     private static final int ZK_TIMEOUT = 2000;
@@ -43,6 +46,14 @@ public class ZK {
     }
 
     public static void update (String path, byte[] data) throws KeeperException, InterruptedException {
+        if(path == null){
+            logger.debug("ZK null path ");
+
+        }
+        if(data == null){
+            logger.debug("ZK null data ");
+
+        }
         zk.setData(path, data, zk.exists(path, true).getVersion());
         List<String> children = zk.getChildren(path, false);
         for (int i = 0; i < children.size(); ++i)
