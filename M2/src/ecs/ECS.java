@@ -33,6 +33,7 @@ public class ECS implements IECSClient {
     private static ZK ZKAPP = new ZK();
     private ZooKeeper zk;
     public static final String ZK_HOST = "localhost";
+    public static int ZK_PORT = 2181;
     private static final String ZK_ROOT_PATH = "/root";
     public static final String ZK_SERVER_PATH = "/server";
     public static final String ZK_HASH_TREE = "/metadata";
@@ -173,14 +174,14 @@ public class ECS implements IECSClient {
         }
 
         // call start on Node using script.sh:
-        // server <port> <cacheSize> <cacheStrategy>
+        // server <servername> <zkhost> <zkport>
         // java -jar $1/m2-server.jar $2 $3 $4  > "$1/logs/Server_$2.log" 2>&1
 
         String script_path = PWD + "/" + RUN_SERVER_SCRIPT;
 
         for (ECSNode n : toStart) {
 
-            String cmd_input = PWD + WHITESPACE + n.getNodeName() + WHITESPACE + n.getNodeHost() + WHITESPACE + n.getNodePort();
+            String cmd_input = PWD + WHITESPACE + n.getNodeName() + WHITESPACE + ZK_HOST + WHITESPACE + ZK_PORT + WHITESPACE +  n.getNodeHost();
 
             logger.info("[ECS] Running Server starting cmd: " + script_path + WHITESPACE + cmd_input);
             Runtime run = Runtime.getRuntime();
@@ -251,14 +252,14 @@ public class ECS implements IECSClient {
 
 
         // call start on Node using script.sh:
-        // server <port> <cacheSize> <cacheStrategy>
+        // server <server_name> <zkHostName> <zkPort>
         // java -jar $1/m2-server.jar $2 $3 $4  > "$1/logs/Server_$2.log" 2>&1
 
         String script_path = PWD + "/" + RUN_SERVER_SCRIPT;
 
         for (ECSNode n : toStart) {
 
-            String cmd_input = PWD + WHITESPACE + n.getNodePort() + WHITESPACE + n.getCacheSize() + WHITESPACE + n.getReplacementStrategy();
+            String cmd_input = PWD + WHITESPACE + n.getNodeName() + WHITESPACE + ZK_HOST + WHITESPACE + ZK_PORT + WHITESPACE + n.getNodeHost();
 
             Runtime run = Runtime.getRuntime();
             try {
