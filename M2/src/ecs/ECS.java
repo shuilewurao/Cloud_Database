@@ -406,9 +406,9 @@ public class ECS implements IECSClient {
 
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
+        logger.debug("[ECS]: Removing nodes: " + nodeNames);
 
         for (String name : nodeNames) {
-
 
             assert name != null;
 
@@ -529,6 +529,10 @@ public class ECS implements IECSClient {
         String startHash = null;
         String endHash = null;
 
+        if(n==null){
+            logger.debug("[ECS]: null node for updating meta data");
+
+        }
         if (n.getNodeHashRange()[0] == null || n.getNodeHashRange()[0].equals(""))
             startHash = "";
         else
@@ -588,5 +592,23 @@ public class ECS implements IECSClient {
     }
     // TODO: restore mechanism
 
+
+    public boolean ifAllValidServerNames(Collection<String> nodeNames){
+
+        for (String name : nodeNames) {
+            assert name != null;
+
+            if (availableNodeKeys.contains(name)) {
+                logger.error("[ECS] node is not in Hash Ring: " + name);
+            } else {
+
+                ECSNode node = availableServers.get(name);
+                if (node == null) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
 }

@@ -313,6 +313,10 @@ public class ECSClient implements IECSClient {
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
         // TODO
+        if(client.ifAllValidServerNames(nodeNames) == false){
+            logger.error("Invalid server names given for removal.");
+        }
+
         return client.removeNodes(nodeNames);
     }
 

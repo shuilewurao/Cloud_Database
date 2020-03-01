@@ -44,10 +44,10 @@ public class ECSHashRing {
     }
 
     // TODO
-    public ECSNode getNodeByHostPort(ECSNode node) {
-        return null;
-
-    }
+//    public ECSNode getNodeByHostPort(ECSNode node) {
+//        return null;
+//
+//    }
 
     // find the responsible server node, or the node matching the hash
     public ECSNode getNodeByHash(BigInteger hash) {
@@ -79,17 +79,7 @@ public class ECSHashRing {
         BigInteger hash = MD5.HashInBI(keyName);
 
         assert hash != null ;
-
-        if (this.activeNodes.lastKey().compareTo(hash)==-1) {
-            // return the first entry given the largest
-            return this.activeNodes.firstEntry().getValue();
-        }
-
-        if (this.activeNodes.ceilingEntry(hash).getValue() == null) {
-            logger.debug("[ECSHashRing] " + keyName + " not found");
-        }
-
-        return this.activeNodes.ceilingEntry(hash).getValue();
+        return getNodeByHash(hash);
     }
 
 
@@ -97,15 +87,7 @@ public class ECSHashRing {
         if (this.activeNodes.size() == 0)
             return null;
         BigInteger currKey = MD5.HashInBI(hashName);
-        if (this.activeNodes.firstKey().compareTo(currKey)==1) {
-            // return the last entry given the smallest
-            return this.activeNodes.lastEntry().getValue();
-        }
-
-        if (this.activeNodes.lowerEntry(currKey).getValue() == null) {
-            logger.debug("[ECSHashRing] " + hashName + " not found");
-        }
-        return this.activeNodes.lowerEntry(currKey).getValue();
+        return getPrevNode(currKey);
     }
 
     public ECSNode getPrevNode(BigInteger currKey) {
@@ -113,8 +95,8 @@ public class ECSHashRing {
             return null;
         }
 
-
-        if (this.activeNodes.firstKey().compareTo(currKey)==1) {
+        if (this.activeNodes.firstKey().compareTo(currKey)==1
+                || this.activeNodes.firstKey().compareTo(currKey)==0) {
             // return the last entry given the smallest
             return this.activeNodes.lastEntry().getValue();
         }
@@ -131,29 +113,21 @@ public class ECSHashRing {
         if (this.activeNodes.size() == 0)
             return null;
         BigInteger currKey = MD5.HashInBI(hashName);
-        if (this.activeNodes.lastKey().compareTo(currKey)==-1) {
-            // return the first entry given the largest
-            return this.activeNodes.firstEntry().getValue();
-        }
-
-        if (this.activeNodes.higherEntry(currKey).getValue() == null) {
-            logger.debug("[ECSHashRing] " + hashName + " not found");
-        }
-
-        return this.activeNodes.higherEntry(currKey).getValue();
-
+        return getNextNode(currKey);
     }
 
     public ECSNode getNextNode(BigInteger currKey) {
         if (this.activeNodes.size() == 0)
             return null;
-        if (this.activeNodes.lastKey().compareTo(currKey) == -1) {
+        if (this.activeNodes.lastKey().compareTo(currKey) == -1 ||
+                this.activeNodes.lastKey().compareTo(currKey) == 0) {
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
 
-        if (this.activeNodes.higherEntry(currKey).getValue() == null) {
+        if (this.activeNodes.higherEntry(currKey) == null) {
             logger.debug("[ECSHashRing] " + currKey + " not found");
+            logger.debug("[ECSHashRing]: "+this.activeNodes.keySet());
         }
 
         return this.activeNodes.higherEntry(currKey).getValue();
