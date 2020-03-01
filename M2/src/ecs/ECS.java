@@ -2,17 +2,20 @@ package ecs;
 
 import app_kvECS.IECSClient;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.*;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.messages.KVMessage;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
 
 public class ECS implements IECSClient {
 
@@ -250,7 +253,6 @@ public class ECS implements IECSClient {
             }
         }
 
-
         // call start on Node using script.sh:
         // server <server_name> <zkHostName> <zkPort>
         // java -jar $1/m2-server.jar $2 $3 $4  > "$1/logs/Server_$2.log" 2>&1
@@ -475,6 +477,16 @@ public class ECS implements IECSClient {
 
                 } else {
                     ZK.update(nodePath, metaData);
+                    String znodePath = ZK_SERVER_PATH + "/" + node.getNodeName() + "/operation";
+
+                    if (zk.exists(znodePath, true) == null) {
+                        logger.info("[ECS] creating znode for " + node.getNodeName() + "/operation");
+
+                        ZKAPP.create(znodePath, "INIT".getBytes());
+
+                    } else {
+                        ZK.update(znodePath, "INIT".getBytes());
+                    }
                 }
             }
 
@@ -491,8 +503,6 @@ public class ECS implements IECSClient {
             logger.error("[ECS] cannot call start script! " + e);
             e.printStackTrace();
         }
-
-
 
         /*
         try {
@@ -646,7 +656,6 @@ public class ECS implements IECSClient {
 
     }
 
-
     /**
      * Synch changes on hashring with ZK
      */
@@ -727,7 +736,7 @@ public class ECS implements IECSClient {
             ZK.update(znodePath, data);
         }
 
-        if (operation == null || operation.toString().equals(" ")) {
+        if (operation == null || operation.toString().equals("")) {
             logger.warn("[ECS] null operation!");
         } else {
 

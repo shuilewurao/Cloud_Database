@@ -42,8 +42,17 @@ public class KVConvertMessage implements KVMessage {
             case "DELETE_ERROR":
                 this.status = StatusType.DELETE_ERROR;
                 break;
+            case "SERVER_STOPPED":
+                this.status = StatusType.SERVER_STOPPED;
+                break;
+            case "SERVER_WRITE_LOCK":
+                this.status = StatusType.SERVER_WRITE_LOCK;
+                break;
+            case "SERVER_NOT_RESPONSIBLE":
+                this.status = StatusType.SERVER_NOT_RESPONSIBLE;
+                break;
             default:
-                System.out.println("Default case for parsing status in KVConvertMessage");
+                System.out.println("[KVConvertMessage] Default case for parsing status!");
                 this.status = null;
         }
     }

@@ -1,24 +1,18 @@
 package app_kvECS;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Collection;
-
-import app_kvServer.KVServer;
-import client.KVStore;
 import ecs.ECS;
 import ecs.IECSNode;
 import logger.LogSetup;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import shared.messages.KVMessage;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.util.stream.IntStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
 
 public class ECSClient implements IECSClient {
 
@@ -58,165 +52,172 @@ public class ECSClient implements IECSClient {
         logger.debug("[ECSClient] Trimmed Command: " + cmdLineTrim);
         String[] tokens = cmdLineTrim.split("\\s+");
 
-        if (tokens[0].equals("shutdown")) {
+        switch (tokens[0]) {
+            case "shutdown":
 
-            if (client != null) {
-                if (shutdown()) {
-                    stop = true;
-                    logger.info("[ECSClient] Application exit!");
-                    System.out.println(PROMPT + "Application exit!");
-                    System.exit(0);
-                } else {
-                    logger.error("[ECSClient] Cannot quit!");
-                    System.out.println(PROMPT + "Application exit!");
-                    System.exit(1);
-                }
-            }
-
-            logger.info("[ECSClient] Application exit!");
-            System.out.println(PROMPT + "Application exit!");
-            System.exit(0);
-
-        } else if (tokens[0].equals("init")) {
-            if (tokens.length == 4) {
-                try {
-                    int numberOfNodes = Integer.parseInt(tokens[1]);
-                    int cacheSize = Integer.parseInt(tokens[2]);
-                    String replacementStrategy = tokens[3];
-
-                    addNodes(numberOfNodes, replacementStrategy, cacheSize);
-
-                } catch (NumberFormatException nfe) {
-                    printError("No valid address. Port must be a number!");
-                    logger.info("Unable to parse argument <port>", nfe);
-                } catch (Exception e) {
-                    printError("Could not establish connection!");
-                    logger.warn("Could not establish connection!", e);
-                }
-            } else {
-                logger.error("[ECSClient] user input error for command \"init\"!");
-                printError("Invalid number of parameters!");
-            }
-        } else if (tokens[0].equals("add")) {
-            if (tokens.length == 3) {
-                int cacheSize = Integer.parseInt(tokens[1]);
-                String replacementStrategy = tokens[2];
-
-                addNode(replacementStrategy, cacheSize);
-
-
-            } else {
-                logger.error("[ECSClient] user input error for command \"add\"!");
-                printError("Invalid number of parameters!");
-            }
-
-
-        } else if (tokens[0].equals("remove")) {
-            if (tokens.length >= 2) {
-
-
-                try {
-                    String[] indexArr = Arrays.stream(tokens, 1, tokens.length).toArray(String[]::new);
-
-                    Collection<String> index = Arrays.asList(indexArr);
-                    removeNodes(index);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-            } else {
-                logger.error("[ECSClient] user input error for command \"remove\"!");
-                printError("Invalid number of parameters!");
-            }
-
-
-        } else if (tokens[0].equals("start")) {
-            if (tokens.length == 1) {
                 if (client != null) {
+                    if (shutdown()) {
+                        stop = true;
+                        logger.info("[ECSClient] Application exit!");
+                        System.out.println(PROMPT + "Application exit!");
+                        System.exit(0);
+                    } else {
+                        logger.error("[ECSClient] Cannot quit!");
+                        System.out.println(PROMPT + "Application exit!");
+                        System.exit(1);
+                    }
+                }
+
+                logger.info("[ECSClient] Application exit!");
+                System.out.println(PROMPT + "Application exit!");
+                System.exit(0);
+
+            case "init":
+                if (tokens.length == 4) {
                     try {
-                        start();
+                        int numberOfNodes = Integer.parseInt(tokens[1]);
+                        int cacheSize = Integer.parseInt(tokens[2]);
+                        String replacementStrategy = tokens[3];
+
+                        addNodes(numberOfNodes, replacementStrategy, cacheSize);
+
+                    } catch (NumberFormatException nfe) {
+                        printError("No valid address. Port must be a number!");
+                        logger.info("Unable to parse argument <port>", nfe);
+                    } catch (Exception e) {
+                        printError("Could not establish connection!");
+                        logger.warn("Could not establish connection!", e);
+                    }
+                } else {
+                    logger.error("[ECSClient] user input error for command \"init\"!");
+                    printError("Invalid number of parameters!");
+                }
+                break;
+            case "add":
+                if (tokens.length == 3) {
+                    int cacheSize = Integer.parseInt(tokens[1]);
+                    String replacementStrategy = tokens[2];
+
+                    addNode(replacementStrategy, cacheSize);
+
+                } else {
+                    logger.error("[ECSClient] user input error for command \"add\"!");
+                    printError("Invalid number of parameters!");
+                }
+
+
+                break;
+            case "remove":
+                if (tokens.length >= 2) {
+
+
+                    try {
+                        String[] indexArr = Arrays.stream(tokens, 1, tokens.length).toArray(String[]::new);
+
+                        Collection<String> index = Arrays.asList(indexArr);
+                        removeNodes(index);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
 
                 } else {
-                    logger.error("[ECSClient] Not connected!");
-                    printError("Not connected!");
+                    logger.error("[ECSClient] user input error for command \"remove\"!");
+                    printError("Invalid number of parameters!");
                 }
-            } else {
-                logger.error("[ECSClient]] user input error for command \"start\"!");
-                printError("Invalid number of parameters!");
-            }
 
-        } else if (tokens[0].equals("stop")) {
-            if (tokens.length == 1) {
-                if (client != null) {
-                    try {
 
-                        stop();
+                break;
+            case "start":
+                if (tokens.length == 1) {
+                    if (client != null) {
+                        try {
+                            start();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
 
-                    } catch (Exception e) {
-                        logger.error("GET_ERROR + exception");
+                    } else {
+                        logger.error("[ECSClient] Not connected!");
+                        printError("Not connected!");
                     }
                 } else {
-                    logger.error("[ECSClient] Not connected!");
-                    printError("Not connected!");
+                    logger.error("[ECSClient]] user input error for command \"start\"!");
+                    printError("Invalid number of parameters!");
                 }
-            } else {
-                logger.error("[ECSClient]] user input error for command \"stop\"!");
-                printError("Invalid number of parameters!");
-            }
 
-        } else if (tokens[0].equals("logLevel")) {
-            if (tokens.length == 2) {
-                String level = setLevel(tokens[1]);
-                if (level.equals(LogSetup.UNKNOWN_LEVEL)) {
-                    logger.error("No valid log level!");
-                    printError("No valid log level!");
-                    printPossibleLogLevels();
+                break;
+            case "stop":
+                if (tokens.length == 1) {
+                    if (client != null) {
+                        try {
+
+                            stop();
+
+                        } catch (Exception e) {
+                            logger.error("GET_ERROR + exception");
+                        }
+                    } else {
+                        logger.error("[ECSClient] Not connected!");
+                        printError("Not connected!");
+                    }
                 } else {
-                    System.out.println(PROMPT +
-                            "Log level changed to level " + level);
+                    logger.error("[ECSClient]] user input error for command \"stop\"!");
+                    printError("Invalid number of parameters!");
                 }
-            } else {
-                logger.error("Invalid number of parameters!");
-                printError("Invalid number of parameters!");
-            }
 
-        } else if (tokens[0].equals("help")) {
+                break;
+            case "logLevel":
+                if (tokens.length == 2) {
+                    String level = setLevel(tokens[1]);
+                    if (level.equals(LogSetup.UNKNOWN_LEVEL)) {
+                        logger.error("No valid log level!");
+                        printError("No valid log level!");
+                        printPossibleLogLevels();
+                    } else {
+                        System.out.println(PROMPT +
+                                "Log level changed to level " + level);
+                    }
+                } else {
+                    logger.error("Invalid number of parameters!");
+                    printError("Invalid number of parameters!");
+                }
 
-            printHelp();
-        } else {
-            printError("Unknown command!");
-            printHelp();
+                break;
+            case "help":
+
+                printHelp();
+                break;
+            default:
+                printError("Unknown command!");
+                printHelp();
+                break;
         }
 
     }
 
     private void printHelp() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(PROMPT).append("ECSClient HELP (Usage):\n");
-        sb.append(PROMPT).append("use \"help\" to see this list.\n");
-        sb.append(PROMPT);
-        sb.append("::::::::::::::::::::::::::::::::");
-        sb.append("::::::::::::::::::::::::::::::::\n");
-        sb.append(PROMPT).append("init <numberOfServers> <cacheSize> <replacementStrategy>\n");
-        sb.append("\t\t\t Initiates the storage service with user specified number of servers, cache size, and replacement strategy. \n");
-        sb.append(PROMPT).append("add <cacheSize> <replacementStrategy>\n");
-        sb.append("\t\t\t Add a new KVServer with the specified cache size and replacement strategy to the storage service. \n");
-        sb.append(PROMPT).append("remove <indexOfServer>\n");
-        sb.append("\t\t\t Remove the specified server from the storage service. \n");
-        sb.append(PROMPT).append("start\n");
-        sb.append("\t\t\t Starts the service by starting all participating KVServers. \n");
-        sb.append(PROMPT).append("stop\n");
-        sb.append("\t\t\t Stops the service; all participating KVServers are stopped for processing client requests. \n");
-        sb.append(PROMPT).append("logLevel\n");
-        sb.append("\t\t\t changes the logLevel\n");
-        sb.append("\t\t\t ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF \n");
 
-        sb.append(PROMPT).append("shutdown");
-        sb.append("\t\t\t exits the program");
-        System.out.println(sb.toString());
+        String sb = PROMPT + "ECSClient HELP (Usage):\n" +
+                PROMPT + "use \"help\" to see this list.\n" +
+                PROMPT +
+                "::::::::::::::::::::::::::::::::" +
+                "::::::::::::::::::::::::::::::::\n" +
+                PROMPT + "init <numberOfServers> <cacheSize> <replacementStrategy>\n" +
+                "\t\t\t Initiates the storage service with user specified number of servers, cache size, and replacement strategy. \n" +
+                PROMPT + "add <cacheSize> <replacementStrategy>\n" +
+                "\t\t\t Add a new KVServer with the specified cache size and replacement strategy to the storage service. \n" +
+                PROMPT + "remove <indexOfServer>\n" +
+                "\t\t\t Remove the specified server from the storage service. \n" +
+                PROMPT + "start\n" +
+                "\t\t\t Starts the service by starting all participating KVServers. \n" +
+                PROMPT + "stop\n" +
+                "\t\t\t Stops the service; all participating KVServers are stopped for processing client requests. \n" +
+                PROMPT + "logLevel\n" +
+                "\t\t\t changes the logLevel\n" +
+                "\t\t\t ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF \n" +
+                PROMPT + "shutdown" +
+                "\t\t\t exits the program";
+        System.out.println(sb);
     }
 
     private void printPossibleLogLevels() {
@@ -293,7 +294,6 @@ public class ECSClient implements IECSClient {
 
     @Override
     public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) throws IOException {
-        // Initial call
 
         return client.addNodes(count, cacheStrategy, cacheSize);
     }
