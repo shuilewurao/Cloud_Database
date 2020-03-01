@@ -26,7 +26,6 @@ public class ECSClient implements IECSClient {
     private static final String PROMPT = "ECSClient >> ";
     private static final String PROMPTIN = "ECSClient << ";
 
-    private BufferedReader stdin;
     private String config_file_path = null;
     private boolean stop = false;
 
@@ -38,8 +37,10 @@ public class ECSClient implements IECSClient {
 
     public void run() throws Exception {
 
+        client = new ECS(config_file_path);
+
         while (!stop) {
-            stdin = new BufferedReader(new InputStreamReader(System.in));
+            BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
             System.out.print(PROMPTIN);
 
             try {
@@ -57,7 +58,7 @@ public class ECSClient implements IECSClient {
         logger.debug("[ECSClient] Trimmed Command: " + cmdLineTrim);
         String[] tokens = cmdLineTrim.split("\\s+");
 
-        if (tokens[0].equals("quit")) {
+        if (tokens[0].equals("shutdown")) {
 
             if (client != null) {
                 if (shutdown()) {
@@ -82,8 +83,6 @@ public class ECSClient implements IECSClient {
                     int numberOfNodes = Integer.parseInt(tokens[1]);
                     int cacheSize = Integer.parseInt(tokens[2]);
                     String replacementStrategy = tokens[3];
-
-                    client = new ECS(config_file_path);
 
                     addNodes(numberOfNodes, replacementStrategy, cacheSize);
 
@@ -117,7 +116,7 @@ public class ECSClient implements IECSClient {
 
 
                 try {
-                    String[] indexArr = IntStream.range(1, tokens.length).mapToObj(i -> tokens[i]).toArray(String[]::new);
+                    String[] indexArr = Arrays.stream(tokens, 1, tokens.length).toArray(String[]::new);
 
                     Collection<String> index = Arrays.asList(indexArr);
                     removeNodes(index);
@@ -141,7 +140,7 @@ public class ECSClient implements IECSClient {
                     }
 
                 } else {
-                    logger.error("Not connected!");
+                    logger.error("[ECSClient] Not connected!");
                     printError("Not connected!");
                 }
             } else {
@@ -160,7 +159,7 @@ public class ECSClient implements IECSClient {
                         logger.error("GET_ERROR + exception");
                     }
                 } else {
-                    logger.error("Not connected!");
+                    logger.error("[ECSClient] Not connected!");
                     printError("Not connected!");
                 }
             } else {
@@ -215,7 +214,7 @@ public class ECSClient implements IECSClient {
         sb.append("\t\t\t changes the logLevel\n");
         sb.append("\t\t\t ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF \n");
 
-        sb.append(PROMPT).append("quit ");
+        sb.append(PROMPT).append("shutdown");
         sb.append("\t\t\t exits the program");
         System.out.println(sb.toString());
     }
@@ -313,7 +312,7 @@ public class ECSClient implements IECSClient {
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
         // TODO
-        if(client.ifAllValidServerNames(nodeNames) == false){
+        if(!client.ifAllValidServerNames(nodeNames)){
             logger.error("Invalid server names given for removal.");
         }
 
@@ -345,6 +344,7 @@ public class ECSClient implements IECSClient {
                 if (tmpFile.exists()) {
 
                     ECSClient app = new ECSClient(config_file_path);
+
                     app.run();
 
                 } else {

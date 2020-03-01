@@ -47,12 +47,6 @@ public class ZK {
     }
 
     public static void update (String path, byte[] data) throws KeeperException, InterruptedException {
-        if(path == null){
-            logger.debug("ZK null path ");
-        }
-        if(data == null){
-            logger.debug("ZK null data ");
-        }
 
         zk.setData(path, data, zk.exists(path, true).getVersion());
         List<String> children = zk.getChildren(path, false);

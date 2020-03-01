@@ -12,7 +12,7 @@ public class ECSNode implements IECSNode {
 
     protected String name;
     protected String host;
-    protected Integer port;
+    protected Integer port = -1;
 
     // TODO: flag
 

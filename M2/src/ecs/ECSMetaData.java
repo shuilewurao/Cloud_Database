@@ -10,7 +10,7 @@ public class ECSMetaData{
     private String name;
     private String host = null;
     private int port = -1;
-    private int cacheSize;
+    private int cacheSize = -1;
     private String replacementStrategy;
     // start hash is hash(host:port)
     private BigInteger startHash;

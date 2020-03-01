@@ -12,6 +12,7 @@ import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 public class ECS implements IECSClient {
 
@@ -23,6 +24,8 @@ public class ECS implements IECSClient {
     // Logical Hash Ring object managing the ECSNodes
     private ECSHashRing hashRing;
     private List<String> availableNodeKeys;
+
+    private boolean INITIALIZED = false;
 
     /*
     ZooKeeper instance
@@ -41,7 +44,7 @@ public class ECS implements IECSClient {
     private static final String ZK_STOP_CMD = "zookeeper-3.4.11/bin/zkServer.sh stop";
     private static final String WHITESPACE = " ";
 
-    public enum OPERATIONS {START, STOP, SHUTDOWN, UPDATE, TRANSFER}
+    public enum OPERATIONS {START, STOP, SHUT_DOWN, UPDATE, TRANSFER, INIT, STATE_CHANGE, KV_TRANSFER, TRANSFER_FINISH}
 
 
     /**
@@ -92,7 +95,7 @@ public class ECS implements IECSClient {
 
         try {
             BufferedReader reader = new BufferedReader(new FileReader(configFilePath));
-            
+
             String line;
 
             availableServers = new HashMap<>();
@@ -155,18 +158,17 @@ public class ECS implements IECSClient {
 
     }
 
-    @Override
-    public boolean start() throws Exception {
+    public void start_script() throws Exception {
         // filter current activeNodes:
 
         Collection<ECSNode> toStart = new ArrayList<>();
 
         for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
-            ECSNode n = (ECSNode) entry.getValue();
-            if (n.getServerStateType().equals(KVMessage.ServerStateType.IDLE)) {
+            ECSNode n = entry.getValue();
+            if (!n.getServerStateType().equals(KVMessage.ServerStateType.STARTED)) {
                 toStart.add(n);
             } else {
-                logger.debug("[ECS] " + n.getNodeName() + " is not in IDLE state!");
+                logger.debug("[ECS] " + n.getNodeName() + " is in STARTED state!");
             }
         }
 
@@ -174,7 +176,6 @@ public class ECS implements IECSClient {
         // server <port> <cacheSize> <cacheStrategy>
         // java -jar $1/m2-server.jar $2 $3 $4  > "$1/logs/Server_$2.log" 2>&1
 
-        Process proc;
         String script_path = PWD + "/" + RUN_SERVER_SCRIPT;
 
         for (ECSNode n : toStart) {
@@ -184,11 +185,100 @@ public class ECS implements IECSClient {
             logger.info("[ECS] Running Server starting cmd: " + script_path + WHITESPACE + cmd_input);
             Runtime run = Runtime.getRuntime();
             try {
-                proc = run.exec(script_path + WHITESPACE + cmd_input);
+                run.exec(script_path + WHITESPACE + cmd_input);
 
-                logger.info("[ECS] Setting " + n.getNodeName() + " to STARTED state!");
+                hashRing.getNodeByName(n.name).setServerStateType(KVMessage.ServerStateType.STOPPED);
+
+                updateMetaData(hashRing.getNodeByName(n.name), OPERATIONS.INIT);
+
+            } catch (IOException e) {
+                logger.error("[ECS] Error running cmd: " + e);
+                e.printStackTrace();
+            }
+        }
+
+        pushHashRingInTree();
+    }
+
+    @Override
+
+    public boolean start() throws Exception {
+        // filter current activeNodes:
+
+        Collection<ECSNode> toStart = new ArrayList<>();
+
+        for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
+            ECSNode n = entry.getValue();
+            if (n.getServerStateType().equals(KVMessage.ServerStateType.IDLE) || n.getServerStateType().equals(KVMessage.ServerStateType.STOPPED)) {
+                toStart.add(n);
+            }
+        }
+
+        if (toStart.size() == 0) {
+
+            List<String> children = zk.getChildren(ZK_SERVER_PATH, false);
+            for (String child : children) {
+                String data = Arrays.toString(ZK.read(ZK_SERVER_PATH + "/" + child));
+
+                //TODO
+
+                /*
+
+                fix bug here!! data is not string but int array..
+
+                 */
+
+                logger.debug("[ECS] persisted data: " + data);
+
+                String[] tokens = data.split(Constants.DELIMITER);
+
+                String name = tokens[1];
+                String host = tokens[2];
+                int port = Integer.parseInt(tokens[3]);
+                int cacheSize = Integer.parseInt(tokens[4]);
+                String cacheStrategy = tokens[5];
+
+                ECSNode node = new ECSNode(name, host, port);
+                node.setCacheSize(cacheSize);
+                node.setReplacementStrategy(cacheStrategy);
+                node.setServerStateType(KVMessage.ServerStateType.STOPPED);
+
+                hashRing.addNode(node);
+
+                toStart.add(node);
+            }
+        }
+
+
+        // call start on Node using script.sh:
+        // server <port> <cacheSize> <cacheStrategy>
+        // java -jar $1/m2-server.jar $2 $3 $4  > "$1/logs/Server_$2.log" 2>&1
+
+        String script_path = PWD + "/" + RUN_SERVER_SCRIPT;
+
+        for (ECSNode n : toStart) {
+
+            String cmd_input = PWD + WHITESPACE + n.getNodePort() + WHITESPACE + n.getCacheSize() + WHITESPACE + n.getReplacementStrategy();
+
+            Runtime run = Runtime.getRuntime();
+            try {
+                if (!INITIALIZED) {
+                    logger.info("[ECS] Running Server starting cmd: " + script_path + WHITESPACE + cmd_input);
+
+                    run.exec(script_path + WHITESPACE + cmd_input);
+
+                    logger.info("[ECS] Setting " + n.getNodeName() + " to STARTED state!");
+
+                    hashRing.getNodeByName(n.name).setServerStateType(KVMessage.ServerStateType.STOPPED);
+
+                    updateMetaData(hashRing.getNodeByName(n.name), OPERATIONS.INIT);
+                }
+
+                n.setServerStateType(KVMessage.ServerStateType.STARTED);
 
                 hashRing.getNodeByName(n.name).setServerStateType(KVMessage.ServerStateType.STARTED);
+
+                logger.debug("[ECS] type: " + hashRing.getNodeByName(n.name).getServerStateType().toString());
 
                 updateMetaData(hashRing.getNodeByName(n.name), OPERATIONS.START);
 
@@ -246,8 +336,6 @@ public class ECS implements IECSClient {
 
                 toRemove.add(n.name);
 
-                updateMetaData(hashRing.getNodeByName(n.name), OPERATIONS.SHUTDOWN);
-
                 removeNodes(toRemove);
             }
 
@@ -258,6 +346,7 @@ public class ECS implements IECSClient {
             String cmd = PWD + "/" + ZK_STOP_CMD;
 
             try {
+                logger.info("[ECS] shutting down zookeeper...");
                 Process process = Runtime.getRuntime().exec(cmd);
 
                 StringBuilder output = new StringBuilder();
@@ -288,7 +377,7 @@ public class ECS implements IECSClient {
             return metadata_backed;
             //return true;
         } catch (Exception e) {
-            logger.error("[ECS] Error shutting down... " + e);
+            logger.error("[ECS] error shutting down... " + e);
             e.printStackTrace();
         }
 
@@ -314,25 +403,22 @@ public class ECS implements IECSClient {
         // Remove the used randomKey
         availableNodeKeys.remove(rKey);
 
+
         // Server should be in STOPPED state
-        if (rNode.getServerStateType().equals(KVMessage.ServerStateType.STOPPED)) {
-            rNode.setServerStateType(KVMessage.ServerStateType.IDLE);
+        if (rNode.getServerStateType().equals(KVMessage.ServerStateType.STARTED)) {
+
+            logger.error("[ECS] Trying to START a non STOPPED node: " + rNode.getNodeName());
+            return null;
+        } else {
+
+
             logger.info("[ECS] Adding node: " + rNode.getNodeName());
 
             assert rNode.getNodeHash() != null;
 
             hashRing.addNode(rNode);
-            try {
-                updateMetaData(hashRing.getNodeByName(rNode.name), OPERATIONS.UPDATE);
-            } catch (KeeperException | InterruptedException e) {
-                e.printStackTrace();
-            }
-
-        } else {
-            logger.error("[ECS] Trying to START a non STOPPED node: " + rNode.getNodeName());
-            logger.error("[ECS] Program exit...");
-            System.exit(1);
         }
+
         return rNode;
     }
 
@@ -340,6 +426,7 @@ public class ECS implements IECSClient {
     public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) {
 
         logger.info("[ECS] Initiating storage service...");
+        INITIALIZED = true;
 
         if (availableServers.size() == 0) {
             logger.info("[ECS] No storage service available...");
@@ -379,7 +466,12 @@ public class ECS implements IECSClient {
                 String nodePath = ZK_SERVER_PATH + "/" + node.getNodeName();
 
                 if (zk.exists(nodePath, true) == null) {
+                    logger.info("[ECS] creating znode for " + node.getNodeName());
                     ZKAPP.create(nodePath, metaData);
+
+                    String znodePath = ZK_SERVER_PATH + "/" + node.getNodeName() + "/operation";
+                    ZKAPP.create(znodePath, "INIT".getBytes());
+
                 } else {
                     ZK.update(nodePath, metaData);
                 }
@@ -390,10 +482,16 @@ public class ECS implements IECSClient {
         }
         assert result.size() != 0;
 
-        logger.info("[ECS] finished initiating nodes, call \"start\" to start the servers!");
+        try {
+            start_script();
+        } catch (Exception e) {
+            logger.error("[ECS] cannot call start script! " + e);
+            e.printStackTrace();
+        }
 
         pushHashRingInTree();
 
+        /*
         try {
             if (awaitNodes(count, ZK_TIMEOUT))
                 return result;
@@ -408,6 +506,9 @@ public class ECS implements IECSClient {
             e.printStackTrace();
             return null;
         }
+         */
+
+        return result;
     }
 
     @Override
@@ -416,9 +517,9 @@ public class ECS implements IECSClient {
         for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
             ECSNode n = entry.getValue();
 
-            hashRing.getNodeByName(n.name).setServerStateType(KVMessage.ServerStateType.STOPPED);
+            hashRing.getNodeByName(n.name).setServerStateType(KVMessage.ServerStateType.IDLE);
 
-            updateMetaData(hashRing.getNodeByName(n.name), OPERATIONS.STOP);
+            updateMetaData(hashRing.getNodeByName(n.name), OPERATIONS.INIT);
         }
 
         return ZKAPP.connectedSignal.await(timeout, TimeUnit.MILLISECONDS);
@@ -439,32 +540,43 @@ public class ECS implements IECSClient {
                 ECSNode node = availableServers.get(name);
                 assert node != null;
 
-                if (hashRing.getNodeByName(node.name).getServerStateType().equals(KVMessage.ServerStateType.SHUT_DOWN)) {
-                    logger.info("[ECS] shutting down node: " + node.name);
-                } else {
-                    logger.info("[ECS] Removing node: " + name);
-                    hashRing.getNodeByName(node.name).setServerStateType(KVMessage.ServerStateType.STOPPED);
-                }
 
                 try {
-                    updateMetaData(hashRing.getNodeByName(node.name), OPERATIONS.TRANSFER);
+                    updateMetaData(hashRing.getNodeByName(name), OPERATIONS.TRANSFER);
                 } catch (KeeperException | InterruptedException e) {
                     e.printStackTrace();
                 }
 
+                /*
+                wait for transfer to finish?
+                 */
+
+                String znodePath = ZK_SERVER_PATH + "/" + name + "/operation";
+
                 try {
-                    String[] newHashRange = hashRing.removeNode(node);
+                    if (Arrays.toString(ZK.read(znodePath)).equals("TRANSFER_FINISH")) {
 
-                    logger.debug("[ECS] New hash range: " + newHashRange[0] + " : " + newHashRange[1]);
+                    }
 
-                    // Adding back to available servers
-                    availableNodeKeys.add(name);
+                    try {
+                        hashRing.getNodeByName(name).setServerStateType(KVMessage.ServerStateType.SHUT_DOWN);
+                        String[] newHashRange = hashRing.removeNode(node);
 
-                    availableServers.get(name).setServerStateType(KVMessage.ServerStateType.STOPPED);
-                } catch (Exception e) {
-                    logger.error("[ECS] Error removing nodes! " + e);
+                        logger.debug("[ECS] New hash range: " + newHashRange[0] + " : " + newHashRange[1]);
+
+                        // Adding back to available servers
+                        availableNodeKeys.add(name);
+
+                        availableServers.get(name).setServerStateType(KVMessage.ServerStateType.SHUT_DOWN);
+
+                        updateMetaData(node, OPERATIONS.SHUT_DOWN);
+                    } catch (Exception e) {
+                        logger.error("[ECS] Error removing nodes! " + e);
+                        e.printStackTrace();
+                        return false;
+                    }
+                } catch (KeeperException | InterruptedException e) {
                     e.printStackTrace();
-                    return false;
                 }
 
             }
@@ -542,7 +654,7 @@ public class ECS implements IECSClient {
     serverStateType + DEL + startHash + DEL + endHash + DEL + OPERATION
 
      */
-    private String getOperation(String msg) {
+    public String getOperation(String msg) {
 
         String[] tokens = msg.split(Constants.DELIMITER);
 
@@ -568,7 +680,6 @@ public class ECS implements IECSClient {
         String serverStateType = n.getServerStateType().toString();
         String startHash;
         String endHash;
-        String op = operation.toString();
 
         if (n.getNodeHashRange()[0] == null || n.getNodeHashRange()[0].equals(""))
             startHash = "";
@@ -581,25 +692,52 @@ public class ECS implements IECSClient {
             endHash = n.getNodeHashRange()[1];
 
         logger.info("[ECS] updating meta data for znode: " + n.name);
-        logger.info("[ECS]     new server state type: " + serverStateType);
-        logger.info("[ECS]     new start hash: " + startHash);
-        logger.info("[ECS]     new end hash: " + endHash);
-        logger.info("[ECS]     new operation: " + op);
+        logger.info("[ECS]     state: " + n.getServerStateType());
+        logger.info("[ECS]     name: " + n.name);
+        logger.info("[ECS]     cache: " + n.getCacheSize());
+        logger.info("[ECS]     strat: " + n.getReplacementStrategy());
+        logger.info("[ECS]     start hash: " + startHash);
+        logger.info("[ECS]     end hash: " + endHash);
 
-        String metaData = serverStateType + Constants.DELIMITER + startHash + Constants.DELIMITER + endHash + Constants.DELIMITER + op;
+        assert n.name != null;
+        assert n.getNodeHost() != null;
+        assert n.getNodePort() != -1;
+        assert n.getCacheSize() != -1;
+        assert n.getReplacementStrategy() != null;
+
+        String metaData = serverStateType + Constants.DELIMITER +
+                n.name + Constants.DELIMITER +
+                n.getNodeHost() + Constants.DELIMITER +
+                n.getNodePort() + Constants.DELIMITER +
+                n.getCacheSize() + Constants.DELIMITER +
+                n.getReplacementStrategy() + Constants.DELIMITER +
+                startHash + Constants.DELIMITER +
+                endHash;
 
         byte[] data = metaData.getBytes();
         String znodePath = ZK_SERVER_PATH + "/" + n.name;
 
         if (zk.exists(znodePath, true) == null) {
             logger.warn("[ECS] znode: " + znodePath + " do not exist! Creating...");
-            ZKAPP.create(znodePath, "".getBytes());
+            ZKAPP.create(znodePath, data);
+        } else {
+            ZK.update(znodePath, data);
         }
 
-        try {
-            ZK.update(znodePath, data);
-        } catch (KeeperException | InterruptedException e) {
-            e.printStackTrace();
+        if (operation == null || operation.toString().equals(" ")) {
+            logger.warn("[ECS] null operation!");
+        } else {
+
+            String op = operation.toString();
+            logger.info("[ECS] sending operation " + op + " to znode " + n.name);
+            String opPath = znodePath + '/' + "operation";
+
+            if (zk.exists(opPath, true) == null) {
+                logger.warn("[ECS] znode: " + znodePath + " do not exist! Creating...");
+                ZKAPP.create(opPath, op.getBytes());
+            } else {
+                ZK.update(opPath, op.getBytes());
+            }
         }
 
     }
