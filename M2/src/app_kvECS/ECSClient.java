@@ -72,6 +72,10 @@ public class ECSClient implements IECSClient {
                 }
             }
 
+            logger.info("[ECSClient] Application exit!");
+            System.out.println(PROMPT + "Application exit!");
+            System.exit(0);
+
         } else if (tokens[0].equals("init")) {
             if (tokens.length == 4) {
                 try {
