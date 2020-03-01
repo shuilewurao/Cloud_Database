@@ -1,7 +1,7 @@
 package ecs;
 
 public interface ECSNodeMessage {
-    public enum ECSNodeFlag {
+    enum ECSNodeFlag {
         STOP,              /* Node has stopped */
         START,             /* Node has started */
         STATE_CHANGE,      /* Node state has changed*/

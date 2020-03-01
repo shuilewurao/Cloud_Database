@@ -1,14 +1,10 @@
 package ecs;
 
-import app_kvServer.DataObjects.MetaData;
 import shared.messages.KVMessage;
-
-import java.math.BigInteger;
-import java.util.TreeMap;
 
 public interface IECSNode {
 
-    public enum ECSNodeFlag{
+    enum ECSNodeFlag{
         STOP,
         START,
         STATE_CHANGE,

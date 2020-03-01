@@ -10,14 +10,15 @@ import java.util.concurrent.CountDownLatch;
 
 public class ZK {
 
-    private static Logger logger = Logger.getRootLogger();
-
     private static ZooKeeper zk;
     private static final String ZK_HOST = "localhost";
     private static final int ZK_TIMEOUT = 2000;
-    private int ZK_PORT;
+    /*
+    private int ZK_PORT = 2181;
     private static final String ZK_ROOT_PATH = "/root";
     private static final String ZK_SERVER_PATH = "/server";
+
+     */
     public final CountDownLatch connectedSignal = new CountDownLatch(1);
 
     public ZooKeeper connect() throws IOException, IllegalStateException {
@@ -43,15 +44,14 @@ public class ZK {
     }
 
     public static byte[] read (String path) throws KeeperException, InterruptedException {
-        return zk.getData(path, true, zk.exists(path, true));
+        return zk.getData(path, false, zk.exists(path, true));
     }
 
     public static void update (String path, byte[] data) throws KeeperException, InterruptedException {
 
         zk.setData(path, data, zk.exists(path, true).getVersion());
         List<String> children = zk.getChildren(path, false);
-        for (int i = 0; i < children.size(); ++i)
-            delete(path + "/" + children.get(i));
+        for (String child : children) delete(path + "/" + child);
     }
 
     public static void delete(String path) throws KeeperException, InterruptedException {

@@ -5,7 +5,7 @@ import shared.messages.KVMessage;
 
 import java.math.BigInteger;
 
-public class ECSMetaData{
+public class ECSMetaData {
 
     private String name;
     private String host = null;
@@ -73,18 +73,13 @@ public class ECSMetaData{
 
     public void setHashRange(BigInteger startHash, BigInteger endHash) {
 
-        if (startHash == null || startHash.equals("")) {
-
-        } else {
+        if (!(startHash == null)) {
             this.startHash = startHash;
         }
 
-        if (endHash == null || endHash.equals("")) {
-
-        } else {
+        if (!(endHash == null)) {
             this.endHash = endHash;
         }
-
 
     }
 

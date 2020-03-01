@@ -20,7 +20,7 @@ public class ECSClient implements IECSClient {
     private static final String PROMPT = "ECSClient >> ";
     private static final String PROMPTIN = "ECSClient << ";
 
-    private String config_file_path = null;
+    private String config_file_path;
     private boolean stop = false;
 
     private ECS client = null;

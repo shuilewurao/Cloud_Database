@@ -15,7 +15,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -53,9 +52,9 @@ public class KVStore implements KVCommInterface {
     }
 
     @Override
-    public void connect() throws UnknownHostException, IOException {
+    public void connect() throws IOException {
         this.clientSocket = new Socket(this.address, this.port);
-        this.listeners = new HashSet<IKVClient>();
+        this.listeners = new HashSet<>();
         logger.info("[KVStore] Connection established");
         this.output = clientSocket.getOutputStream();
         this.input = clientSocket.getInputStream();

@@ -40,7 +40,6 @@ public class ECS implements IECSClient {
     private static final String ZK_ROOT_PATH = "/root";
     public static final String ZK_SERVER_PATH = "/server";
     public static final String ZK_HASH_TREE = "/metadata";
-    private static final int ZK_TIMEOUT = 2000;
 
     private static final String PWD = System.getProperty("user.dir");
     private static final String RUN_SERVER_SCRIPT = "script.sh";
@@ -222,34 +221,35 @@ public class ECS implements IECSClient {
 
             List<String> children = zk.getChildren(ZK_SERVER_PATH, false);
             for (String child : children) {
-                String data = Arrays.toString(ZK.read(ZK_SERVER_PATH + "/" + child));
+                String data = new String(ZK.read(ZK_SERVER_PATH + "/" + child));
 
-                //TODO
-
-                /*
-
-                fix bug here!! data is not string but int array..
-
-                 */
+                logger.debug("[ECS] data path: " + ZK_SERVER_PATH + "/" + child);
 
                 logger.debug("[ECS] persisted data: " + data);
 
-                String[] tokens = data.split(Constants.DELIMITER);
+                String[] tokens = data.split("\\" + Constants.DELIMITER);
+                
+                if (tokens.length > 6) {
+                    String name = tokens[1];
+                    String host = tokens[2];
+                    int port = Integer.parseInt(tokens[3]);
+                    int cacheSize = Integer.parseInt(tokens[4]);
+                    String cacheStrategy = tokens[5];
 
-                String name = tokens[1];
-                String host = tokens[2];
-                int port = Integer.parseInt(tokens[3]);
-                int cacheSize = Integer.parseInt(tokens[4]);
-                String cacheStrategy = tokens[5];
+                    assert child.equals(name);
 
-                ECSNode node = new ECSNode(name, host, port);
-                node.setCacheSize(cacheSize);
-                node.setReplacementStrategy(cacheStrategy);
-                node.setServerStateType(KVMessage.ServerStateType.STOPPED);
+                    ECSNode node = new ECSNode(name, host, port);
+                    node.setCacheSize(cacheSize);
+                    node.setReplacementStrategy(cacheStrategy);
+                    node.setServerStateType(KVMessage.ServerStateType.STOPPED);
 
-                hashRing.addNode(node);
+                    hashRing.addNode(node);
 
-                toStart.add(node);
+                    toStart.add(node);
+                } else {
+                    logger.warn("[ECS] Not enough data to start " + child);
+                }
+
             }
         }
 
@@ -319,7 +319,7 @@ public class ECS implements IECSClient {
     }
 
     @Override
-    public boolean shutdown() throws Exception {
+    public boolean shutdown() {
 
         // for each active node, disconnect them? call KVStore??
 
@@ -445,7 +445,7 @@ public class ECS implements IECSClient {
 
         logger.info("[ECS] Initiating setting up nodes...");
 
-        Collection<IECSNode> result = new ArrayList<IECSNode>();
+        Collection<IECSNode> result = new ArrayList<>();
 
         byte[] data = "".getBytes();
 
@@ -602,14 +602,14 @@ public class ECS implements IECSClient {
 
         logger.info("[ECS] getting nodes...");
 
-        Map<String, IECSNode> result = new HashMap<String, IECSNode>();
+        Map<String, IECSNode> result = new HashMap<>();
 
         assert hashRing.getSize() != 0;
 
 
         for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
             ECSNode node = entry.getValue();
-            result.put(node.getNodeName(), (IECSNode) node);
+            result.put(node.getNodeName(), node);
 
             logger.debug("[ECS] node: " + node.getNodeName());
 
@@ -651,9 +651,8 @@ public class ECS implements IECSClient {
         availableServers.put(name, node);
     }
 
-    public BigInteger mdHashServer(String host, int port) throws NoSuchAlgorithmException {
+    public BigInteger mdHashServer(String host, int port) {
         return MD5.HashFromHostAddress(host, port);
-
     }
 
     /**
@@ -666,9 +665,11 @@ public class ECS implements IECSClient {
     serverStateType + DEL + startHash + DEL + endHash + DEL + OPERATION
 
      */
+
+    /*
     public String getOperation(String msg) {
 
-        String[] tokens = msg.split(Constants.DELIMITER);
+        String[] tokens = msg.split("\\" + Constants.DELIMITER);
 
         for (String token : tokens) {
             for (OPERATIONS o : OPERATIONS.values()) {
@@ -680,6 +681,8 @@ public class ECS implements IECSClient {
 
         return null;
     }
+
+     */
 
     private void updateMetaData(ECSNode n, OPERATIONS operation) throws KeeperException, InterruptedException {
 

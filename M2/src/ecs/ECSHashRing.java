@@ -5,10 +5,8 @@ import com.google.gson.reflect.TypeToken;
 import org.apache.log4j.Logger;
 import shared.HashingFunction.MD5;
 
-import java.math.BigInteger; // radix = 16 is the hexadecimal form
-
+import java.math.BigInteger;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * This class builds the Logical Hash Ring using a TreeMap
@@ -55,7 +53,7 @@ public class ECSHashRing {
             return null;
 
 
-        if (this.activeNodes.lastKey().compareTo(hash)==-1){
+        if (this.activeNodes.lastKey().compareTo(hash) < 0){
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
@@ -95,7 +93,7 @@ public class ECSHashRing {
             return null;
         }
 
-        if (this.activeNodes.firstKey().compareTo(currKey)==1
+        if (this.activeNodes.firstKey().compareTo(currKey) > 0
                 || this.activeNodes.firstKey().compareTo(currKey)==0) {
             // return the last entry given the smallest
             return this.activeNodes.lastEntry().getValue();
@@ -119,7 +117,7 @@ public class ECSHashRing {
     public ECSNode getNextNode(BigInteger currKey) {
         if (this.activeNodes.size() == 0)
             return null;
-        if (this.activeNodes.lastKey().compareTo(currKey) == -1 ||
+        if (this.activeNodes.lastKey().compareTo(currKey) < 0 ||
                 this.activeNodes.lastKey().compareTo(currKey) == 0) {
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
@@ -146,12 +144,12 @@ public class ECSHashRing {
         if(getSize()==0){
             node.setHashRange(node.getNodeHash(), node.getNodeHash() );
         }else if(getSize()==1){
-            if(this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHash())==-1){
+            if(this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHash()) < 0){
                 prevNode = this.activeNodes.firstEntry().getValue();
                 node.setHashRange(prevNode.getNodeHash(), node.getNodeHash());
                 prevNode.setHashRange(node.getNodeHash(), prevNode.getNodeHash());
                 this.activeNodes.put(prevNode.getNodeHash(), prevNode);
-            }else if(this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHash())==1){
+            }else if(this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHash()) > 0){
                 nextNode = this.activeNodes.firstEntry().getValue();
                 this.activeNodes.put(nextNode.getNodeHash(), nextNode);
             }else{
@@ -223,8 +221,7 @@ public class ECSHashRing {
 
 
     public String getHashRingJson() {
-        List<ECSNode> activeNodes = getActiveNodes().values().stream()
-                .collect(Collectors.toList());
+        List<ECSNode> activeNodes = new ArrayList<>(getActiveNodes().values());
         return new Gson().toJson(activeNodes);
     }
 }

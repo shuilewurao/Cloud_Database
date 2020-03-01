@@ -1,37 +1,36 @@
 package app_kvServer;
 
-import java.math.BigInteger;
-import java.net.BindException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-
-
 import app_kvServer.CacheManager.CachePolicy;
+import app_kvServer.CacheManager.FIFO;
+import app_kvServer.CacheManager.LFU;
+import app_kvServer.CacheManager.LRU;
 import app_kvServer.Database.KVDatabase;
-
 import client.KVStore;
 import com.google.gson.Gson;
 import ecs.ECSHashRing;
 import ecs.ECSMetaData;
 import ecs.ECSNode;
 import logger.LogSetup;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.*;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooKeeper;
 import shared.Constants;
-import shared.communication.ClientConnection;
 import shared.HashingFunction.MD5;
-
-import app_kvServer.CacheManager.LRU;
-import app_kvServer.CacheManager.FIFO;
-import app_kvServer.CacheManager.LFU;
+import shared.communication.ClientConnection;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
+
+import java.io.IOException;
+import java.math.BigInteger;
+import java.net.BindException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import static ecs.ECS.*;
 
@@ -338,8 +337,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     @Override
     public void close() {
         running = false;
-        for (int i = 0; i < threadList.size(); i++) {
-            threadList.get(i).interrupt();
+        for (Thread thread : threadList) {
+            thread.interrupt();
         }
         if (serverThread != null)
             serverThread.interrupt();
@@ -565,8 +564,6 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             ie.printStackTrace();
         }
     }
-
-
 
     private void getMetaDataTreeFromZK(){
         logger.info("[KVServer] "+serverName +"Getting meta data");
@@ -894,9 +891,10 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     public static void main(String[] args) throws IOException {
         try {
             new LogSetup("logs/server.log", Level.ALL);
+
             if (args.length != 3) {
                 logger.error("Error! Invalid number of arguments!");
-                logger.error("Usage: Server <port> <cacheSize> <strategy>!");
+                logger.error("Usage: Server <server_name> <zkHostName> <zkPort>!");
             } else {
                 //if(isHashed){
                     String serverName = args[0];

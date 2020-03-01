@@ -68,16 +68,11 @@ public class MD5
         BigInteger upper = new BigInteger(StartHash);
         BigInteger lower = new BigInteger(Endhash);
 
-        boolean descend = upper.compareTo(lower) == 1;
         if(keyHash.compareTo(upper) == 0 || keyHash.compareTo(lower) == 0){
             return true;
-        }else if(upper.compareTo(lower) == -1 && keyHash.compareTo(upper) == 1 && keyHash.compareTo(lower) == -1){
+        }else if(upper.compareTo(lower) < 0 && keyHash.compareTo(upper) > 0 && keyHash.compareTo(lower) < 0){
             return true;
-        }else if(upper.compareTo(lower) == 1 && keyHash.compareTo(upper) == -1 && keyHash.compareTo(lower) == 1
-        ){ return true;
-        }
-
-        return false;
+        }else return upper.compareTo(lower) > 0 && keyHash.compareTo(upper) < 0 && keyHash.compareTo(lower) > 0;
 
     }
 
