@@ -1,5 +1,6 @@
 package app_kvECS;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Collection;
 
@@ -43,20 +44,19 @@ public interface IECSClient {
      * same directory as the ECS. All storage servers are initialized with the metadata and any persisted data, and remain in state stopped.
      * NOTE: Must call setupNodes before the SSH calls to start the servers and must call awaitNodes before returning
      *
-     * @return set of strings containing the names of the nodes; null if no enough server available
+     * @return set of strings containing the names of the nodes
      */
-    public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize);
+    public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) throws IOException;
 
     /**
      * Sets up `count` servers with the ECS (in this case Zookeeper)
      *
-     * @return array of strings, containing unique names of servers; null if no enough server available
+     * @return array of strings, containing unique names of servers
      */
     public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize);
 
     /**
      * Wait for all nodes to report status or until timeout expires
-     * Something we need to do after adding nodes
      *
      * @param count   number of nodes to wait for
      * @param timeout the timeout in milliseconds
@@ -80,5 +80,5 @@ public interface IECSClient {
     /**
      * Get the specific node responsible for the given key
      */
-    public IECSNode getNodeByKey(String key);
+    public IECSNode getNodeByKey(String Key);
 }

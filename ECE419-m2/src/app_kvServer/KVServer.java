@@ -1,5 +1,9 @@
 package app_kvServer;
 
+import app_kvServer.CacheManager.CachePolicy;
+import app_kvServer.CacheManager.FIFO;
+import app_kvServer.CacheManager.LFU;
+import app_kvServer.CacheManager.LRU;
 import com.google.gson.Gson;
 import common.messages.KVAdminMessage;
 import ecs.ECS;
@@ -59,8 +63,9 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     /**
      * cache would be null if strategy is set to None
      */
-    private KVCache cache;
+    //private KVCache cache;
     private KVPersistentStore store;
+    private CachePolicy Cache;
 
 
     public String getHashRingString() {
@@ -92,17 +97,28 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         this.cacheSize = cacheSize;
         this.strategy = CacheStrategy.valueOf(strategy);
         if (this.strategy == CacheStrategy.None) {
-            this.cache = null;
+            this.Cache = null;
         } else {
             // Use reflection to dynamically initialize the cache based on strategy name
             try {
                 Constructor<?> cons = Class.forName("server.cache.KV" + strategy + "Cache").getConstructor(Integer.class);
-                this.cache = (KVCache) cons.newInstance(cacheSize);
-            } catch (ClassNotFoundException |
-                    NoSuchMethodException |
-                    IllegalAccessException |
-                    InstantiationException |
-                    InvocationTargetException e) {
+                switch (strategy) {
+                    case "FIFO":
+                        Cache = new FIFO(cacheSize);
+                        break;
+                    case "LRU":
+                        Cache = new LRU(cacheSize);
+                        break;
+                    case "LFU":
+                        Cache = new LFU(cacheSize);
+                        break;
+                    default:
+                        this.strategy = CacheStrategy.None;
+                        logger.error("Invalid Cache Strategy!");
+                        // TODO: handling
+                        break;
+                }
+            } catch (ClassNotFoundException | NoSuchMethodException e) {
                 logger.fatal("Component of KVServer is not found, please check the integrity of jar package");
                 e.printStackTrace();
             }
@@ -224,21 +240,27 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         }
 
         if (this.strategy == CacheStrategy.None) {
-            this.cache = null;
+            this.Cache = null;
         } else {
             // Use reflection to dynamically initialize the cache based on strategy name
-            try {
-                Constructor<?> cons = Class.forName("server.cache.KV" + strategy
-                        + "Cache").getConstructor(Integer.class);
-                this.cache = (KVCache) cons.newInstance(cacheSize);
-            } catch (ClassNotFoundException |
-                    NoSuchMethodException |
-                    IllegalAccessException |
-                    InstantiationException |
-                    InvocationTargetException e) {
-                logger.fatal("Component of KVServer is not found, please check the integrity of jar package");
-                e.printStackTrace();
+
+            switch (strategy.name()) {
+                case "FIFO":
+                    Cache = new FIFO(cacheSize);
+                    break;
+                case "LRU":
+                    Cache = new LRU(cacheSize);
+                    break;
+                case "LFU":
+                    Cache = new LFU(cacheSize);
+                    break;
+                default:
+                    this.strategy = CacheStrategy.None;
+                    logger.error("Invalid Cache Strategy!");
+                    // TODO: handling
+                    break;
             }
+
         }
 
         this.store = new KVIterateStore(name + "_iterateDataBase");
@@ -440,23 +462,21 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     @Override
     public boolean inCache(String key) {
-        if (cache != null) {
-            return cache.containsKey(key);
-        } else {
-            return false;
-        }
+        if (strategy == CacheStrategy.None) return false;
+        if (Cache == null) return false;
+        return Cache.inCache(key);
     }
 
     @Override
     public synchronized String getKV(String key) throws Exception {
-        if (cache != null) {
+        if (Cache != null) {
             if (this.inCache(key)) {
-                return cache.get(key);
+                return Cache.getKV(key);
             } else {
                 // Not in cache, read from disk and update cache
                 String result = store.get(key);
                 if (result != null) {
-                    cache.put(key, result);
+                    Cache.putKV(key, result);
                 }
                 return result;
             }
@@ -469,19 +489,22 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     public synchronized void putKV(String key, String value) throws Exception {
         // Update both cache and storage
         store.put(key, value);
-        if (cache != null)
-            cache.put(key, value);
+        if (Cache != null)
+            Cache.putKV(key, value);
     }
 
     @Override
     public void clearCache() {
-        cache.clear();
+        if (Cache == null) {
+            logger.error("Cache does not exist.");
+        }
+        Cache.clearCache();
     }
 
     @Override
     public void clearStorage() {
+        clearCache();
         store.clearStorage();
-        cache.clear();
     }
 
     /**
@@ -626,7 +649,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             ((KVIterateStore) this.store).afterMoveData();
 
             this.unlockWrite();
-            this.cache.clear();
+            this.clearCache();
             logger.info(prompt() + "Finish transferring data");
 
 

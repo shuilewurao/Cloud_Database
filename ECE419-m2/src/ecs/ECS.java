@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * This class handles core functionality of external configuration service
  */
 public class ECS implements IECSClient {
-    private static final String SERVER_JAR = "KVServer.jar";
+    private static final String SERVER_JAR = "m2-server.jar";
     // Assumes that the jar file is located at the same dir on the remote server
     private static final String JAR_PATH = new File(System.getProperty("user.dir"), SERVER_JAR).toString();
     // Assumes that ZooKeeper runs on localhost default port(2181)
@@ -503,4 +503,6 @@ public class ECS implements IECSClient {
         }
         return true;
     }
+
+
 }
