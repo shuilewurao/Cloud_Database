@@ -32,8 +32,7 @@ import app_kvServer.CacheManager.LFU;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
 
-import static ecs.ECS.ZK_HOST;
-import static ecs.ECS.ZK_SERVER_PATH;
+import static ecs.ECS.*;
 
 
 public class KVServer implements IKVServer, Runnable, Watcher {
@@ -566,11 +565,11 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     private void getMetaDataTreeFromZK(){
         try {
             // setup hashRing info
-            byte[] hashRingData = zk.getData(ZK_SERVER_PATH, new Watcher() {
+            byte[] hashRingData = zk.getData(ZK_HASH_TREE, new Watcher() {
                 // handle hashRing update
                 public void process(WatchedEvent we) {
                     try {
-                        byte[] hashRingData = zk.getData(ZK_SERVER_PATH, this, null);
+                        byte[] hashRingData = zk.getData(ZK_HASH_TREE, this, null);
                         hashRingString = new String(hashRingData);
                         hashRing = new ECSHashRing(hashRingString);
 

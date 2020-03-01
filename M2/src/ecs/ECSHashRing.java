@@ -131,7 +131,7 @@ public class ECSHashRing {
         if (this.activeNodes.size() == 0)
             return null;
         BigInteger currKey = MD5.HashInBI(hashName);
-        if (this.activeNodes.lastKey().equals(currKey)) {
+        if (this.activeNodes.lastKey().compareTo(currKey)==-1) {
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
@@ -212,7 +212,6 @@ public class ECSHashRing {
         String[] hashRange = node.getNodeHashRange();
 
         if (this.getSize() == 1) {
-            // TODO: ???????
             logger.debug("[ECSHashRing] only one node in the ring!");
         } else {
             ECSNode prevNode = this.getPrevNode(node.getNodeHash());
