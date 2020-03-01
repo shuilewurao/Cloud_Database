@@ -391,17 +391,7 @@ public class ECS implements IECSClient {
         }
         assert result.size() != 0;
 
-        // call start() to start all the nodes
-        try {
-
-            start();
-        } catch (Exception e) {
-            logger.error("[ECS] Error starting nodes: " + e);
-
-            hashRing.printAllNodes();
-
-            e.printStackTrace();
-        }
+        logger.info("[ECS] finished initiating nodes, call \"start\" to start the servers!");
 
         pushHashRingInTree();
         return result;
