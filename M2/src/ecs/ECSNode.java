@@ -67,10 +67,30 @@ public class ECSNode implements IECSNode {
     @Override
     public String[] getNodeHashRange() {
         BigInteger[] hashRange = this.metaData.getHashRange();
-        return new String[]{
-                hashRange[0].toString(),
-                hashRange[1].toString()
-        };
+
+        if (hashRange[0] != null && hashRange[1] != null) {
+            return new String[]{
+                    hashRange[0].toString(),
+                    hashRange[1].toString(),
+            };
+        } else if (hashRange[0] == null && hashRange[1] == null) {
+            return new String[]{
+                    "",
+                    ""
+            };
+        } else if (hashRange[0] == null) {
+            return new String[]{
+                    "",
+                    hashRange[1].toString()
+            };
+        } else {
+            return new String[]{
+                    hashRange[0].toString(),
+                    ""
+
+            };
+        }
+
     }
 
     public void setServerStateType(KVMessage.ServerStateType stateType) {

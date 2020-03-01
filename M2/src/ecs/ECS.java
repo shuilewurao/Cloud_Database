@@ -1,11 +1,8 @@
 package ecs;
 
 import app_kvECS.IECSClient;
-import org.apache.commons.lang.SerializationUtils;
-import org.apache.commons.lang.enums.EnumUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
-import org.apache.zookeeper.data.Stat;
 import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.messages.KVMessage;
@@ -14,7 +11,6 @@ import java.io.*;
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class ECS implements IECSClient {
@@ -96,8 +92,8 @@ public class ECS implements IECSClient {
 
         try {
             BufferedReader reader = new BufferedReader(new FileReader(configFilePath));
-
-            String line = reader.readLine().trim();
+            
+            String line;
 
             availableServers = new HashMap<>();
 
@@ -403,14 +399,14 @@ public class ECS implements IECSClient {
                 return result;
             else {
                 logger.error("[ECS] unknown error in awaitNode... ");
-                return null ;
+                return null;
             }
 
 
         } catch (Exception e) {
             logger.error("[ECS] error in awaitNode: " + e);
             e.printStackTrace();
-            return null ;
+            return null;
         }
     }
 
@@ -473,8 +469,7 @@ public class ECS implements IECSClient {
 
             }
         }
-        boolean result = pushHashRingInTree();
-        return result;
+        return pushHashRingInTree();
     }
 
     @Override
@@ -551,10 +546,10 @@ public class ECS implements IECSClient {
 
         String[] tokens = msg.split(Constants.DELIMITER);
 
-        for (int i = 0; i < tokens.length; ++i) {
+        for (String token : tokens) {
             for (OPERATIONS o : OPERATIONS.values()) {
-                if (tokens[i].equals(o.toString())) {
-                    return tokens[i];
+                if (token.equals(o.toString())) {
+                    return token;
                 }
             }
         }
@@ -562,17 +557,19 @@ public class ECS implements IECSClient {
         return null;
     }
 
-    private boolean updateMetaData(ECSNode n, OPERATIONS operation) throws KeeperException, InterruptedException {
+    private void updateMetaData(ECSNode n, OPERATIONS operation) throws KeeperException, InterruptedException {
 
+        if (n == null) {
+            logger.debug("[ECS]: null node for updating meta data");
+
+        }
+
+        assert n != null;
         String serverStateType = n.getServerStateType().toString();
         String startHash;
         String endHash;
         String op = operation.toString();
 
-        if(n==null){
-            logger.debug("[ECS]: null node for updating meta data");
-
-        }
         if (n.getNodeHashRange()[0] == null || n.getNodeHashRange()[0].equals(""))
             startHash = "";
         else
@@ -603,10 +600,7 @@ public class ECS implements IECSClient {
             ZK.update(znodePath, data);
         } catch (KeeperException | InterruptedException e) {
             e.printStackTrace();
-            return false;
         }
-
-        return true;
 
     }
 
@@ -619,7 +613,7 @@ public class ECS implements IECSClient {
             if (zk.exists(ZK_HASH_TREE, false) == null) {
                 ZKAPP.create(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes());  // NOTE: has to be persistent
             } else {
-                ZKAPP.update(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes());
+                ZK.update(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes());
             }
         } catch (InterruptedException e) {
             logger.error("Interrupted");
@@ -634,7 +628,7 @@ public class ECS implements IECSClient {
     // TODO: restore mechanism
 
 
-    public boolean ifAllValidServerNames(Collection<String> nodeNames){
+    public boolean ifAllValidServerNames(Collection<String> nodeNames) {
 
         for (String name : nodeNames) {
             assert name != null;
