@@ -559,7 +559,10 @@ public class ECS implements IECSClient {
         byte[] data = metaData.getBytes();
         String znodePath = ZK_SERVER_PATH + "/" + n.name;
 
-        assert zk.exists(znodePath, true) != null;
+        if (zk.exists(znodePath, true) == null) {
+            logger.warn("[ECS] znode: " + znodePath + " do not exist! Creating...");
+            ZKAPP.create(znodePath, "".getBytes());
+        }
 
         try {
             ZK.update(znodePath, data);
@@ -578,13 +581,10 @@ public class ECS implements IECSClient {
      */
     private boolean pushHashRingInTree(){
         try {
-            Stat stat = zk.exists(ZK_HASH_TREE, false);
             if (zk.exists(ZK_HASH_TREE, false) == null) {
-                zk.create(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes(),
-                        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);  // NOTE: has to be persistent
+                ZKAPP.create(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes());  // NOTE: has to be persistent
             } else {
-                zk.setData(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes(),
-                        stat.getVersion());
+                ZKAPP.update(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes());
             }
         } catch (InterruptedException e) {
             logger.error("Interrupted");
