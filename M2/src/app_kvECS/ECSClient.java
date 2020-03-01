@@ -67,6 +67,8 @@ public class ECSClient implements IECSClient {
                     System.exit(0);
                 } else {
                     logger.error("[ECSClient] Cannot quit!");
+                    System.out.println(PROMPT + "Application exit!");
+                    System.exit(1);
                 }
             }
 
@@ -158,7 +160,7 @@ public class ECSClient implements IECSClient {
                     printError("Not connected!");
                 }
             } else {
-                logger.error("[ECSClient]] user input error for command \"quit\"!");
+                logger.error("[ECSClient]] user input error for command \"stop\"!");
                 printError("Invalid number of parameters!");
             }
 
