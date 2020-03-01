@@ -80,8 +80,8 @@ public class ClientConnection implements Runnable {
                         key = tokens[1];
                     }
 
-                    logger.info("CMD: " + cmd);
-                    logger.info("key: " + key);
+                    //logger.info("CMD: " + cmd);
+                    //logger.info("key: " + key);
 
                     // TODO: handle server state and ECS requests
 

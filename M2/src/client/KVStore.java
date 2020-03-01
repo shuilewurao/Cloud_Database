@@ -137,7 +137,7 @@ public class KVStore implements KVCommInterface {
              */
 
             msg = msg_receive.getMsg().trim();
-            logger.debug("KVMsg from KVStore.get: " + msg);
+            logger.debug("KVMsg from KVStore.get: " + msg + msg_receive.getMsg());
 
             if(value.equals("") || value.equals("null")){
                 return new KVConvertMessage(key, "null", msg);
@@ -354,6 +354,7 @@ public class KVStore implements KVCommInterface {
             sendMessage(msg_sent);
 
             TextMessage msg_receive = receiveMessage();
+            logger.debug("[KVStore] retry for not responsible server: "+msg_receive.getMsg());
 
             return msg_receive;
 

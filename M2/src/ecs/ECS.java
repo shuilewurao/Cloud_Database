@@ -180,7 +180,7 @@ public class ECS implements IECSClient {
 
         for (ECSNode n : toStart) {
 
-            String cmd_input = PWD + WHITESPACE + n.getNodePort() + WHITESPACE + n.getCacheSize() + WHITESPACE + n.getReplacementStrategy();
+            String cmd_input = PWD + WHITESPACE + n.getNodeName() + WHITESPACE + n.getNodeHost() + WHITESPACE + n.getNodePort();
 
             logger.info("[ECS] Running Server starting cmd: " + script_path + WHITESPACE + cmd_input);
             Runtime run = Runtime.getRuntime();
@@ -482,6 +482,8 @@ public class ECS implements IECSClient {
         }
         assert result.size() != 0;
 
+        pushHashRingInTree();
+
         try {
             start_script();
         } catch (Exception e) {
@@ -489,7 +491,7 @@ public class ECS implements IECSClient {
             e.printStackTrace();
         }
 
-        pushHashRingInTree();
+
 
         /*
         try {
@@ -748,6 +750,7 @@ public class ECS implements IECSClient {
      */
     private boolean pushHashRingInTree() {
         try {
+
             if (zk.exists(ZK_HASH_TREE, false) == null) {
                 ZKAPP.create(ZK_HASH_TREE, hashRing.getHashRingJson().getBytes());  // NOTE: has to be persistent
             } else {
