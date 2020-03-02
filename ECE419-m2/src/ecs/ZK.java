@@ -12,10 +12,12 @@ public class ZK {
     private static ZooKeeper zk;
     private static final String ZK_HOST = "localhost";
     private static final int ZK_TIMEOUT = 2000;
+    /*
+    private int ZK_PORT = 2181;
+    private static final String ZK_ROOT_PATH = "/root";
+    private static final String ZK_SERVER_PATH = "/server";
 
-    public int ZK_PORT = 2181;
-    public static final String ZK_ROOT_PATH = "/root";
-    public static final String ZK_SERVER_PATH = "/server";
+     */
     public final CountDownLatch connectedSignal = new CountDownLatch(1);
 
     public ZooKeeper connect() throws IOException, IllegalStateException {

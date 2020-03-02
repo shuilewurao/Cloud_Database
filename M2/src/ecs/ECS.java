@@ -13,7 +13,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -223,12 +222,8 @@ public class ECS implements IECSClient {
             for (String child : children) {
                 String data = new String(ZK.read(ZK_SERVER_PATH + "/" + child));
 
-                logger.debug("[ECS] data path: " + ZK_SERVER_PATH + "/" + child);
-
-                logger.debug("[ECS] persisted data: " + data);
-
                 String[] tokens = data.split("\\" + Constants.DELIMITER);
-                
+
                 if (tokens.length > 6) {
                     String name = tokens[1];
                     String host = tokens[2];
@@ -650,11 +645,11 @@ public class ECS implements IECSClient {
 
         availableServers.put(name, node);
     }
-
+/*
     public BigInteger mdHashServer(String host, int port) {
         return MD5.HashFromHostAddress(host, port);
     }
-
+*/
     /**
      * Synch changes on hashring with ZK
      */

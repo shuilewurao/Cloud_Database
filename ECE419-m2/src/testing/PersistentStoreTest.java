@@ -7,7 +7,6 @@ import logger.LogSetup;
 import org.apache.log4j.Level;
 import org.junit.Test;
 import performance.DataParser;
-import server.KVIterateStore;
 
 import java.io.File;
 import java.math.BigInteger;
