@@ -10,3 +10,16 @@ M2/zookeeper-3.4.11/*/*.jar
 M2/zookeeper-3.4.11/*/*.jar.*
 M2/MyStore/
 M2/out/
+M2_post/.idea/*
+M2_post/M2.iml
+M2_post/*.MF
+M2_post/logs/
+M2_post/bin/
+M2_post/*.jar
+M2_post/.DS_Store
+M2_post/.idea/workspace.xml
+M2_post/zookeeper-3.4.11/*/*.jar
+M2_post/zookeeper-3.4.11/*/*.jar.*
+M2_post/MyStore/
+M2_post/out/
+M2_post/java

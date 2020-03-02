@@ -123,7 +123,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         // create the server's ZK node
         createZKNode();
 
-        getMetaDataTreeFromZK();
+        //getMetaDataTreeFromZK();
 
         initKVServer(hashRing, cacheSize, strategy.name());
 

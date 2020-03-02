@@ -390,37 +390,23 @@ public class ECS implements IECSClient {
     @Override
     public IECSNode addNode(String cacheStrategy, int cacheSize) {
 
+        if(availableServers.size() ==0){
+            return null;
+        }
+        Map.Entry<String,ECSNode> entry =availableServers.entrySet().iterator().next();
+        String key = entry.getKey();
+        ECSNode rNode = entry.getValue();
+
         /*
         Randomly pick one of the idle servers in the repository
          */
-        Random r = new Random();
-
-        String rKey = availableNodeKeys.get(r.nextInt(availableNodeKeys.size()));
-
         // Get a random node from available servers
         ECSNode rNode = availableServers.get(rKey);
 
-        rNode.setReplacementStrategy(cacheStrategy);
-        rNode.setCacheSize(cacheSize);
+        rNode.init(cacheSize, cacheStrategy);
 
         // Remove the used randomKey
         availableNodeKeys.remove(rKey);
-
-
-        // Server should be in STOPPED state
-        if (rNode.getServerStateType().equals(KVMessage.ServerStateType.STARTED)) {
-
-            logger.error("[ECS] Trying to START a non STOPPED node: " + rNode.getNodeName());
-            return null;
-        } else {
-
-
-            logger.info("[ECS] Adding node: " + rNode.getNodeName());
-
-            assert rNode.getNodeHash() != null;
-
-            hashRing.addNode(rNode);
-        }
 
         return rNode;
     }
@@ -447,47 +433,12 @@ public class ECS implements IECSClient {
 
         Collection<IECSNode> result = new ArrayList<>();
 
-        byte[] data = "".getBytes();
-
         try {
-
-            if (zk.exists(ZK_ROOT_PATH, true) == null) { // Stat checks the path of the znode
-                ZKAPP.create(ZK_ROOT_PATH, data);
-            }
-
-            if (zk.exists(ZK_SERVER_PATH, true) == null) { // Stat checks the path of the znode
-                ZKAPP.create(ZK_SERVER_PATH, data);
-            }
-
             for (int i = 0; i < count; ++i) {
-
                 IECSNode node = addNode(cacheStrategy, cacheSize);
                 result.add(node);
-
-                byte[] metaData = node.getMetaData().getServerStateType().toString().getBytes();
-
-                String nodePath = ZK_SERVER_PATH + "/" + node.getNodeName();
-
-                if (zk.exists(nodePath, true) == null) {
-                    logger.info("[ECS] creating znode for " + node.getNodeName());
-                    ZKAPP.create(nodePath, metaData);
-
-                    String znodePath = ZK_SERVER_PATH + "/" + node.getNodeName() + "/operation";
-                    ZKAPP.create(znodePath, "INIT".getBytes());
-
-                } else {
-                    ZK.update(nodePath, metaData);
-                    String znodePath = ZK_SERVER_PATH + "/" + node.getNodeName() + "/operation";
-
-                    if (zk.exists(znodePath, true) == null) {
-                        logger.info("[ECS] creating znode for " + node.getNodeName() + "/operation");
-
-                        ZKAPP.create(znodePath, "INIT".getBytes());
-
-                    } else {
-                        ZK.update(znodePath, "INIT".getBytes());
-                    }
-                }
+                start_script(node);
+                hashRing.addNode(node);
             }
 
         } catch (InterruptedException | KeeperException e) {
@@ -495,31 +446,13 @@ public class ECS implements IECSClient {
         }
         assert result.size() != 0;
 
-        pushHashRingInTree();
 
         try {
-            start_script();
+            //start_script();
         } catch (Exception e) {
             logger.error("[ECS] cannot call start script! " + e);
             e.printStackTrace();
         }
-
-        /*
-        try {
-            if (awaitNodes(count, ZK_TIMEOUT))
-                return result;
-            else {
-                logger.error("[ECS] unknown error in awaitNode... ");
-                return null;
-            }
-
-
-        } catch (Exception e) {
-            logger.error("[ECS] error in awaitNode: " + e);
-            e.printStackTrace();
-            return null;
-        }
-         */
 
         return result;
     }
