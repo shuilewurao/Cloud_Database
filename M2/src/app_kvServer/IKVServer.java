@@ -129,7 +129,7 @@ public interface IKVServer {
     /**
      * ECS-related unlock, for write operations
      */
-    public void unLockWrite();
+    public void unlockWrite();
 
     /**
      * TODO: range
