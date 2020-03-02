@@ -157,6 +157,8 @@ public class ECSNode extends RawECSNode implements IECSNode {
         this.endHash = endHash;
     }
 
+
+
     public static boolean isKeyInRange(String key, String[] hexRange){
         String keyHash = calcHash(key);
         BigInteger lower = new BigInteger(hexRange[0], 16);

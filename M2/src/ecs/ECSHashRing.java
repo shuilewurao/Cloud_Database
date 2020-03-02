@@ -53,7 +53,7 @@ public class ECSHashRing {
             return null;
 
 
-        if (this.activeNodes.lastKey().compareTo(hash) < 0) {
+        if (this.activeNodes.lastKey().compareTo(hash) < 0){
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
         }
@@ -76,7 +76,7 @@ public class ECSHashRing {
         }
         BigInteger hash = MD5.HashInBI(keyName);
 
-        assert hash != null;
+        assert hash != null ;
         return getNodeByHash(hash);
     }
 
@@ -89,17 +89,17 @@ public class ECSHashRing {
     }
 
     public ECSNode getPrevNode(BigInteger currKey) {
-        if (this.activeNodes.size() == 0) {
+        if (this.activeNodes.size() == 0){
             return null;
         }
 
         if (this.activeNodes.firstKey().compareTo(currKey) > 0
-                || this.activeNodes.firstKey().compareTo(currKey) == 0) {
+                || this.activeNodes.firstKey().compareTo(currKey)==0) {
             // return the last entry given the smallest
             return this.activeNodes.lastEntry().getValue();
         }
 
-        if (this.activeNodes.lowerEntry(currKey) == null) {
+        if (this.activeNodes.lowerEntry(currKey) == null){
             logger.debug("[ECSHashRing] " + currKey + " not found");
         }
 
@@ -125,7 +125,7 @@ public class ECSHashRing {
 
         if (this.activeNodes.higherEntry(currKey) == null) {
             logger.debug("[ECSHashRing] " + currKey + " not found");
-            logger.debug("[ECSHashRing]: " + this.activeNodes.keySet());
+            logger.debug("[ECSHashRing]: "+this.activeNodes.keySet());
         }
 
         return this.activeNodes.higherEntry(currKey).getValue();
@@ -141,22 +141,22 @@ public class ECSHashRing {
         ECSNode nextNode;
 
         // adding the first node
-        if (getSize() == 0) {
-            node.setHashRange(node.getNodeHash(), node.getNodeHash());
-        } else if (getSize() == 1) {
-            if (this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHash()) < 0) {
+        if(getSize()==0){
+            node.setHashRange(node.getNodeHash(), node.getNodeHash() );
+        }else if(getSize()==1){
+            if(this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHash()) < 0){
                 prevNode = this.activeNodes.firstEntry().getValue();
                 node.setHashRange(prevNode.getNodeHash(), node.getNodeHash());
                 prevNode.setHashRange(node.getNodeHash(), prevNode.getNodeHash());
                 this.activeNodes.put(prevNode.getNodeHash(), prevNode);
-            } else if (this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHash()) > 0) {
+            }else if(this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHash()) > 0){
                 nextNode = this.activeNodes.firstEntry().getValue();
                 this.activeNodes.put(nextNode.getNodeHash(), nextNode);
-            } else {
+            }else{
                 logger.error("A collision on hash ring");
                 return;
             }
-        } else {
+        }else{
             prevNode = this.getPrevNode(node.getNodeHash());
             if (prevNode != null) {
                 node.setHashRange(prevNode.getNodeHash(), node.getNodeHash());
@@ -179,7 +179,7 @@ public class ECSHashRing {
 
         printNode(node);
 
-        assert this.getSize() > 0;
+        assert this.getSize() > 0 ;
 
         String[] hashRange = node.getNodeHashRange();
 
@@ -207,8 +207,8 @@ public class ECSHashRing {
     }
 
     public void printAllNodes() {
-        for (Map.Entry<BigInteger, ECSNode> entry : this.activeNodes.entrySet()) {
-            ECSNode node = entry.getValue();
+        for(Map.Entry<BigInteger,ECSNode> entry : this.activeNodes.entrySet()) {
+            ECSNode node  = entry.getValue();
 
             logger.debug("\t\tnode name: " + node.getNodeName());
             logger.debug("\t\tprev node: " + getPrevNode(node.name).getNodeName());

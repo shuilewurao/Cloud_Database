@@ -57,7 +57,7 @@ public class ECS implements IECSClient {
      */
     private ZooKeeper zk;
 
-    public static class ECSConfigFormatException extends RuntimeException {
+    public class ECSConfigFormatException extends RuntimeException {
         public ECSConfigFormatException(String msg) {
             super(msg);
         }
@@ -123,7 +123,7 @@ public class ECS implements IECSClient {
         boolean ret = multicaster.send(new KVAdminMessage(KVAdminMessage.OperationType.START));
 
         for (ECSNode n : toStart) {
-            if (multicaster.getErrors().containsKey(n)) {
+            if (multicaster.getErrors().keySet().contains(n)) {
                 hashRing.removeNode(n);
             } else {
                 n.setStatus(ECSNode.ServerStatus.ACTIVE);
@@ -148,7 +148,7 @@ public class ECS implements IECSClient {
         boolean ret = multicaster.send(new KVAdminMessage(KVAdminMessage.OperationType.STOP));
 
         for (ECSNode n : toStop) {
-            if (!multicaster.getErrors().containsKey(n)) {
+            if (!multicaster.getErrors().keySet().contains(n)) {
                 hashRing.removeNode(n);
             }
         }

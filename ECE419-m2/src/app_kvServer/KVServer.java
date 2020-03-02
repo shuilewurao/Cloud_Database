@@ -16,9 +16,11 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
 import server.*;
+import server.cache.KVCache;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -396,6 +398,10 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             return 0; // this exception should be handled by ecs
         }
 
+    }
+
+    public ServerStatus getServerStatus() {
+        return status;
     }
 
     @Override

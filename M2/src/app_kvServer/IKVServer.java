@@ -8,9 +8,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public interface IKVServer {
-
-    String getStorageName();
-
     public enum CacheStrategy {
         None,
         LRU,
@@ -132,7 +129,7 @@ public interface IKVServer {
     /**
      * ECS-related unlock, for write operations
      */
-    public void unlockWrite();
+    public void unLockWrite();
 
     /**
      * TODO: range
@@ -151,5 +148,7 @@ public interface IKVServer {
     public boolean isWriteLocked();
 
     public ECSHashRing getMetaData();
+
+
 
 }

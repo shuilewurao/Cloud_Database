@@ -3,6 +3,17 @@ package ecs;
 import shared.messages.KVMessage;
 
 public interface IECSNode {
+
+    enum ECSNodeFlag{
+        STOP,
+        START,
+        STATE_CHANGE,
+        KV_TRANSFER,
+        SHUT_DOWN,
+        UPDATE,
+        TRANSFER_FINISH
+    }
+
     /**
      * @return  the name of the node (ie "Server 8.8.8.8")
      */
