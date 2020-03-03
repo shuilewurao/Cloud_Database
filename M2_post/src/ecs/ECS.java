@@ -254,75 +254,7 @@ public class ECS implements IECSClient, Watcher {
 
         return pushHashRingInTree();
     }
-//
-//    @Override
-//    public boolean shutdown() {
-//
-//        // for each active node, disconnect them? call KVStore??
-//
-//        Collection<String> toRemove = new ArrayList<>();
-//
-//        try {
-//            for (Map.Entry<String, ECSNode> entry : availableServers.entrySet()) {
-//
-//                logger.info("[ECS] Setting " + entry.getValue().getNodeName() + " to STOPPED state!");
-//                entry.getValue().setServerStateType(KVMessage.ServerStateType.SHUT_DOWN);
-//            }
-//
-//            for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
-//                ECSNode n = entry.getValue();
-//
-//                hashRing.getNodeByName(n.name).setServerStateType(KVMessage.ServerStateType.SHUT_DOWN);
-//
-//                toRemove.add(n.name);
-//
-//                removeNodes(toRemove);
-//            }
-//
-//            boolean metadata_backed = pushHashRingInTree();  // TODO: Check
-//
-//            ZKAPP.close();
-//
-//            String cmd = PWD + "/" + ZK_STOP_CMD;
-//
-//            try {
-//                logger.info("[ECS] shutting down zookeeper...");
-//                Process process = Runtime.getRuntime().exec(cmd);
-//
-//                StringBuilder output = new StringBuilder();
-//
-//                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-//
-//                String line;
-//                while ((line = reader.readLine()) != null) {
-//                    output.append(line).append("\n");
-//                }
-//
-//                int exitVal = process.waitFor();
-//                if (exitVal == 0) {
-//                    logger.info("[ECS] cmd success: " + cmd);
-//                    logger.info(output);
-//                    System.out.println("Success!");
-//                    System.out.println(output);
-//                } else {
-//                    logger.error("[ECS] cmd abnormal: " + cmd);
-//                    logger.error("[ECS] ZooKeeper cannot stop!");
-//                }
-//            } catch (IOException | InterruptedException e) {
-//                e.printStackTrace();
-//                logger.error("[ECS] ZooKeeper cannot stop! " + e);
-//                System.exit(1);
-//            }
-//
-//            return metadata_backed;
-//            //return true;
-//        } catch (Exception e) {
-//            logger.error("[ECS] error shutting down... " + e);
-//            e.printStackTrace();
-//        }
-//
-//        return false;
-//    }
+
 
     @Override
     public ECSNode addNode(String cacheStrategy, int cacheSize, boolean isSole) {
@@ -465,31 +397,6 @@ public class ECS implements IECSClient, Watcher {
 
 
 
-
-//    @Override
-//    public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
-//
-//
-//        return null;
-//    }
-
-////
-//    @Override
-//    public boolean awaitNodes(int count, int timeout) throws Exception {
-//
-//        for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
-//            ECSNode n = entry.getValue();
-//
-//            start_script(n);
-//
-//            //hashRing.getNodeByName(n.name).setServerStateType(KVMessage.ServerStateType.IDLE);
-//
-//            //updateMetaData(hashRing.getNodeByName(n.name), OPERATIONS.INIT);
-//        }
-//
-//        // TODO: return ZKAPP.connectedSignal.await(timeout, TimeUnit.MILLISECONDS);
-//    }
-
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
         return true;
@@ -553,107 +460,7 @@ public class ECS implements IECSClient, Watcher {
         return MD5.HashFromHostAddress(host, port);
     }
 */
-    /**
-     * Synch changes on hashring with ZK
-     */
-    /*
 
-    metaData marshalling:
-
-    serverStateType + DEL + startHash + DEL + endHash + DEL + OPERATION
-
-     */
-
-    /*
-    public String getOperation(String msg) {
-
-        String[] tokens = msg.split("\\" + Constants.DELIMITER);
-
-        for (String token : tokens) {
-            for (OPERATIONS o : OPERATIONS.values()) {
-                if (token.equals(o.toString())) {
-                    return token;
-                }
-            }
-        }
-
-        return null;
-    }
-
-     */
-//
-//    private void updateMetaData(ECSNode n, OPERATIONS operation) throws KeeperException, InterruptedException {
-//
-//        if (n == null) {
-//            logger.debug("[ECS]: null node for updating meta data");
-//
-//        }
-//
-//        assert n != null;
-//        String serverStateType = n.getServerStateType().toString();
-//        String startHash;
-//        String endHash;
-//
-//        if (n.getNodeHashRange()[0] == null || n.getNodeHashRange()[0].equals(""))
-//            startHash = "";
-//        else
-//            startHash = n.getNodeHashRange()[0];
-//
-//        if (n.getNodeHashRange()[1] == null || n.getNodeHashRange()[1].equals(""))
-//            endHash = "";
-//        else
-//            endHash = n.getNodeHashRange()[1];
-//
-//        logger.info("[ECS] updating meta data for znode: " + n.name);
-//        logger.info("[ECS]     state: " + n.getServerStateType());
-//        logger.info("[ECS]     name: " + n.name);
-//        logger.info("[ECS]     cache: " + n.getCacheSize());
-//        logger.info("[ECS]     strat: " + n.getReplacementStrategy());
-//        logger.info("[ECS]     start hash: " + startHash);
-//        logger.info("[ECS]     end hash: " + endHash);
-//
-//        assert n.name != null;
-//        assert n.getNodeHost() != null;
-//        assert n.getNodePort() != -1;
-//        assert n.getCacheSize() != -1;
-//        assert n.getReplacementStrategy() != null;
-//
-//        String metaData = serverStateType + Constants.DELIMITER +
-//                n.name + Constants.DELIMITER +
-//                n.getNodeHost() + Constants.DELIMITER +
-//                n.getNodePort() + Constants.DELIMITER +
-//                n.getCacheSize() + Constants.DELIMITER +
-//                n.getReplacementStrategy() + Constants.DELIMITER +
-//                startHash + Constants.DELIMITER +
-//                endHash;
-//
-//        byte[] data = metaData.getBytes();
-//        String znodePath = ZK_SERVER_PATH + "/" + n.name;
-//
-//        if (zk.exists(znodePath, true) == null) {
-//            logger.warn("[ECS] znode: " + znodePath + " do not exist! Creating...");
-//            ZKAPP.create(znodePath, data);
-//        } else {
-//            ZK.update(znodePath, data);
-//        }
-//
-//        if (operation == null || operation.toString().equals("")) {
-//            logger.warn("[ECS] null operation!");
-//        } else {
-//
-//            String op = operation.toString();
-//            logger.info("[ECS] sending operation " + op + " to znode " + n.name);
-//            String opPath = znodePath + '/' + "operation";
-//
-//            if (zk.exists(opPath, true) == null) {
-//                logger.warn("[ECS] znode: " + znodePath + " do not exist! Creating...");
-//                ZKAPP.create(opPath, op.getBytes());
-//            } else {
-//                ZK.update(opPath, op.getBytes());
-//            }
-//        }
-//
-//    }
 
     /*
      This pushes the latest hashRing to Zookeeper's metadata directory.

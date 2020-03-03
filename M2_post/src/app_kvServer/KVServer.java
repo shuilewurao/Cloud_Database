@@ -436,14 +436,6 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     }
 
-//
-//    /**
-//     * ECS-related initialization
-//     */
-//    public void initKVServer(ECSHashRing metadata, int cacheSize, String strategy) {
-//
-//    }
-
 
     /**
      * ECS-related stop, reject all client requests and only process ECS requests
@@ -539,108 +531,11 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 //
 //    }
 //
-//    /**
-//     * @return server's current state
-//     */
-//    public ServerStateType getServerState() {
-//        return serverState;
-//    }
-//
-//    /**
-//     * @return whether it is locked for write
-//     */
-//    public boolean isWriteLocked() {
-//        return writeLocked;
-//    }
-//
-//    public ECSHashRing getMetaData() {
-//        return hashRing;
-//    }
-//
-//    private void getMetaDataTreeFromZK() {
-//        logger.info("[KVServer] Getting meta data for: " + serverName);
-//        try {
-//
-//            byte[] hashRingData = zk.getData(ZK_HASH_TREE, new Watcher() {
-//                // handle hashRing update
-//                public void process(WatchedEvent we) {
-//                    try {
-//                        byte[] hashRingData = ZK.read(ZK_HASH_TREE);
-//
-//                        hashRingString = new String(hashRingData);
-//                        hashRing = new ECSHashRing(hashRingString);
-//
-//                    } catch (KeeperException | InterruptedException e) {
-//                        logger.debug("[KVServer] Unable to access metadata info");
-//                        e.printStackTrace();
-//                    }
-//                }
-//            }, null);
-//
-//            hashRingString = new String(hashRingData);
-//            hashRing = new ECSHashRing(hashRingString);
-//
-//        } catch (InterruptedException | KeeperException e) {
-//            logger.debug("[KVServer] Unable to get metadata info: " + e);
-//            e.printStackTrace();
-//        }
-//
-//    }
-//
-//    private void createZKNode() {
-//        logger.info("[KVServer] reading zk info for: " + serverName);
-//        try {
-//
-//            if (zk.exists(zkNodePath, false) != null) {
-//
-//                String data = new String(ZK.read(zkNodePath));
-//                String[] tokens = data.split("\\" + Constants.DELIMITER);
-//
-//                if (tokens.length > 1) {
-//                    String name = tokens[1];
-//                    /*
-//                    String host = tokens[2];
-//                    int port = Integer.parseInt(tokens[3]);
-//                    int cacheSize = Integer.parseInt(tokens[4]);
-//                    String cacheStrategy = tokens[5];
-//                     */
-//
-//                    assert serverName.equals(name);
-//
-//                } else {
-//                    logger.warn("[KVServer] Not enough server info in zk for: " + serverName);
-//                }
-//
-//            } else {
-//                logger.error("[KVServer] Server node does not exist: " + zkNodePath);
-//            }
-//        } catch (InterruptedException | KeeperException e) {
-//            logger.error("[KVServer] Unable to retrieve cache info from " + zkNodePath);
-//            // set up with some arbitrary default values,
-//            this.strategy = CacheStrategy.FIFO;
-//            this.cacheSize = 10;
-//            e.printStackTrace();
-//        }
-//
-//        logger.info("[KVServer] reading OPERATION for: " + serverName);
-//        try {
-//
-//            List<String> children = zk.getChildren(zkNodePath, false);
-//
-//            for (String child : children) {
-//                String operation = new String(ZK.read(zkNodePath + "/" + child));
-//
-//                if (operation.equals(ECS.OPERATIONS.INIT.name())) {
-//                    ZK.delete(zkNodePath + "/" + child);
-//                }
-//
-//            }
-//        } catch (InterruptedException | KeeperException e) {
-//            logger.error("[KVServer] Unable to get child nodes: " + e);
-//            e.printStackTrace();
-//        }
-//    }
-//
+
+    public ECSHashRing getMetaData() {
+        return hashRing;
+    }
+
     @Override
     public void process(WatchedEvent event) {
         logger.info("[KVServer] watcher is triggered");
