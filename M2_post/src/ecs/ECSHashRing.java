@@ -66,39 +66,25 @@ public class ECSHashRing {
     }
 
 
-    public ECSNode getNodeByName(String keyName) {
+    public ECSNode getNodeByServerName(String name) {
 
-        logger.debug("[ECSHashRing] getting node using " + keyName);
-
-        if (this.activeNodes.size() == 0) {
-            logger.debug("[ECSHashRing] ring size is 0!");
-            return null;
-        }
-        BigInteger hash = MD5.HashInBI(keyName);
-
-        assert hash != null;
-        return getNodeByHash(hash);
-    }
-
-    public ECSNode getNodeBySeverName(String name) {
-
-        // TODO
-        /*
-
-        logger.debug("[ECSHashRing] getting node using " + keyName);
+        logger.debug("[ECSHashRing] getting node using " + name);
 
         if (this.activeNodes.size() == 0) {
             logger.debug("[ECSHashRing] ring size is 0!");
             return null;
         }
-        BigInteger hash = MD5.HashInBI(keyName);
 
-        assert hash != null;
-        return getNodeByHash(hash);
+        for (Map.Entry<BigInteger, ECSNode> entry : activeNodes.entrySet()) {
+            ECSNode node = entry.getValue();
+            if(node.getNodeName().equals(name)){
+                return node;
 
-         */
+            }
+        }
         return null;
     }
+
 
 
     public ECSNode getPrevNode(String hashName) {
@@ -216,7 +202,7 @@ public class ECSHashRing {
             }
         }
 
-        this.activeNodes.remove(node.getNodeHash());
+        this.activeNodes.remove(MD5.HashInBI(node.getNodeHash()));
         return hashRange;
     }
 

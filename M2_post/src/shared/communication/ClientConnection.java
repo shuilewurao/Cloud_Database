@@ -322,7 +322,8 @@ public class ClientConnection implements Runnable {
                     break;
                 case "Transferring_Data":
                     try{
-                        boolean result = cmdTransfer(key+"\\"+ Constants.DELIMITER+tokens);
+                        logger.debug("[Server Connection] receiving transferred data: "+tokens[1]);
+                        boolean result = cmdTransfer(tokens[1]);
                         if(result==true){
                             msg_send = new TextMessage("Transferring_Data_SUCCESS");
                         }else{
@@ -343,7 +344,7 @@ public class ClientConnection implements Runnable {
 
     public boolean cmdTransfer(String transferred_data){
         // TODO
-        return true;
+        return server.receiveTransferredData(transferred_data);
 
     }
 

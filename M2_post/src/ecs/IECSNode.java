@@ -11,6 +11,7 @@ public interface IECSNode {
         START,
         STATE_CHANGE,
         KV_TRANSFER,
+        KV_RECEIVE,
         SHUT_DOWN,
         UPDATE,
         TRANSFER_FINISH

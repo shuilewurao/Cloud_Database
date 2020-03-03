@@ -5,6 +5,7 @@ import app_kvServer.IKVServer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
+import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.messages.KVMessage;
 
@@ -12,6 +13,7 @@ import java.io.*;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
 
 public class ECS implements IECSClient, Watcher {
 
@@ -396,11 +398,125 @@ public class ECS implements IECSClient, Watcher {
     }
 
 
-
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
+        logger.debug("[ECS]: Removing nodes: " + nodeNames);
+        boolean ret = true;
+        List<ECSNode> toRemove = new ArrayList<ECSNode>();
+
+        CountDownLatch sig = new CountDownLatch(hashRing.getSize());
+        for (String name : nodeNames) {
+
+            assert name != null;
+
+            ECSNode n = hashRing.getNodeByServerName(name);
+
+            if(n == null){
+                logger.error("[ECS] node is not in Hash Ring: " + name);
+                continue;
+            }
+            toRemove.add(n);
+
+            //String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() +"/op";
+            //broadcast(msgPath, IECSNode.ECSNodeFlag.KV_TRANSFER.name(), sig);
+
+            //ECSNode node = availableServers.get(name);
+            n.setFlag(ECSNodeMessage.ECSNodeFlag.KV_TRANSFER);
+           // assert node != null;
+
+        }
+        ret &= pushHashRingInTree();
+
+        migrateRemovedServers(toRemove);
+
+        for (ECSNode n : toRemove) {
+            // TODO: check transfer finish
+
+            String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() +"/op";
+            broadcast(msgPath, IECSNode.ECSNodeFlag.SHUT_DOWN.name(), sig);
+
+            n.shutdown();
+            hashRing.removeNode(n);
+            availableServers.put(n.getNodeName(), n);
+        }
+        ret &= pushHashRingInTree();
+
+        return ret;
+    }
+
+
+    private boolean migrateRemovedServers(Collection<ECSNode> nodes) {
+        for (ECSNode node : nodes) {
+            ECSNode target = findNextServingNode(node);
+            transferData(node, target, node.getNodeHashRange());
+
+        }
         return true;
     }
+
+    private ECSNode findNextServingNode(ECSNode n){
+        ECSNode next = hashRing.getNextNode(n.getNodeHash());
+        int size_count = hashRing.getSize();
+        while(size_count >0){
+            if(next.getFlag() == ECSNodeMessage.ECSNodeFlag.START){
+                return next;
+            }
+        }
+        return null;
+
+    }
+
+    private boolean transferData(ECSNode from, ECSNode to, String[] hashRange) {
+        assert from != null;
+        assert to != null;
+        assert hashRange != null;
+        assert hashRange.length == 2;
+        try {
+            CountDownLatch sig = new CountDownLatch(1);
+            String msgPath;
+
+            //String msgPath = ZK_SERVER_PATH + "/" + to.getNodePort() +"/op";
+            //broadcast(msgPath, IECSNode.ECSNodeFlag.KV_RECEIVE.name(), sig);
+
+
+            logger.info("Confirmed receiver node " + to);
+
+            msgPath = ZK_SERVER_PATH + "/" + from.getNodePort() +"/op";
+            String to_msg = IECSNode.ECSNodeFlag.KV_TRANSFER.name() +
+                    Constants.DELIMITER + to.getNodePort()
+                    + Constants.DELIMITER + hashRange[0]
+                    + Constants.DELIMITER + hashRange[1];
+
+            broadcast(msgPath, to_msg, sig);
+
+
+            logger.info("Confirmed sender node " + from);
+
+            // Start listening sender's progress
+            String toPath = ZK_SERVER_PATH + "/" + to.getNodePort() +"/op";
+            String fromPath = ZK_SERVER_PATH + "/" + from.getNodePort() +"/op";
+            while(true){
+//                String toMsg = new String(zk.getData(toPath, false, null));
+//                if(!toMsg.equals(IECSNode.ECSNodeFlag.TRANSFER_FINISH.name())){
+//                    continue;
+//                }
+                String fromMsg = new String(zk.getData(fromPath, false, null));
+                if(!fromMsg.equals(IECSNode.ECSNodeFlag.TRANSFER_FINISH.name())){
+                    continue;
+                }
+                //ZK.delete(toPath);
+                ZK.delete(fromPath);
+                break;
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        } catch (KeeperException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
 
     @Override
     public Map<String, IECSNode> getNodes() {

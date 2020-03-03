@@ -300,6 +300,7 @@ public class KVStore implements KVCommInterface {
     }
 
     public TextMessage sendMovedData(String movedData) throws IOException {
+        logger.debug("[KVStores] sending transferred data: " + movedData);
         sendMessage(new TextMessage("Transferring_Data" + DELIMITER + movedData));
         return receiveMessage();
 
@@ -364,7 +365,8 @@ public class KVStore implements KVCommInterface {
 
             return new_msg_receive;
 
-        } else if (tokens.length > 1) {
+        }
+       else if (tokens.length > 1) {
             assert tokens[1].equals(key);
         }
         return msg_received;

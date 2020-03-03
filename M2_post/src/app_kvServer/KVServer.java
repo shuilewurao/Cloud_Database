@@ -407,6 +407,10 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                         byte[] hashRingData = zk.getData(ECS.ZK_HASH_TREE, this, null);
                         hashRingString = new String(hashRingData);
                         hashRing = new ECSHashRing(hashRingString);
+                        ECSNode self_n = hashRing.getNodeByHash(MD5.HashInBI(getHostname() + ":" + port));
+                        if(self_n.getFlag() == ECSNodeMessage.ECSNodeFlag.KV_TRANSFER){
+                            lockWrite();
+                        }
                         logger.info("Hash Ring updated");
                     } catch (KeeperException | InterruptedException e) {
                         logger.info("Unable to update the metadata node");
@@ -475,61 +479,47 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     }
 
 //
-//    public boolean moveData(String[] range, String server) {
-//
-//        if (range.length < 2) {
-//            logger.debug("Invalid hash range for move data");
-//            return false;
-//        }
-//
-//        this.lockWrite();
-//
-//        BigInteger hashTarget = MD5.HashInBI(server);
-//        ECSNode targetServerNode = this.hashRing.getActiveNodes().get(hashTarget);
-//        ECSMetaData targetServer;
-//        if (targetServerNode != null) {
-//            targetServer = targetServerNode.getMetaData();
-//        } else {
-//            logger.error("Could not find the target server for moving data");
-//            return false;
-//        }
-//
-//
-//        int port = targetServer.getPort();
-//        String address = targetServer.getHost();
-//        logger.info("Find the target server as (" + address + ":" + port + ")");
-//
-//        //return byte array of Data
-//        try {
-//            String DataResult = DB.getPreMovedData(range);
-//            KVStore tempClient = new KVStore(address, port);
-//            tempClient.connect();
-//
-//            // TODO: Needs a message here and check its status
-//            TextMessage result = tempClient.sendMovedData(DataResult);
-//            tempClient.disconnect();
-//
-//            if (result.getMsg().equals("Transferring_Data_SUCCESS")) {
-//                DB.deleteKVPairByRange(range);
-//                this.unlockWrite();
-//                return true;
-//            }
-//
-//            this.unlockWrite();
-//            return false;
-//
-//
-//        } catch (Exception e) {
-//            logger.error("Exceptions in getting moved data");
-//
-//        } finally {
-//            // if not returned yet, it is a failure
-//            this.unlockWrite();
-//            return false;
-//
-//        }
-//
-//    }
+    public boolean moveData(String[] range, int target_port) {
+
+        if (range.length < 2) {
+            logger.debug("Invalid hash range for move data");
+            return false;
+        }
+
+        this.lockWrite();
+
+        //return byte array of Data
+        try {
+            String DataResult = DB.getPreMovedData(range);
+            KVStore tempClient = new KVStore(ECS.ZK_HOST, target_port);
+            tempClient.connect();
+
+            // TODO: Needs a message here and check its status
+            TextMessage result = tempClient.sendMovedData(DataResult);
+            tempClient.disconnect();
+
+            if (result.getMsg().equals("Transferring_Data_SUCCESS")) {
+                DB.deleteKVPairByRange(range);
+                this.unlockWrite();
+                logger.debug("Transfer success at senders");
+                return true;
+            }
+
+            this.unlockWrite();
+            return false;
+
+
+        } catch (Exception e) {
+            logger.error("Exceptions in getting moved data");
+
+        } finally {
+            // if not returned yet, it is a failure
+            this.unlockWrite();
+            return false;
+
+        }
+
+    }
 //
 
     public ECSHashRing getMetaData() {
@@ -586,6 +576,23 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                     ZK.deleteNoWatch(path);
                     logger.info("[KVServer] Server stopped!");
                     break;
+
+                case KV_TRANSFER:
+                    assert tokens.length == 4;
+                    int target = new Integer(tokens[1]);
+                    String[] range = new String[]{
+                           tokens[2], tokens[3]};
+
+                    // send data
+                    moveData(range, target);
+
+                    String msgPath = ZK_SERVER_PATH + "/" + port +"/op";
+                    ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                    //broadcast(msgPath, IECSNode.ECSNodeFlag.SHUT_DOWN.name(), sig);
+
+                    break;
+
+
                 default:
                     logger.debug("[KVServer] process "+tokens[0]);
             }
@@ -626,6 +633,17 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         }
 
         return node.getNodePort()==port;
+    }
+
+
+    public boolean receiveTransferredData(String data){
+        lockWrite();
+        //String msgPath = ZK_SERVER_PATH + "/" + port +"/op";
+        DB.receiveTransferdData(data);
+
+            //ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+            return true;
+
     }
 
 }
