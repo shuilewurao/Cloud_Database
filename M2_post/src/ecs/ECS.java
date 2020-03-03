@@ -428,6 +428,11 @@ public class ECS implements IECSClient, Watcher {
 
             String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() +"/op";
             broadcast(msgPath, IECSNode.ECSNodeFlag.INIT.name(), sig);
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
             start_script(n);
 

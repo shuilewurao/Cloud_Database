@@ -285,14 +285,13 @@ public class ClientConnection implements Runnable {
         if(this.server.getServerState() != IKVServer.ServerStateType.STARTED){
             // TODO: also needs to check if it is a ECS request
             msg_send = new TextMessage(KVMessage.StatusType.SERVER_STOPPED.name());
-        //}
-//        else if(!server.isResponsible(key)){
-//            String hashRingStr = server.getHashRingStr();
-//            msg_send = new TextMessage(
-//                    KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() +  Constants.DELIMITER + hashRingStr);
-//        }else if(this.server.isWriteLocked() && cmd.equals("PUT")){
-//            // TODO: if other commands skip this lock
-//            msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
+        }
+        else if(!server.isResponsible(key)){
+            String hashRingStr = server.getHashRingStr();
+            msg_send = new TextMessage(
+                    KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() +  Constants.DELIMITER + hashRingStr);
+        }else if(this.server.isWriteLocked() && cmd.equals("PUT")){
+            msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
         }else{
             switch (cmd) {
                 case "PUT":

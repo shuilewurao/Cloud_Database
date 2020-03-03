@@ -714,23 +714,23 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 //
 //
 //
-//    public String getHashRingStr() {
-//        return hashRingString;
-//    }
-//
+    public String getHashRingStr() {
+        return hashRingString;
+    }
+
 //    public ECSHashRing getHashRing() {
 //        return hashRing;
 //    }
 //
-//    public boolean isResponsible(String key) {
-//
-//        ECSNode node = hashRing.getNodeByHash(MD5.HashInBI(key));
-//        if (node == null) {
-//            logger.error("[KVStore] No node in hash ring is responsible for key " + key);
-//            return false;
-//        }
-//
-//        return node.getNodeName().equals(serverName);
-//    }
+    public boolean isResponsible(String key) {
+
+        ECSNode node = hashRing.getNodeByHash(MD5.HashInBI(key));
+        if (node == null) {
+            logger.error("[KVStore] No node in hash ring is responsible for key " + key);
+            return false;
+        }
+
+        return node.getNodePort()==port;
+    }
 
 }

@@ -59,6 +59,7 @@ public class KVStore implements KVCommInterface {
         this.output = clientSocket.getOutputStream();
         this.input = clientSocket.getInputStream();
         TextMessage reply = receiveMessage();
+        setRunning(true);
         logger.info(reply.getMsg());
     }
 
@@ -323,9 +324,7 @@ public class KVStore implements KVCommInterface {
         tokens[2] = VALUE (optional)
          */
 
-        if (tokens.length > 1) {
-            assert tokens[1].equals(key);
-        } else if (tokens[0].equals(KVMessage.StatusType.SERVER_STOPPED.name())) {
+       if (tokens[0].equals(KVMessage.StatusType.SERVER_STOPPED.name())) {
 
             logger.info("[KVStore] Storage server is stopped for serving requests!");
 
@@ -333,7 +332,8 @@ public class KVStore implements KVCommInterface {
 
         } else if (tokens[0].equals(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name())) {
 
-            ECSHashRing hashRing = new ECSHashRing(key);
+            logger.debug("[KVStore]: hashring received:"+ tokens[1]);
+            ECSHashRing hashRing = new ECSHashRing(tokens[1]);
 
             BigInteger hash = MD5.HashInBI(key);
             ECSNode newServer = hashRing.getNodeByHash(hash);
@@ -357,14 +357,15 @@ public class KVStore implements KVCommInterface {
             }
 
             sendMessage(msg_sent);
-
             TextMessage new_msg_receive = receiveMessage();
 
 
             logger.debug("[KVStore] retry for not responsible server: " + new_msg_receive.getMsg());
 
-            return handleServerNotResponsible(new_msg_receive, msg_sent, key);
+            return new_msg_receive;
 
+        } else if (tokens.length > 1) {
+            assert tokens[1].equals(key);
         }
         return msg_received;
     }
