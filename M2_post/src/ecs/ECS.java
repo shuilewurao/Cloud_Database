@@ -475,8 +475,7 @@ public class ECS implements IECSClient, Watcher {
             CountDownLatch sig = new CountDownLatch(1);
             String msgPath;
 
-            //String msgPath = ZK_SERVER_PATH + "/" + to.getNodePort() +"/op";
-            //broadcast(msgPath, IECSNode.ECSNodeFlag.KV_RECEIVE.name(), sig);
+            //msgPath = ZK_SERVER_PATH + "/" + to.getNodePort() +"/op";broadcast(msgPath, IECSNode.ECSNodeFlag.KV_RECEIVE.name(), sig);
 
 
             logger.info("Confirmed receiver node " + to);
@@ -496,15 +495,15 @@ public class ECS implements IECSClient, Watcher {
             String toPath = ZK_SERVER_PATH + "/" + to.getNodePort() +"/op";
             String fromPath = ZK_SERVER_PATH + "/" + from.getNodePort() +"/op";
             while(true){
-//                String toMsg = new String(zk.getData(toPath, false, null));
-//                if(!toMsg.equals(IECSNode.ECSNodeFlag.TRANSFER_FINISH.name())){
-//                    continue;
-//                }
+                //String toMsg = new String(zk.getData(toPath, false, null));
+                //if(!toMsg.equals(IECSNode.ECSNodeFlag.TRANSFER_FINISH.name())){
+                //    continue;
+                //}
                 String fromMsg = new String(zk.getData(fromPath, false, null));
                 if(!fromMsg.equals(IECSNode.ECSNodeFlag.TRANSFER_FINISH.name())){
                     continue;
                 }
-                //ZK.delete(toPath);
+                ZK.delete(toPath);
                 ZK.delete(fromPath);
                 break;
             }

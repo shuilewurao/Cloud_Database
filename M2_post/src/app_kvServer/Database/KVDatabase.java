@@ -359,16 +359,19 @@ public class KVDatabase implements IKVDatabase {
             BigInteger key= MD5.HashInBI(entry.getKey());
             KVEntry kve= entry.getValue();
             //System.out.println("Key: "+entry.getKey()+ " in Server:"+this.PortNumber%10);
-            logger.debug("Key "+entry.getKey()+ "in port:"+this.portNo);
+            logger.debug("Key " +entry.getKey()+ " in port:"+this.portNo);
 
             if(MD5.isKeyinRange(key,startRange,endRange))//Check for key in range or not
             {
+
                 if(kve.isValid()==false){
                     logger.debug("Move an invalid KV entry");
                     // TODO: may need to restore the LUT log
                 }else{
                     // valid bit checking
+                    logger.debug("[DB] Move an valid KV entry");
                     byte[] result= readKVMsg(kve);
+                    logger.debug("[DB] "+result.toString());
                     String[] tokens =  new String(result, StandardCharsets.UTF_8).split(DELIM);
                     String copied_str;
                     if(tokens[0].getBytes(StandardCharsets.UTF_8)[0]==(byte)1) {
@@ -385,7 +388,9 @@ public class KVDatabase implements IKVDatabase {
                 }
             }
         }
+
         String result = stringList.toString();
+        logger.debug("[DB] sent" + result);
 
         return result;
     }

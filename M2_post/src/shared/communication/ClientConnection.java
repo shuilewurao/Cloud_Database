@@ -80,6 +80,28 @@ public class ClientConnection implements Runnable {
                     TextMessage msg_send;
                     logger.info("CMD: " + cmd);
                     logger.info("key: " + key);
+
+                    // checks for distributed servers
+                    logger.debug("IMP cmd: " +cmd);
+                    if(cmd.equals("Transferring_Data")){
+                        try{
+                            logger.debug("[Server Connection] receiving transferred data: "+msg_received);
+                            boolean result = cmdTransfer(msg_received.split("\\" + DELIMITER, 2)[1]);
+                            if(result==true){
+                                msg_send = new TextMessage("Transferring_Data_SUCCESS");
+                            }else{
+                                msg_send = new TextMessage("Transferring_Data_ERROR");
+                            }
+                        }catch(Exception e){
+                            // TODO: will this be sent?
+                            logger.error("Exception in data transfer");
+                            msg_send = new TextMessage("Transferring_Data_ERROR");
+                        }
+                        sendMessage(msg_send);
+                        continue;
+
+                    }
+
                     handleClientRequest(cmd, key, tokens);
 
 /*
@@ -282,62 +304,72 @@ public class ClientConnection implements Runnable {
         TextMessage msg_send;
 
         // checks for distributed servers
-        if(this.server.getServerState() != IKVServer.ServerStateType.STARTED){
-            // TODO: also needs to check if it is a ECS request
-            msg_send = new TextMessage(KVMessage.StatusType.SERVER_STOPPED.name());
-        }
-        else if(!server.isResponsible(key)){
-            String hashRingStr = server.getHashRingStr();
-            msg_send = new TextMessage(
-                    KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() +  Constants.DELIMITER + hashRingStr);
-        }else if(this.server.isWriteLocked() && cmd.equals("PUT")){
-            msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
-        }else{
-            switch (cmd) {
-                case "PUT":
-                    String value = "null";
-                    if (tokens.length == 3) {
-                        value = tokens[2];
-                    }
-                    try {
-                        msg_send = new TextMessage(cmdPut(key, value));
-                    } catch (Exception e) {
-                        msg_send = new TextMessage("PUT_ERROR + exception");
-                    }
-
-                    break;
-                case "GET":
-                    try {
-                        String value_return = cmdGet(key);
-
-                        if (value_return.equals("GET_ERROR")) {
-                            msg_send = new TextMessage("GET_ERROR");
-                        } else {
-                            msg_send = new TextMessage("GET_SUCCESS" +  Constants.DELIMITER + key +  Constants.DELIMITER + value_return);
-                        }
-                    } catch (Exception e) {
-                        msg_send = new TextMessage("GET_ERROR + exception");
-                    }
-
-                    break;
-                case "Transferring_Data":
-                    try{
-                        logger.debug("[Server Connection] receiving transferred data: "+tokens[1]);
-                        boolean result = cmdTransfer(tokens[1]);
-                        if(result==true){
-                            msg_send = new TextMessage("Transferring_Data_SUCCESS");
-                        }else{
-                            msg_send = new TextMessage("Transferring_Data_ERROR");
-                        }
-                    }catch(Exception e){
-                        // TODO: will this be sent?
-                        logger.error("Exception in data transfer");
+        logger.debug("IMP cmd: " +cmd);
+        if(cmd.equals("Transferring_Data")){
+                try{
+                    logger.debug("[Server Connection] receiving transferred data: "+tokens[1]);
+                    boolean result = cmdTransfer(tokens[1]);
+                    if(result==true){
+                        msg_send = new TextMessage("Transferring_Data_SUCCESS");
+                    }else{
                         msg_send = new TextMessage("Transferring_Data_ERROR");
                     }
-                default:
-                    msg_send = new TextMessage("CMD NOT RECOGNIZED: " + cmd);
+                }catch(Exception e){
+                    // TODO: will this be sent?
+                    logger.error("Exception in data transfer");
+                    msg_send = new TextMessage("Transferring_Data_ERROR");
+                }
+
+        }else{
+            logger.debug("[Client Connection] cmd: "+cmd);
+            if(this.server.getServerState() == IKVServer.ServerStateType.STOPPED){
+                // TODO: also needs to check if it is a ECS request
+
+                logger.debug("current server state is:" + this.server.getServerState().name()) ;
+                msg_send = new TextMessage(KVMessage.StatusType.SERVER_STOPPED.name());
             }
+            else if(!server.isResponsible(key)){
+                String hashRingStr = server.getHashRingStr();
+                msg_send = new TextMessage(
+                        KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() +  Constants.DELIMITER + hashRingStr);
+            }else if(this.server.isWriteLocked() && cmd.equals("PUT")){
+                msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
+            }else{
+                switch (cmd) {
+                    case "PUT":
+                        String value = "null";
+                        if (tokens.length == 3) {
+                            value = tokens[2];
+                        }
+                        try {
+                            msg_send = new TextMessage(cmdPut(key, value));
+                        } catch (Exception e) {
+                            msg_send = new TextMessage("PUT_ERROR + exception");
+                        }
+
+                        break;
+                    case "GET":
+                        try {
+                            String value_return = cmdGet(key);
+
+                            if (value_return.equals("GET_ERROR")) {
+                                msg_send = new TextMessage("GET_ERROR");
+                            } else {
+                                msg_send = new TextMessage("GET_SUCCESS" +  Constants.DELIMITER + key +  Constants.DELIMITER + value_return);
+                            }
+                        } catch (Exception e) {
+                            msg_send = new TextMessage("GET_ERROR + exception");
+                        }
+
+                        break;
+
+                    default:
+                        msg_send = new TextMessage("CMD NOT RECOGNIZED: " + cmd);
+                }
+            }
+
         }
+
 
         sendMessage(msg_send);
     }

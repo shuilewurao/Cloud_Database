@@ -42,8 +42,8 @@ public class MD5
 
     {
 
-        BigInteger upper = new BigInteger(StartHash);
-        BigInteger lower = new BigInteger(Endhash);
+        BigInteger upper = MD5.HashInBI(StartHash);
+        BigInteger lower = MD5.HashInBI(Endhash);
 
         if(keyHash.compareTo(upper) == 0 || keyHash.compareTo(lower) == 0){
             return true;

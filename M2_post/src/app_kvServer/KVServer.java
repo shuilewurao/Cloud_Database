@@ -321,7 +321,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     public static void main(String[] args) throws IOException {
         try {
-            new LogSetup("logs/server.log", Level.ALL);
+            new LogSetup("logs/server.log", Level.DEBUG );
             if (args.length != 3) {
                 logger.error("Error! Invalid number of arguments!");
                 logger.error("Usage: Server <port> <cacheSize> <strategy>!");
@@ -489,8 +489,17 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         this.lockWrite();
 
         //return byte array of Data
+        String DataResult;
         try {
-            String DataResult = DB.getPreMovedData(range);
+            DataResult = DB.getPreMovedData(range);
+        } catch (Exception e) {
+            this.unlockWrite();
+            logger.error("Exceptions in getting moved data");
+            return false;
+
+        }
+
+        try{
             KVStore tempClient = new KVStore(ECS.ZK_HOST, target_port);
             tempClient.connect();
 
@@ -510,7 +519,9 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
 
         } catch (Exception e) {
-            logger.error("Exceptions in getting moved data");
+            this.unlockWrite();
+            logger.error("Exceptions in sending moved data");
+            return false;
 
         } finally {
             // if not returned yet, it is a failure
@@ -638,11 +649,18 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     public boolean receiveTransferredData(String data){
         lockWrite();
-        //String msgPath = ZK_SERVER_PATH + "/" + port +"/op";
+        String msgPath = ZK_SERVER_PATH + "/" + port +"/op";
         DB.receiveTransferdData(data);
+        unlockWrite();
 
-            //ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
-            return true;
+        try {
+            ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+        } catch (KeeperException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return true;
 
     }
 
