@@ -72,14 +72,17 @@ public class ECSNode extends ECSMetaData implements IECSNode {
 
 
     public void shutdown(){
-        setCacheSize(0);
+        setCacheSize(-1);
         setReplacementStrategy("");
         setFlag(ECSNodeMessage.ECSNodeFlag.SHUT_DOWN);
+        setServerStateType(IKVServer.ServerStateType.SHUT_DOWN);
+        clearStartHash();
     }
 
     public void init(int cacheSize, String replacementStrategy){
         setCacheSize(cacheSize);
         setReplacementStrategy(replacementStrategy);
         setFlag(ECSNodeMessage.ECSNodeFlag.INIT);
+        setServerStateType(IKVServer.ServerStateType.STOPPED);
     }
 }

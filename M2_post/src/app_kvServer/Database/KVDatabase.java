@@ -18,7 +18,7 @@ import shared.messages.KVMessage.StatusType;
 
 public class KVDatabase implements IKVDatabase {
 
-    private static final String dir = "./MyStore";
+    private static final String dir = System.getProperty("user.dir");
     private static final String ESCAPER = "-";
     private static final String DELIM = ESCAPER + ",";
     private static final String ESCAPED_ESCAPER = ESCAPER + "d";
@@ -204,7 +204,7 @@ public class KVDatabase implements IKVDatabase {
 
     private void openFile() {
 
-        logger.info("Initialize iterate storage file ...");
+        logger.info("Initialize storage file ...");
         boolean fileDNE;
         try {
             // create directory of persisted storage

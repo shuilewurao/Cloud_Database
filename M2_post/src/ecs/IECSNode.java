@@ -4,6 +4,19 @@ import app_kvServer.IKVServer;
 import shared.messages.KVMessage;
 
 public interface IECSNode {
+
+    enum ECSNodeFlag{
+        INIT,
+        STOP,
+        START,
+        STATE_CHANGE,
+        KV_TRANSFER,
+        SHUT_DOWN,
+        UPDATE,
+        TRANSFER_FINISH
+    }
+
+
     /**
      * @return  the name of the node (ie "Server 8.8.8.8")
      */

@@ -98,7 +98,7 @@ public class ECSClient implements IECSClient {
                     int cacheSize = Integer.parseInt(tokens[1]);
                     String replacementStrategy = tokens[2];
 
-                    addNode(replacementStrategy, cacheSize);
+                    addNode(replacementStrategy, cacheSize, true);
 
                 } else {
                     logger.error("[ECSClient] user input error for command \"add\"!");
@@ -286,9 +286,9 @@ public class ECSClient implements IECSClient {
     }
 
     @Override
-    public IECSNode addNode(String cacheStrategy, int cacheSize) {
+    public IECSNode addNode(String cacheStrategy, int cacheSize, boolean isSole) {
 
-        return client.addNode(cacheStrategy, cacheSize);
+        return client.addNode(cacheStrategy, cacheSize, true);
 
     }
 

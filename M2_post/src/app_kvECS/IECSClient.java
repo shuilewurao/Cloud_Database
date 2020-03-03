@@ -36,7 +36,7 @@ public interface IECSClient {
      *
      * @return name of new server
      */
-    public IECSNode addNode(String cacheStrategy, int cacheSize);
+    public IECSNode addNode(String cacheStrategy, int cacheSize, boolean isSole);
 
     /**
      * Randomly choose <numberOfNodes> servers from the available machines and start the KVServer by issuing an SSH call to the respective machine.

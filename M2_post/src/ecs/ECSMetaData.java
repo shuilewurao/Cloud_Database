@@ -15,7 +15,7 @@ public class ECSMetaData {
     // start hash is hash(host:port)
     private String endHash;
 
-    private IKVServer.ServerStateType state = IKVServer.ServerStateType.SHUT_DOWN;
+    private IKVServer.ServerStateType state = IKVServer.ServerStateType.IDLE;
 
     public ECSMetaData(String name, String host, int port) {
 
@@ -77,6 +77,9 @@ public class ECSMetaData {
         };
     }
 
+    public void clearStartHash(){
+        this.startHash = "";
+    }
 
     protected int getPort() {
         return this.port;

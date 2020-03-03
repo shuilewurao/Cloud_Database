@@ -143,7 +143,7 @@ public class KVStore implements KVCommInterface {
         if (checkKeyValue(key, "")) {
 
             String msg = "GET" + DELIMITER + key + DELIMITER;
-            logger.info("[KVStore] GET msg to send: " + msg);
+            logger.debug("[KVStore] GET msg to send: " + msg);
 
             TextMessage msg_send = new TextMessage(msg);
 
@@ -260,7 +260,7 @@ public class KVStore implements KVCommInterface {
 
         /* build final String */
         TextMessage msg = new TextMessage(msgBytes);
-        logger.info("[KVStore] Received message from server: " + msg.getMsg().trim());
+        logger.debug("[KVStore] Received message from server: " + msg.getMsg().trim());
         return msg;
     }
 
@@ -294,7 +294,7 @@ public class KVStore implements KVCommInterface {
             }
         }
 
-        logger.info("[KVStore] Valid Key and Value ");
+        logger.debug("[KVStore] Valid Key and Value ");
         return true;
     }
 

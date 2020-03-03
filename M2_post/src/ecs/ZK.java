@@ -55,6 +55,11 @@ public class ZK {
         zk.delete(path, zk.exists(path, true).getVersion());
     }
 
+    public static void deleteNoWatch(String path) throws KeeperException, InterruptedException {
+        zk.delete(path, zk.exists(path, false).getVersion());
+    }
+
+
     // ACL: access control list
     // authentication method
     // this returns {<scheme>, <who can access>}

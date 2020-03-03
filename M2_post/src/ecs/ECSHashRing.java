@@ -80,6 +80,26 @@ public class ECSHashRing {
         return getNodeByHash(hash);
     }
 
+    public ECSNode getNodeBySeverName(String name) {
+
+        // TODO
+        /*
+
+        logger.debug("[ECSHashRing] getting node using " + keyName);
+
+        if (this.activeNodes.size() == 0) {
+            logger.debug("[ECSHashRing] ring size is 0!");
+            return null;
+        }
+        BigInteger hash = MD5.HashInBI(keyName);
+
+        assert hash != null;
+        return getNodeByHash(hash);
+
+         */
+        return null;
+    }
+
 
     public ECSNode getPrevNode(String hashName) {
         if (this.activeNodes.size() == 0)
@@ -198,6 +218,11 @@ public class ECSHashRing {
 
         this.activeNodes.remove(node.getNodeHash());
         return hashRange;
+    }
+
+
+    public void removeAllNode(){
+        activeNodes.clear();
     }
 
     public void printNode(ECSNode node) {
