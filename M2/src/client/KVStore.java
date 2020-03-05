@@ -60,7 +60,7 @@ public class KVStore implements KVCommInterface {
         this.input = clientSocket.getInputStream();
         TextMessage reply = receiveMessage();
         setRunning(true);
-        logger.info(reply.getMsg());
+        logger.info("[KVStore] " + reply.getMsg());
     }
 
     @Override
@@ -325,7 +325,7 @@ public class KVStore implements KVCommInterface {
         tokens[2] = VALUE (optional)
          */
 
-       if (tokens[0].equals(KVMessage.StatusType.SERVER_STOPPED.name())) {
+        if (tokens[0].equals(KVMessage.StatusType.SERVER_STOPPED.name())) {
 
             logger.info("[KVStore] Storage server is stopped for serving requests!");
 
@@ -333,7 +333,7 @@ public class KVStore implements KVCommInterface {
 
         } else if (tokens[0].equals(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name())) {
 
-            logger.debug("[KVStore]: hashring received:"+ tokens[1]);
+            logger.debug("[KVStore]: hashring received:" + tokens[1]);
             ECSHashRing hashRing = new ECSHashRing(tokens[1]);
 
             BigInteger hash = MD5.HashInBI(key);
@@ -365,10 +365,7 @@ public class KVStore implements KVCommInterface {
 
             return new_msg_receive;
 
-        }
-       else if (tokens.length > 1) {
-            assert tokens[1].equals(key);
-        }
+        } else assert tokens.length <= 1 || tokens[1].equals(key);
         return msg_received;
     }
 }

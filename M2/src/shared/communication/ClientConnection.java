@@ -66,42 +66,44 @@ public class ClientConnection implements Runnable {
                     TextMessage latestMsg = receiveMessage();
 
                     String msg_received = latestMsg.getMsg().trim();
-                    logger.info("MSG: " + msg_received);
+                    logger.info("[ClientConnection] MSG: " + msg_received);
 
                     String[] tokens = msg_received.split("\\" + DELIMITER);
 
                     String cmd = tokens[0];
-                    String key = "null" ;
+                    String key = null;
 
                     if (tokens.length >= 2) {
                         key = tokens[1];
                     }
 
                     TextMessage msg_send;
-                    logger.info("CMD: " + cmd);
-                    logger.info("key: " + key);
+                    logger.debug("[ClientConnection] CMD: " + cmd);
+                    logger.debug("[ClientConnection] key: " + key);
 
                     // checks for distributed servers
-                    logger.debug("IMP cmd: " +cmd);
-                    if(cmd.equals("Transferring_Data")){
-                        try{
-                            logger.debug("[Server Connection] receiving transferred data: "+msg_received);
-                            boolean result = cmdTransfer(msg_received.split("\\" + DELIMITER, 2)[1]);
-                            if(result==true){
+                    /*
+                    if (cmd.equals("Transferring_Data")) {
+                        try {
+                            logger.debug("[ClientConnection] receiving transferred data: " + msg_received);
+
+                            boolean result = cmdTransfer(key);
+
+                            if (result) {
                                 msg_send = new TextMessage("Transferring_Data_SUCCESS");
-                            }else{
+                            } else {
                                 msg_send = new TextMessage("Transferring_Data_ERROR");
                             }
-                        }catch(Exception e){
+                        } catch (Exception e) {
                             // TODO: will this be sent?
-                            logger.error("Exception in data transfer");
+                            logger.error("[ClientConnection] Exception in data transfer");
                             msg_send = new TextMessage("Transferring_Data_ERROR");
                         }
                         sendMessage(msg_send);
                         continue;
 
                     }
-
+                    */
                     handleClientRequest(cmd, key, tokens);
 
 /*
@@ -144,13 +146,13 @@ public class ClientConnection implements Runnable {
                     /* connection either terminated by the client or lost due to
                      * network problems*/
                 } catch (IOException ioe) {
-                    logger.error("Error! Connection lost!");
+                    logger.error("[ClientConnection] Error! Connection lost!");
                     isOpen = false;
                 }
             }
 
         } catch (IOException ioe) {
-            logger.error("Error! Connection could not be established!", ioe);
+            logger.error("[ClientConnection] Error! Connection could not be established!", ioe);
 
         } finally {
 
@@ -161,7 +163,7 @@ public class ClientConnection implements Runnable {
                     clientSocket.close();
                 }
             } catch (IOException ioe) {
-                logger.error("Error! Unable to tear down connection!", ioe);
+                logger.error("[ClientConnection] Error! Unable to tear down connection!", ioe);
             }
         }
     }
@@ -175,16 +177,17 @@ public class ClientConnection implements Runnable {
         }
         boolean inStorage = server.inStorage(key);
 
-        KVMessage.StatusType error;
+        if (value == null)
+            value = "";
 
         try {
-            server.putKV(key, value.equals("null") ? null: value);
+            server.putKV(key, value.equals("") ? null : value);
 
-            if (inStorage && value.equals("null")) {
+            if (inStorage && (value.equals(""))) {
                 return "DELETE_SUCCESS";
             } else if (inStorage) {
                 return "PUT_UPDATE";
-            } else if (value.equals("null")) {
+            } else if (value.equals("")) {
                 return "DELETE_ERROR";
             } else {
                 return "PUT_SUCCESS";
@@ -192,7 +195,7 @@ public class ClientConnection implements Runnable {
 
         } catch (Exception e) {
 
-            if (value.equals("null")) {
+            if (value.equals("")) {
                 return "DELETE_ERROR + exception";
             } else {
                 return "PUT_ERROR + exception";
@@ -224,7 +227,7 @@ public class ClientConnection implements Runnable {
         byte[] msgBytes = msg.getMsgBytes();
         output.write(msgBytes, 0, msgBytes.length);
         output.flush();
-        logger.info("SEND \t<"
+        logger.info("[ClientConnection] SEND \t<"
                 + clientSocket.getInetAddress().getHostAddress() + ":"
                 + clientSocket.getPort() + ">: '"
                 + msg.getMsg() + "'");
@@ -233,7 +236,7 @@ public class ClientConnection implements Runnable {
     private TextMessage receiveMessage() throws IOException {
 
         int index = 0;
-        byte[] msgBytes = null, tmp = null;
+        byte[] msgBytes = null, tmp;
         byte[] bufferBytes = new byte[BUFFER_SIZE];
 
         /* read first char from stream */
@@ -299,42 +302,39 @@ public class ClientConnection implements Runnable {
     }
 
 
-
-    private void handleClientRequest(String cmd, String key, String[] tokens) throws IOException{
+    private void handleClientRequest(String cmd, String key, String[] tokens) throws IOException {
         TextMessage msg_send;
 
         // checks for distributed servers
-        logger.debug("IMP cmd: " +cmd);
-        if(cmd.equals("Transferring_Data")){
-                try{
-                    logger.debug("[Server Connection] receiving transferred data: "+tokens[1]);
-                    boolean result = cmdTransfer(tokens[1]);
-                    if(result==true){
-                        msg_send = new TextMessage("Transferring_Data_SUCCESS");
-                    }else{
-                        msg_send = new TextMessage("Transferring_Data_ERROR");
-                    }
-                }catch(Exception e){
-                    // TODO: will this be sent?
-                    logger.error("Exception in data transfer");
+        logger.debug("[ClientConnection] IMP cmd: " + cmd);
+        if (cmd.equals("Transferring_Data")) {
+            try {
+                logger.debug("[ClientConnection] receiving transferred data: " + key);
+                boolean result = cmdTransfer(key);
+                if (result) {
+                    msg_send = new TextMessage("Transferring_Data_SUCCESS");
+                } else {
                     msg_send = new TextMessage("Transferring_Data_ERROR");
                 }
+            } catch (Exception e) {
+                logger.error("[ClientConnection] Exception in data transfer");
+                msg_send = new TextMessage("Transferring_Data_ERROR");
+            }
 
-        }else{
-            logger.debug("[Client Connection] cmd: "+cmd);
-            if(this.server.getServerState() == IKVServer.ServerStateType.STOPPED){
+        } else {
+            logger.debug("[Client Connection] cmd: " + cmd);
+            if (this.server.getServerState() == IKVServer.ServerStateType.STOPPED) {
                 // TODO: also needs to check if it is a ECS request
 
-                logger.debug("current server state is:" + this.server.getServerState().name()) ;
+                logger.debug("[ClientConnection] current server state is:" + this.server.getServerState().name());
                 msg_send = new TextMessage(KVMessage.StatusType.SERVER_STOPPED.name());
-            }
-            else if(!server.isResponsible(key)){
+            } else if (!server.isResponsible(key)) {
                 String hashRingStr = server.getHashRingStr();
                 msg_send = new TextMessage(
-                        KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() +  Constants.DELIMITER + hashRingStr);
-            }else if(this.server.isWriteLocked() && cmd.equals("PUT")){
+                        KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() + Constants.DELIMITER + hashRingStr);
+            } else if (this.server.isWriteLocked() && cmd.equals("PUT")) {
                 msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
-            }else{
+            } else {
                 switch (cmd) {
                     case "PUT":
                         String value = "null";
@@ -355,7 +355,7 @@ public class ClientConnection implements Runnable {
                             if (value_return.equals("GET_ERROR")) {
                                 msg_send = new TextMessage("GET_ERROR");
                             } else {
-                                msg_send = new TextMessage("GET_SUCCESS" +  Constants.DELIMITER + key +  Constants.DELIMITER + value_return);
+                                msg_send = new TextMessage("GET_SUCCESS" + Constants.DELIMITER + key + Constants.DELIMITER + value_return);
                             }
                         } catch (Exception e) {
                             msg_send = new TextMessage("GET_ERROR + exception");
@@ -370,11 +370,10 @@ public class ClientConnection implements Runnable {
 
         }
 
-
         sendMessage(msg_send);
     }
 
-    public boolean cmdTransfer(String transferred_data){
+    public boolean cmdTransfer(String transferred_data) {
         // TODO
         return server.receiveTransferredData(transferred_data);
 

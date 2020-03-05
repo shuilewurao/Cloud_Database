@@ -83,10 +83,11 @@ public class ECSClient implements IECSClient {
 
                     } catch (NumberFormatException nfe) {
                         printError("No valid address. Port must be a number!");
-                        logger.info("Unable to parse argument <port>", nfe);
+                        logger.info("[ECSClient] Unable to parse argument <port>", nfe);
                     } catch (Exception e) {
                         printError("Could not establish connection!");
-                        logger.warn("Could not establish connection!", e);
+                        logger.warn("[ECSClient] Could not establish connection!", e);
+                        e.printStackTrace();
                     }
                 } else {
                     logger.error("[ECSClient] user input error for command \"init\"!");
@@ -154,7 +155,8 @@ public class ECSClient implements IECSClient {
                             stop();
 
                         } catch (Exception e) {
-                            logger.error("GET_ERROR + exception");
+                            logger.error("[ECSClient] GET_ERROR + exception: " + e);
+                            e.printStackTrace();
                         }
                     } else {
                         logger.error("[ECSClient] Not connected!");
@@ -170,7 +172,7 @@ public class ECSClient implements IECSClient {
                 if (tokens.length == 2) {
                     String level = setLevel(tokens[1]);
                     if (level.equals(LogSetup.UNKNOWN_LEVEL)) {
-                        logger.error("No valid log level!");
+                        logger.error("[ECSClient] No valid log level!");
                         printError("No valid log level!");
                         printPossibleLogLevels();
                     } else {
@@ -178,7 +180,7 @@ public class ECSClient implements IECSClient {
                                 "Log level changed to level " + level);
                     }
                 } else {
-                    logger.error("Invalid number of parameters!");
+                    logger.error("[ECSClient] Invalid number of parameters!");
                     printError("Invalid number of parameters!");
                 }
 
@@ -313,7 +315,8 @@ public class ECSClient implements IECSClient {
     public boolean removeNodes(Collection<String> nodeNames) {
         // TODO
         if(!client.ifAllValidServerNames(nodeNames)){
-            logger.error("Invalid server names given for removal.");
+
+            return false;
         }
 
         return client.removeNodes(nodeNames);

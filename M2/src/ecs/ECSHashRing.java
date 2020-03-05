@@ -77,14 +77,14 @@ public class ECSHashRing {
 
         for (Map.Entry<BigInteger, ECSNode> entry : activeNodes.entrySet()) {
             ECSNode node = entry.getValue();
-            if(node.getNodeName().equals(name)){
+            logger.debug("[ECSHashRing] current node: " + node.getNodeName());
+            if (node.getNodeName().equals(name)) {
                 return node;
-
             }
         }
+        logger.warn("[ECSHashRing] node not found: " + name);
         return null;
     }
-
 
 
     public ECSNode getPrevNode(String hashName) {
@@ -99,8 +99,7 @@ public class ECSHashRing {
             return null;
         }
 
-        if (this.activeNodes.firstKey().compareTo(currKey) > 0
-                || this.activeNodes.firstKey().compareTo(currKey) == 0) {
+        if (this.activeNodes.firstKey().compareTo(currKey) > 0 || this.activeNodes.firstKey().compareTo(currKey) == 0) {
             // return the last entry given the smallest
             return this.activeNodes.lastEntry().getValue();
         }
@@ -139,7 +138,7 @@ public class ECSHashRing {
     }
 
     public void addNode(ECSNode node) {
-        logger.debug("Current ring size: " + this.activeNodes.size());
+        logger.debug("[ECSHashRing] Current ring size: " + this.activeNodes.size());
         logger.debug("[ECSHashRing] Adding node: " + node.getNodeName());
         printNode(node);
 
@@ -207,7 +206,7 @@ public class ECSHashRing {
     }
 
 
-    public void removeAllNode(){
+    public void removeAllNode() {
         activeNodes.clear();
     }
 

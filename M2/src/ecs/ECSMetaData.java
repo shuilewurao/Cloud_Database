@@ -10,8 +10,8 @@ public class ECSMetaData {
     protected int port;
 
     private int cacheSize = -1;
-    private String replacementStrategy="";
-    private String startHash="";
+    private String replacementStrategy = "";
+    private String startHash = "";
     // start hash is hash(host:port)
     private String endHash;
 
@@ -77,7 +77,7 @@ public class ECSMetaData {
         };
     }
 
-    public void clearStartHash(){
+    public void clearStartHash() {
         this.startHash = "";
     }
 

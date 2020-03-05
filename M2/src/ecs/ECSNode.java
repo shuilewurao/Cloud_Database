@@ -2,11 +2,8 @@ package ecs;
 
 import app_kvServer.IKVServer;
 import shared.HashingFunction.MD5;
-import shared.messages.KVMessage;
 
 import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 public class ECSNode extends ECSMetaData implements IECSNode {
 
@@ -71,7 +68,7 @@ public class ECSNode extends ECSMetaData implements IECSNode {
     }
 
 
-    public void shutdown(){
+    public void shutdown() {
         setCacheSize(-1);
         setReplacementStrategy("");
         setFlag(ECSNodeMessage.ECSNodeFlag.SHUT_DOWN);
@@ -79,7 +76,7 @@ public class ECSNode extends ECSMetaData implements IECSNode {
         clearStartHash();
     }
 
-    public void init(int cacheSize, String replacementStrategy){
+    public void init(int cacheSize, String replacementStrategy) {
         setCacheSize(cacheSize);
         setReplacementStrategy(replacementStrategy);
         setFlag(ECSNodeMessage.ECSNodeFlag.INIT);

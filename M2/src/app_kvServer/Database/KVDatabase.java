@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Collections;
 
 import java.util.ArrayList;
+
 import org.apache.log4j.Logger;
 import shared.Constants;
 import shared.HashingFunction.MD5;
@@ -20,7 +21,7 @@ public class KVDatabase implements IKVDatabase {
     private static final String ESCAPER = Constants.ESCAPER;
     private static final String DELIM = Constants.DELIM;
     private static final String ESCAPED_ESCAPER = Constants.ESCAPED_ESCAPER;
-    private static final String DELIMITER =  Constants.DELIMITER; // delimiter used by KVStore
+    private static final String DELIMITER = Constants.DELIMITER; // delimiter used by KVStore
 
     private int portNo;
     private String DBFileName;
@@ -36,7 +37,7 @@ public class KVDatabase implements IKVDatabase {
         this.DBFileName = "DB-Server" + portno + ".txt";
         this.synchLUT = null;
         this.LUTName = "LUT-" + portno + ".txt";
-        this.portNo=portno;
+        this.portNo = portno;
         initializeDB();
     }
 
@@ -61,7 +62,7 @@ public class KVDatabase implements IKVDatabase {
             boolean result = f.delete();
             if (!result) {
                 logger.error("Unable to delete storage file");
-            }else{
+            } else {
                 logger.info("Storage file deleted successfully.");
             }
             logger.info("Storage file deleted successfully.");
@@ -88,10 +89,10 @@ public class KVDatabase implements IKVDatabase {
     public String getKV(String Key) throws Exception {
         KVEntry kve = synchLUT.get(Key);
         if (kve != null) {//Find the KV pair in the Mapping Table
-            byte[] results= readKVMsg(kve);
+            byte[] results = readKVMsg(kve);
             //String val = byteArrayToValue(results);
-            String[] content =  new String(results, StandardCharsets.UTF_8).split(DELIM);
-            if(content.length==3 && content[0].getBytes(StandardCharsets.UTF_8)[0]==(byte)1){
+            String[] content = new String(results, StandardCharsets.UTF_8).split(DELIM);
+            if (content.length == 3 && content[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 1) {
                 logger.info("Key: " + Key + "exist " + " in FileSystem");
                 return decodeValue(content[2]).trim();
             }
@@ -99,7 +100,7 @@ public class KVDatabase implements IKVDatabase {
             logger.debug("Key: " + Key + "not exist " + " in FileSystem");
 
 
-            if(content.length>=1 && this.synchLUT.containsKey(Key) && content[0].getBytes(StandardCharsets.UTF_8)[0]==(byte)0){
+            if (content.length >= 1 && this.synchLUT.containsKey(Key) && content[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 0) {
                 this.synchLUT.remove(Key);
             }
             return null;
@@ -143,7 +144,7 @@ public class KVDatabase implements IKVDatabase {
         }
     }
 
-    private synchronized long appendEntry(byte[] bytes, String K) throws IOException{
+    private synchronized long appendEntry(byte[] bytes, String K) throws IOException {
         long location;
 
         RandomAccessFile raf = new RandomAccessFile(getDBPath(), "rw");
@@ -163,7 +164,7 @@ public class KVDatabase implements IKVDatabase {
     /*
     This invalidates an entry in storage
      */
-    public synchronized boolean ModifyValidByte(long start, long end) throws IOException{
+    public synchronized boolean ModifyValidByte(long start, long end) throws IOException {
 
         RandomAccessFile raf = new RandomAccessFile(getDBPath(), "rw");
         raf.seek(start);
@@ -171,7 +172,7 @@ public class KVDatabase implements IKVDatabase {
         byte[] bytes = new byte[(int) (1)];
         raf.read(bytes);
 
-        bytes[0] = (byte)0;
+        bytes[0] = (byte) 0;
         raf.seek(start);
         raf.write(bytes);
         raf.close();
@@ -244,7 +245,7 @@ public class KVDatabase implements IKVDatabase {
         try {
             File lut_file = new File(getLUTPath()); //here you make a filehandler - not a filesystem file.
 
-            if (!lut_file.exists() || lut_file.length()==0) {
+            if (!lut_file.exists() || lut_file.length() == 0) {
                 return tmpLUT;
             }
             FileInputStream fileIn = new FileInputStream(getLUTPath());
@@ -284,7 +285,7 @@ public class KVDatabase implements IKVDatabase {
     }
 
 
-    private synchronized byte[] readKVMsg(KVEntry kve) throws IOException{
+    private synchronized byte[] readKVMsg(KVEntry kve) throws IOException {
         byte[] bytes = null;
         try {
             RandomAccessFile raf = new RandomAccessFile(getDBPath(), "r");
@@ -300,19 +301,19 @@ public class KVDatabase implements IKVDatabase {
         }
     }
 
-    private String byteArrayToValue(byte[] Bytes){
+    private String byteArrayToValue(byte[] Bytes) {
 
-        String[] content =  new String(Bytes, StandardCharsets.UTF_8).split(DELIM);
-        if(content.length==3 && content[0].getBytes(StandardCharsets.UTF_8)[0]==(byte)1){
+        String[] content = new String(Bytes, StandardCharsets.UTF_8).split(DELIM);
+        if (content.length == 3 && content[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 1) {
             return decodeValue(content[2]).trim();
         }
         return null;
     }
 
-    private String byteArrayToKV(byte[] Bytes){
+    private String byteArrayToKV(byte[] Bytes) {
 
-        String[] content =  new String(Bytes, StandardCharsets.UTF_8).split(DELIM);
-        if(content.length==3 && content[0].getBytes(StandardCharsets.UTF_8)[0]==(byte)1){
+        String[] content = new String(Bytes, StandardCharsets.UTF_8).split(DELIM);
+        if (content.length == 3 && content[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 1) {
             return decodeValue(content[1]) + DELIM + decodeValue(content[2]).trim() + "\r\n";
         }
         return null;
@@ -320,9 +321,9 @@ public class KVDatabase implements IKVDatabase {
 
     // TODO: exception
     private byte[] KVPairToBytes(String key, String value) throws IOException {
-        byte valid = (byte)1;
+        byte valid = (byte) 1;
         String validity = new String(new byte[]{valid}, StandardCharsets.UTF_8);
-        return (validity+ DELIM + encodeValue(key) + DELIM + encodeValue(value) + "\r\n").getBytes("UTF-8");
+        return (validity + DELIM + encodeValue(key) + DELIM + encodeValue(value) + "\r\n").getBytes("UTF-8");
     }
 
     private String encodeValue(String value) {
@@ -340,43 +341,43 @@ public class KVDatabase implements IKVDatabase {
 
     /**
      * Get the data to be moved
+     *
      * @param hashRange
      * @return
      * @throws Exception
      */
     public String getPreMovedData(String[] hashRange) throws Exception {
 
-        String startRange=hashRange[0];
-        String endRange=hashRange[1];
+        String startRange = hashRange[0];
+        String endRange = hashRange[1];
         //assume I get port Number and Address
         ArrayList<Byte> ByteArray;
         // using for-each loop for iteration over Map.entrySet()
-        StringBuilder stringList= new StringBuilder();
-        logger.debug("Get Hash Range from "+hashRange[0]+" to "+hashRange[1]);
+        StringBuilder stringList = new StringBuilder();
+        logger.debug("Get Hash Range from " + hashRange[0] + " to " + hashRange[1]);
 
-        for (Map.Entry<String,KVEntry> entry : synchLUT.entrySet())
-        {
-            BigInteger key= MD5.HashInBI(entry.getKey());
-            KVEntry kve= entry.getValue();
+        for (Map.Entry<String, KVEntry> entry : synchLUT.entrySet()) {
+            BigInteger key = MD5.HashInBI(entry.getKey());
+            KVEntry kve = entry.getValue();
             //System.out.println("Key: "+entry.getKey()+ " in Server:"+this.PortNumber%10);
-            logger.debug("Key " +entry.getKey()+ " in port:"+this.portNo);
+            logger.debug("Key " + entry.getKey() + " in port:" + this.portNo);
 
-            if(MD5.isKeyinRange(key,startRange,endRange))//Check for key in range or not
+            if (MD5.isKeyinRange(key, startRange, endRange))//Check for key in range or not
             {
 
-                if(kve.isValid()==false){
+                if (kve.isValid() == false) {
                     logger.debug("Move an invalid KV entry");
                     // TODO: may need to restore the LUT log
-                }else{
+                } else {
                     // valid bit checking
                     logger.debug("[DB] Move an valid KV entry");
-                    byte[] result= readKVMsg(kve);
-                    logger.debug("[DB] "+result.toString());
-                    String[] tokens =  new String(result, StandardCharsets.UTF_8).split(DELIM);
+                    byte[] result = readKVMsg(kve);
+                    logger.debug("[DB] " + result.toString());
+                    String[] tokens = new String(result, StandardCharsets.UTF_8).split(DELIM);
                     String copied_str;
-                    if(tokens[0].getBytes(StandardCharsets.UTF_8)[0]==(byte)1) {
+                    if (tokens[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 1) {
                         if (tokens.length == 3) {
-                            copied_str = decodeValue(tokens[1]) + DELIMITER +decodeValue(tokens[2]) + "\r\n";
+                            copied_str = decodeValue(tokens[1]) + DELIMITER + decodeValue(tokens[2]) + "\r\n";
                         } else if (tokens.length == 2) {
                             copied_str = decodeValue(tokens[1]) + "\r\n";
                         } else {
@@ -396,8 +397,7 @@ public class KVDatabase implements IKVDatabase {
     }
 
 
-    public synchronized boolean deleteKVPairByRange(String[]hashRange)
-    {
+    public synchronized boolean deleteKVPairByRange(String[] hashRange) {
 
         try {
             String startRange = hashRange[0];
@@ -419,34 +419,34 @@ public class KVDatabase implements IKVDatabase {
             saveLUT();
 
             return true;
-        }catch(IOException ioe){
+        } catch (IOException ioe) {
             logger.debug("Unable to delete KV Pair By range");
             return false;
         }
 
     }
 
-    public boolean receiveTransferdData(String content){
-        System.out.println("Transfer data:" + content);
-        String[] kv_pairs = content.split("\\\r\n");
+    public boolean receiveTransferdData(String content) {
+        System.out.println("[KVDatabase] Transfer data:" + content);
 
-        try{
-            for (String kv: kv_pairs){
-                String[] k_v = kv.split("\\"+DELIMITER);
+        String[] kv_pairs = content.split("\r\n");
+
+        try {
+            for (String kv : kv_pairs) {
+                String[] k_v = kv.split("\\" + DELIMITER);
                 // As PUT
                 byte[] bytes = KVPairToBytes(k_v[0].trim(), k_v[1].trim());
                 //System.out.println("Key-Value: [" +kv+"]");
                 appendEntry(bytes, k_v[0].trim());
             }
             saveLUT();
-            logger.info("Data has been moved to server"+this.portNo);
+            logger.info("Data has been moved to server" + this.portNo);
             return true;
 
-        }catch(IOException e){
-            logger.error("Unable to make transfer data to server:"+this.portNo);
+        } catch (IOException e) {
+            logger.error("Unable to make transfer data to server:" + this.portNo);
             return false;
         }
-
 
 
     }

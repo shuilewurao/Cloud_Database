@@ -14,7 +14,6 @@ public class ZK {
     private static final int ZK_TIMEOUT = 2000;
 
     public int ZK_PORT = 2181;
-    public static final String ZK_ROOT_PATH = "/root";
     public static final String ZK_SERVER_PATH = "/server";
     public final CountDownLatch connectedSignal = new CountDownLatch(1);
 
@@ -40,11 +39,15 @@ public class ZK {
         zk.create(path, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     }
 
-    public static byte[] read (String path) throws KeeperException, InterruptedException {
+    public static byte[] read(String path) throws KeeperException, InterruptedException {
         return zk.getData(path, false, zk.exists(path, true));
     }
 
-    public static void update (String path, byte[] data) throws KeeperException, InterruptedException {
+    public static byte[] readNullStat(String path) throws KeeperException, InterruptedException {
+        return zk.getData(path, false, null);
+    }
+
+    public static void update(String path, byte[] data) throws KeeperException, InterruptedException {
 
         zk.setData(path, data, zk.exists(path, true).getVersion());
         List<String> children = zk.getChildren(path, false);
@@ -71,7 +74,7 @@ public class ZK {
     Write
     Admin
      */
-    public static List<ACL> getacl (String path) throws KeeperException, InterruptedException {
+    public static List<ACL> getacl(String path) throws KeeperException, InterruptedException {
         return zk.getACL(path, zk.exists(path, true));
     }
 
