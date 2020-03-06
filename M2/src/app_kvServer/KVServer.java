@@ -25,7 +25,6 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static ecs.ECS.ZK_HASH_TREE;
@@ -375,10 +374,11 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             List<String> children = zk.getChildren(zkNodePath, false, null);
 
             if (!children.isEmpty()) {
-                logger.debug("[KVServer] checking ZK Msg: " + children.toString());
+
                 String msgPath = zkNodePath + "/" + children.get(0);
                 byte[] data = ZK.readNullStat(msgPath);
-                if (Arrays.toString(data).equals(IECSNode.ECSNodeFlag.INIT.name())) {
+                logger.debug("[KVServer] checking ZK Msg: " + children.toString() + ": " + new String(data));
+                if (new String(data).equals(IECSNode.ECSNodeFlag.INIT.name())) {
                     ZK.deleteNoWatch(msgPath);
                     logger.info("[KVServer] Server initiated at constructor");
                 }
@@ -560,6 +560,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                 case START:
                     this.start();
                     ZK.deleteNoWatch(path);
+                    logger.info("[KVServer] Server start taking request!");
                     break;
 //
                 case STOP:

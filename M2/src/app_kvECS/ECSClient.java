@@ -99,7 +99,10 @@ public class ECSClient implements IECSClient {
                     int cacheSize = Integer.parseInt(tokens[1]);
                     String replacementStrategy = tokens[2];
 
-                    addNode(replacementStrategy, cacheSize, true);
+                    if (addNode(replacementStrategy, cacheSize, true) == null)
+                        logger.warn("[ECSClient] No server/node added.");
+                    else
+                        logger.info("[ECSClient] " + addNode(replacementStrategy, cacheSize, true).getNodeName() + " added!");
 
                 } else {
                     logger.error("[ECSClient] user input error for command \"add\"!");

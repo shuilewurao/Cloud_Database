@@ -149,17 +149,24 @@ public class ECSHashRing {
         if (getSize() == 0) {
             node.setHashRange(node.getNodeHash(), node.getNodeHash());
         } else if (getSize() == 1) {
-            if (this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHashBI()) < 0) {
-                prevNode = this.activeNodes.firstEntry().getValue();
-                node.setHashRange(prevNode.getNodeHash(), node.getNodeHash());
-                prevNode.setHashRange(node.getNodeHash(), prevNode.getNodeHash());
-                this.activeNodes.put(prevNode.getNodeHashBI(), prevNode);
-            } else if (this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHashBI()) > 0) {
-                nextNode = this.activeNodes.firstEntry().getValue();
-                this.activeNodes.put(nextNode.getNodeHashBI(), nextNode);
-            } else {
-                logger.error("A collision on hash ring");
+            if (this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHashBI()) == 0) {
+
+                logger.error("[ECSHashRing] A collision on hash ring");
                 return;
+
+            } else if (this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHashBI()) > 0) {
+
+                nextNode = this.activeNodes.firstEntry().getValue();
+
+                nextNode.setHashRange(node.getNodeHash(), nextNode.getNodeHash());
+                node.setHashRange(nextNode.getNodeHash(), node.getNodeHash());
+                this.activeNodes.put(nextNode.getNodeHashBI(), nextNode);
+
+            } else {
+                prevNode = this.activeNodes.firstEntry().getValue();
+
+                node.setHashRange(prevNode.getNodeHash(), node.getNodeHash());
+                this.activeNodes.put(node.getNodeHashBI(), node);
             }
         } else {
             prevNode = this.getPrevNode(node.getNodeHash());

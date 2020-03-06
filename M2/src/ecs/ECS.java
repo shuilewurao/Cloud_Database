@@ -286,8 +286,10 @@ public class ECS implements IECSClient, Watcher {
     public ECSNode addNode(String cacheStrategy, int cacheSize, boolean isSole) {
 
         if (availableServers.size() == 0) {
+            logger.warn("[ECS] No available servers!");
             return null;
         }
+
         Map.Entry<String, ECSNode> entry = availableServers.entrySet().iterator().next();
 
         String key = entry.getKey();

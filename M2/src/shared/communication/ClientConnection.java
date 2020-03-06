@@ -322,7 +322,7 @@ public class ClientConnection implements Runnable {
             }
 
         } else {
-            logger.debug("[Client Connection] cmd: " + cmd);
+            logger.debug("[ClientConnection] cmd: " + cmd);
             if (this.server.getServerState() == IKVServer.ServerStateType.STOPPED) {
                 // TODO: also needs to check if it is a ECS request
 
