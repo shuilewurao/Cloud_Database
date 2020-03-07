@@ -156,17 +156,12 @@ public class ECSHashRing {
 
             } else if (this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHashBI()) > 0) {
 
-                nextNode = this.activeNodes.firstEntry().getValue();
+                ECSNode firstNode = this.activeNodes.firstEntry().getValue();
 
-                nextNode.setHashRange(node.getNodeHash(), nextNode.getNodeHash());
-                node.setHashRange(nextNode.getNodeHash(), node.getNodeHash());
-                this.activeNodes.put(nextNode.getNodeHashBI(), nextNode);
+                node.setHashRange(firstNode.getNodeHash(), node.getNodeHash());
+                firstNode.setHashRange(node.getNodeHash(), firstNode.getNodeHash());
 
-            } else {
-                prevNode = this.activeNodes.firstEntry().getValue();
-
-                node.setHashRange(prevNode.getNodeHash(), node.getNodeHash());
-                this.activeNodes.put(node.getNodeHashBI(), node);
+                this.activeNodes.put(firstNode.getNodeHashBI(), firstNode);
             }
         } else {
             prevNode = this.getPrevNode(node.getNodeHash());

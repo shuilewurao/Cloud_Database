@@ -104,7 +104,7 @@ public class ClientConnection implements Runnable {
 
                     }
                     */
-                    handleClientRequest(cmd, key, tokens);
+                    handleClientRequest(cmd, key, tokens, msg_received);
 
 /*
                     switch (cmd) {
@@ -302,7 +302,7 @@ public class ClientConnection implements Runnable {
     }
 
 
-    private void handleClientRequest(String cmd, String key, String[] tokens) throws IOException {
+    private void handleClientRequest(String cmd, String key, String[] tokens, String msg_received) throws IOException {
         TextMessage msg_send;
 
         // checks for distributed servers
@@ -310,7 +310,7 @@ public class ClientConnection implements Runnable {
         if (cmd.equals("Transferring_Data")) {
             try {
                 logger.debug("[ClientConnection] receiving transferred data: " + key);
-                boolean result = cmdTransfer(key);
+                boolean result = cmdTransfer(msg_received.split("\\" + DELIMITER, 2)[1]);
                 if (result) {
                     msg_send = new TextMessage("Transferring_Data_SUCCESS");
                 } else {

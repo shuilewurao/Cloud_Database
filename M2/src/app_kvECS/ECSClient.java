@@ -49,7 +49,7 @@ public class ECSClient implements IECSClient {
 
     private void handleCommand(String cmdLine) throws Exception {
         String cmdLineTrim = cmdLine.trim();
-        logger.debug("[ECSClient] Trimmed Command: " + cmdLineTrim);
+        logger.debug("[ECSClient] User input: " + cmdLineTrim);
         String[] tokens = cmdLineTrim.split("\\s+");
 
         switch (tokens[0]) {
@@ -99,11 +99,17 @@ public class ECSClient implements IECSClient {
                     int cacheSize = Integer.parseInt(tokens[1]);
                     String replacementStrategy = tokens[2];
 
-                    if (addNode(replacementStrategy, cacheSize, true) == null)
-                        logger.warn("[ECSClient] No server/node added.");
-                    else
-                        logger.info("[ECSClient] " + addNode(replacementStrategy, cacheSize, true).getNodeName() + " added!");
+                    try {
+                        addNode(replacementStrategy, cacheSize, true);
 
+                    } catch (NumberFormatException nfe) {
+                        printError("No valid address. Port must be a number!");
+                        logger.info("[ECSClient] Unable to parse argument <port>", nfe);
+                    } catch (Exception e) {
+                        printError("Could not establish connection!");
+                        logger.warn("[ECSClient] Could not establish connection!", e);
+                        e.printStackTrace();
+                    }
                 } else {
                     logger.error("[ECSClient] user input error for command \"add\"!");
                     printError("Invalid number of parameters!");
@@ -292,8 +298,9 @@ public class ECSClient implements IECSClient {
 
     @Override
     public IECSNode addNode(String cacheStrategy, int cacheSize, boolean isSole) {
+        client.addNodes(1, cacheStrategy, cacheSize);
 
-        return client.addNode(cacheStrategy, cacheSize, true);
+        return null;
 
     }
 
@@ -317,7 +324,7 @@ public class ECSClient implements IECSClient {
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
         // TODO
-        if(!client.ifAllValidServerNames(nodeNames)){
+        if (!client.ifAllValidServerNames(nodeNames)) {
 
             return false;
         }

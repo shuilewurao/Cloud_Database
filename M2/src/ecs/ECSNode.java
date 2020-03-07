@@ -1,6 +1,7 @@
 package ecs;
 
 import app_kvServer.IKVServer;
+import com.google.gson.Gson;
 import shared.HashingFunction.MD5;
 
 import java.math.BigInteger;
@@ -81,5 +82,10 @@ public class ECSNode extends ECSMetaData implements IECSNode {
         setReplacementStrategy(replacementStrategy);
         setFlag(ECSNodeMessage.ECSNodeFlag.INIT);
         setServerStateType(IKVServer.ServerStateType.STOPPED);
+    }
+
+    public String getNodeJson() {
+
+        return new Gson().toJson(this);
     }
 }

@@ -20,6 +20,7 @@ import shared.communication.ClientConnection;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
 
+import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.ServerSocket;
@@ -299,7 +300,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         // TODO: move run() & main() to this function
         serverState = ServerStateType.STARTED;
         unlockWrite();
-        logger.info("[KVServer] Port " + port + "has started");
+        logger.info("[KVServer] Port " + port + " has started");
     }
 
     /**
@@ -391,22 +392,25 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         try {
             // setup hashRing info
             // handle hashRing update
-            byte[] hashRingData = zk.getData(ZK_HASH_TREE, we -> {
-                if (!running) {
-                    return;
-                }
-                try {
-                    byte[] hashRingData1 = zk.getData(ECS.ZK_HASH_TREE, this, null);
-                    hashRingString = new String(hashRingData1);
-                    hashRing = new ECSHashRing(hashRingString);
-                    ECSNode self_n = hashRing.getNodeByHash(MD5.HashInBI(getHostname() + ":" + port));
-                    if (self_n.getFlag() == ECSNodeMessage.ECSNodeFlag.KV_TRANSFER) {
-                        lockWrite();
+            byte[] hashRingData = zk.getData(ZK_HASH_TREE, new Watcher() {
+                // handle hashRing update
+                public void process(WatchedEvent we) {
+                    if (!running) {
+                        return;
                     }
-                    logger.info("[KVServer] Hash Ring updated");
-                } catch (KeeperException | InterruptedException e) {
-                    logger.info("[KVServer] Unable to update the metadata node");
-                    e.printStackTrace();
+                    try {
+                        byte[] hashRingData1 = zk.getData(ECS.ZK_HASH_TREE, this, null);
+                        hashRingString = new String(hashRingData1);
+                        hashRing = new ECSHashRing(hashRingString);
+                        ECSNode self_n = hashRing.getNodeByHash(MD5.HashInBI(getHostname() + ":" + port));
+                        if (self_n.getFlag() == ECSNodeMessage.ECSNodeFlag.KV_TRANSFER) {
+                            lockWrite();
+                        }
+                        logger.info("[KVServer] Hash Ring updated");
+                    } catch (KeeperException | InterruptedException e) {
+                        logger.info("[KVServer] Unable to update the metadata node");
+                        e.printStackTrace();
+                    }
                 }
             }, null);
             logger.debug("[KVServer] Hash Ring found");
@@ -480,6 +484,10 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         String DataResult;
         try {
             DataResult = DB.getPreMovedData(range);
+            if (DataResult == null || DataResult.equals("")) {
+                logger.warn("[KVServer] No data to transfer!");
+                return false;
+            }
         } catch (Exception e) {
             this.unlockWrite();
             logger.error("[KVServer] Exceptions in getting moved data");
@@ -497,13 +505,14 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             if (result.getMsg().equals("Transferring_Data_SUCCESS")) {
                 DB.deleteKVPairByRange(range);
                 this.unlockWrite();
-                logger.debug("[KVServer] Transfer success at senders");
+                logger.debug("[KVServer] Transfer success at senders!");
                 return true;
+            } else if (result.getMsg().equals("Transferring_Data_ERROR")) {
+                logger.debug("[KVServer] Transfer failure at senders!");
             }
 
             this.unlockWrite();
             return false;
-
 
         } catch (Exception e) {
             this.unlockWrite();

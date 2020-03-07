@@ -354,19 +354,21 @@ public class KVDatabase implements IKVDatabase {
         ArrayList<Byte> ByteArray;
         // using for-each loop for iteration over Map.entrySet()
         StringBuilder stringList = new StringBuilder();
-        logger.debug("Get Hash Range from " + hashRange[0] + " to " + hashRange[1]);
+        logger.debug("[DB] Get Hash Range from " + hashRange[0] + " to " + hashRange[1]);
 
         for (Map.Entry<String, KVEntry> entry : synchLUT.entrySet()) {
             BigInteger key = MD5.HashInBI(entry.getKey());
             KVEntry kve = entry.getValue();
             //System.out.println("Key: "+entry.getKey()+ " in Server:"+this.PortNumber%10);
-            logger.debug("Key " + entry.getKey() + " in port:" + this.portNo);
+            logger.debug("[DB] Key " + entry.getKey() + " in port:" + this.portNo);
+
+
 
             if (MD5.isKeyinRange(key, startRange, endRange))//Check for key in range or not
             {
 
                 if (kve.isValid() == false) {
-                    logger.debug("Move an invalid KV entry");
+                    logger.debug("[DB] Move an invalid KV entry");
                     // TODO: may need to restore the LUT log
                 } else {
                     // valid bit checking
@@ -381,7 +383,7 @@ public class KVDatabase implements IKVDatabase {
                         } else if (tokens.length == 2) {
                             copied_str = decodeValue(tokens[1]) + "\r\n";
                         } else {
-                            logger.debug("An invalid kve in Database/");
+                            logger.debug("[DB] An invalid kve in Database/");
                             continue;
                         }
                         stringList.append(copied_str);
@@ -402,7 +404,7 @@ public class KVDatabase implements IKVDatabase {
         try {
             String startRange = hashRange[0];
             String endRange = hashRange[1];
-            logger.info("Remove Keys from look up table from " + startRange + " to" + endRange);
+            logger.info("[DB] Remove Keys from look up table from " + startRange + " to" + endRange);
 
             ArrayList<KVEntry> toDelete = new ArrayList<>();
             for (Map.Entry<String, KVEntry> entry : synchLUT.entrySet()) {
@@ -413,14 +415,14 @@ public class KVDatabase implements IKVDatabase {
                 {
                     ModifyValidByte(kve.start_offset, kve.end_offset);
                     synchLUT.remove(entry.getKey());
-                    logger.debug("Delete Key: " + key);
+                    logger.debug("[DB] Delete Key: " + key);
                 }
             }
             saveLUT();
 
             return true;
         } catch (IOException ioe) {
-            logger.debug("Unable to delete KV Pair By range");
+            logger.debug("[DB] Unable to delete KV Pair By range");
             return false;
         }
 
@@ -440,11 +442,11 @@ public class KVDatabase implements IKVDatabase {
                 appendEntry(bytes, k_v[0].trim());
             }
             saveLUT();
-            logger.info("Data has been moved to server" + this.portNo);
+            logger.info("[DB] Data has been moved to server" + this.portNo);
             return true;
 
         } catch (IOException e) {
-            logger.error("Unable to make transfer data to server:" + this.portNo);
+            logger.error("[DB] Unable to make transfer data to server:" + this.portNo);
             return false;
         }
 

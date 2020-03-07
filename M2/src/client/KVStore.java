@@ -202,7 +202,7 @@ public class KVStore implements KVCommInterface {
         byte[] msgBytes = msg.getMsgBytes();
         output.write(msgBytes, 0, msgBytes.length);
         output.flush();
-        logger.info("[KVStore] Send message:\t '" + msg.getMsg() + "'");
+        logger.info("[KVStore] Send message: '" + msg.getMsg() + "'");
     }
 
     private TextMessage receiveMessage() throws IOException {
@@ -300,7 +300,7 @@ public class KVStore implements KVCommInterface {
     }
 
     public TextMessage sendMovedData(String movedData) throws IOException {
-        logger.debug("[KVStores] sending transferred data: " + movedData);
+        logger.debug("[KVStore] sending transferred data: " + movedData);
         sendMessage(new TextMessage("Transferring_Data" + DELIMITER + movedData));
         return receiveMessage();
 
