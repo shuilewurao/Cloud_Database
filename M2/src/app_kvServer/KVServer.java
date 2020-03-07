@@ -20,7 +20,6 @@ import shared.communication.ClientConnection;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.ServerSocket;
@@ -30,7 +29,6 @@ import java.util.List;
 
 import static ecs.ECS.ZK_HASH_TREE;
 import static ecs.ECS.ZK_SERVER_PATH;
-
 
 public class KVServer implements IKVServer, Runnable, Watcher {
 
@@ -608,7 +606,6 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         }
     }
 
-    //
 //    public void update(ECSHashRing hashRing) {
 //        ECSNode node = hashRing.getNodeByName(this.serverName);
 //        if (node == null) {
@@ -616,14 +613,12 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 //            this.clearStorage();
 //        }
 //    }
-//
-//
-//
+
     public String getHashRingStr() {
         return hashRingString;
     }
 
-    //    public ECSHashRing getHashRing() {
+//    public ECSHashRing getHashRing() {
 //        return hashRing;
 //    }
 //
@@ -638,7 +633,6 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         return node.getNodePort() == port;
     }
 
-
     public boolean receiveTransferredData(String data) {
         lockWrite();
         String msgPath = ZK_SERVER_PATH + "/" + port + "/op";
@@ -652,7 +646,5 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             return false;
         }
         return true;
-
     }
-
 }

@@ -351,7 +351,6 @@ public class KVDatabase implements IKVDatabase {
         String startRange = hashRange[0];
         String endRange = hashRange[1];
         //assume I get port Number and Address
-        ArrayList<Byte> ByteArray;
         // using for-each loop for iteration over Map.entrySet()
         StringBuilder stringList = new StringBuilder();
         logger.debug("[DB] Get Hash Range from " + hashRange[0] + " to " + hashRange[1]);
@@ -362,12 +361,10 @@ public class KVDatabase implements IKVDatabase {
             //System.out.println("Key: "+entry.getKey()+ " in Server:"+this.PortNumber%10);
             logger.debug("[DB] Key " + entry.getKey() + " in port:" + this.portNo);
 
-
-
             if (MD5.isKeyinRange(key, startRange, endRange))//Check for key in range or not
             {
 
-                if (kve.isValid() == false) {
+                if (!kve.isValid()) {
                     logger.debug("[DB] Move an invalid KV entry");
                     // TODO: may need to restore the LUT log
                 } else {
@@ -389,6 +386,8 @@ public class KVDatabase implements IKVDatabase {
                         stringList.append(copied_str);
                     }
                 }
+            } else {
+                logger.warn("[DB] " + entry.getKey() + " not in the range of " + startRange + ":" + endRange);
             }
         }
 

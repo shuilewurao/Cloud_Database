@@ -65,7 +65,6 @@ public class ECSHashRing {
         return this.activeNodes.ceilingEntry(hash).getValue();
     }
 
-
     public ECSNode getNodeByServerName(String name) {
 
         logger.debug("[ECSHashRing] getting node using " + name);
@@ -156,12 +155,18 @@ public class ECSHashRing {
 
             } else if (this.activeNodes.firstEntry().getKey().compareTo(node.getNodeHashBI()) > 0) {
 
-                ECSNode firstNode = this.activeNodes.firstEntry().getValue();
+                nextNode = this.activeNodes.firstEntry().getValue();
 
-                node.setHashRange(firstNode.getNodeHash(), node.getNodeHash());
-                firstNode.setHashRange(node.getNodeHash(), firstNode.getNodeHash());
+                nextNode.setHashRange(node.getNodeHash(), nextNode.getNodeHash());
+                node.setHashRange(nextNode.getNodeHash(), node.getNodeHash());
+                this.activeNodes.put(nextNode.getNodeHashBI(), nextNode);
 
-                this.activeNodes.put(firstNode.getNodeHashBI(), firstNode);
+            } else {
+                prevNode = this.activeNodes.firstEntry().getValue();
+
+                prevNode.setHashRange(node.getNodeHash(), prevNode.getNodeHash());
+                node.setHashRange(prevNode.getNodeHash(), node.getNodeHash());
+                this.activeNodes.put(prevNode.getNodeHashBI(), prevNode);
             }
         } else {
             prevNode = this.getPrevNode(node.getNodeHash());
@@ -207,7 +212,6 @@ public class ECSHashRing {
         return hashRange;
     }
 
-
     public void removeAllNode() {
         activeNodes.clear();
     }
@@ -230,7 +234,6 @@ public class ECSHashRing {
             logger.debug("\t\t**************************************************");
         }
     }
-
 
     public String getHashRingJson() {
         List<ECSNode> activeNodes = new ArrayList<>(getActiveNodes().values());

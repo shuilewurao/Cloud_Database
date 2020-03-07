@@ -7,17 +7,16 @@ import java.security.NoSuchAlgorithmException;
 import org.apache.log4j.Logger;
 import shared.Constants;
 
-public class MD5
-{
+public class MD5 {
     private static Logger logger = Logger.getRootLogger();
 
-    public static BigInteger HashInBI(String s){
-        try{
+    public static BigInteger HashInBI(String s) {
+        try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(s.getBytes(),0,s.length());
-            return new BigInteger(1,md.digest());
+            md.update(s.getBytes(), 0, s.length());
+            return new BigInteger(1, md.digest());
 
-        }catch (NoSuchAlgorithmException e){
+        } catch (NoSuchAlgorithmException e) {
             //logger.fatal("Unable to find hashing algorithm", e);
             e.printStackTrace();
             return null;
@@ -25,8 +24,7 @@ public class MD5
     }
 
 
-
-    public static BigInteger HashFromHostAddress(String host, int port){
+    public static BigInteger HashFromHostAddress(String host, int port) {
 
         assert host != null;
         assert port != -1;
@@ -38,18 +36,20 @@ public class MD5
     }
 
 
-    public static boolean isKeyinRange(BigInteger keyHash, String StartHash, String Endhash)
+    public static boolean isKeyinRange(BigInteger keyHash, String StartHash, String Endhash) {
 
-    {
+        BigInteger start = MD5.HashInBI(StartHash);
+        BigInteger end = MD5.HashInBI(Endhash);
 
-        BigInteger upper = MD5.HashInBI(StartHash);
-        BigInteger lower = MD5.HashInBI(Endhash);
-
-        if(keyHash.compareTo(upper) == 0 || keyHash.compareTo(lower) == 0){
+        assert start != null;
+        assert end != null;
+        if (keyHash.compareTo(start) == 0 || keyHash.compareTo(end) == 0) {
             return true;
-        }else if(upper.compareTo(lower) < 0 && keyHash.compareTo(upper) > 0 && keyHash.compareTo(lower) < 0){
-            return true;
-        }else return upper.compareTo(lower) > 0 && keyHash.compareTo(upper) < 0 && keyHash.compareTo(lower) > 0;
+        } else if (start.compareTo(end) < 0) {
+            return keyHash.compareTo(start) > 0 && keyHash.compareTo(end) < 0;
+        } else { //  upper.compareTo(lower) > 0
+            return keyHash.compareTo(start) > 0 || keyHash.compareTo(end) < 0;
+        }
 
     }
 

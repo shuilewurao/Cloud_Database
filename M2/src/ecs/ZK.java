@@ -62,7 +62,6 @@ public class ZK {
         zk.delete(path, zk.exists(path, false).getVersion());
     }
 
-
     // ACL: access control list
     // authentication method
     // this returns {<scheme>, <who can access>}

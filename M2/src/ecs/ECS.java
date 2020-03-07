@@ -196,8 +196,6 @@ public class ECS implements IECSClient, Watcher {
                 toStart.add(n);
                 String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
 
-                migrateAddedServer(n);
-
                 broadcast(msgPath, IECSNode.ECSNodeFlag.START.name(), sig);
 
                 n.setFlag(ECSNodeMessage.ECSNodeFlag.START);
@@ -312,6 +310,7 @@ public class ECS implements IECSClient, Watcher {
         hashRing.addNode(rNode);
 
         if (isSole) {
+            migrateAddedServer(rNode);
             pushHashRingInTree();
             pushHashRingInZnode();
         }
@@ -467,6 +466,7 @@ public class ECS implements IECSClient, Watcher {
 
             ECSNode n = hashRing.getNodeByServerName(name);
 
+
             if (n == null) {
                 logger.error("[ECS] node is not in Hash Ring: " + name);
                 continue;
@@ -474,6 +474,7 @@ public class ECS implements IECSClient, Watcher {
 
             n.setFlag(ECSNodeMessage.ECSNodeFlag.KV_TRANSFER);
             logger.debug("[ECS] adding node to remove: " + name);
+            logger.debug("[ECS] Remove node hash: " + n.getNodeHashRange()[0] + ":" + n.getNodeHashRange()[1]);
             toRemove.add(n);
 
             //String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() +"/op";
@@ -484,6 +485,7 @@ public class ECS implements IECSClient, Watcher {
             // assert node != null;
 
         }
+
         pushHashRingInZnode();
         ret &= pushHashRingInTree();
 
