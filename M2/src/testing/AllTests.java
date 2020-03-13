@@ -17,6 +17,8 @@ public class AllTests {
 	static {
 		try {
 			new LogSetup("logs/testing/test.log", Level.ERROR);
+			// <servername> <"locahol"> <2181>
+			
 			server_FIFO = new KVServer(50000, 10, "FIFO");
 			server_FIFO.clearStorage();
 			new Thread(server_FIFO).start();
@@ -27,6 +29,7 @@ public class AllTests {
 			server_LFU = new KVServer(52000, 10, "LFU");
 			server_LFU.clearStorage();
 			new Thread(server_LFU).start();
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -38,6 +41,10 @@ public class AllTests {
 		clientSuite.addTestSuite(ConnectionTest.class);
 		clientSuite.addTestSuite(InteractionTest.class); 
 		clientSuite.addTestSuite(AdditionalTest.class); 
+		
+		clientSuite.addTestSuite(ECSTest.class); 
+		clientSuite.addTestSuite(ECSFunction.class); 
+		clientSuite.addTestSuite(HashringTest.class); 
 		return clientSuite;
 	}
 	
