@@ -16,7 +16,7 @@ public class ECSHashRing {
 
     private Logger logger = Logger.getRootLogger();
     private TreeMap<BigInteger, ECSNode> activeNodes = new TreeMap<>();
-
+    private static final int REPLICA_SIZE = 2;
 
     public ECSHashRing() {
     }
@@ -238,5 +238,66 @@ public class ECSHashRing {
     public String getHashRingJson() {
         List<ECSNode> activeNodes = new ArrayList<>(getActiveNodes().values());
         return new Gson().toJson(activeNodes);
+    }
+
+
+    /**
+     * Replication Methods
+     * For replication to work, ring size should be at least 3
+     * one coordinator
+     * two replicas
+     */
+
+    public ECSNode getLastReplica(ECSNode node) {
+        ECSNode last = node;
+        for (int i = 0; i < REPLICA_SIZE; ++i) {
+            last = getNextNode(last.name);
+
+            if (last.name.equals(node.name))
+                return null;
+        }
+        return last;
+    }
+
+    public String[] getResponsibleHashRange(ECSNode node) {
+
+        ECSNode currNode = node;
+
+        for (int i = 0; i < REPLICA_SIZE; ++i) {
+            currNode = getNextNode(currNode.name);
+            // check if loops around
+            if (getNextNode(currNode.name).name.equals(node.name))
+                break;
+        }
+
+        return new String[]{
+                getNextNode(currNode.name).getNodeHash(),
+                node.getNodeHash()
+        };
+    }
+
+    public Collection<ECSNode> getReplicas(ECSNode coordinator) {
+
+        Set<ECSNode> result = new HashSet<>();
+
+        ECSNode currNode = coordinator;
+
+        for (int i = 0; i < REPLICA_SIZE; ++i) {
+            ECSNode next = getNextNode(currNode.name);
+            result.add(next);
+            currNode = next;
+        }
+
+        result.remove(coordinator);
+        return result;
+    }
+
+    public boolean isReplicable() {
+        if (this.getSize() >= 3) {
+            return true;
+        } else {
+            logger.warn("[ECSHashRing] Not replicable! Hash ring size: " + this.getSize());
+            return false;
+        }
     }
 }

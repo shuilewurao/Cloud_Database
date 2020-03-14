@@ -178,7 +178,6 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     @Override
     public void putKV(String key, String value) throws Exception {
         try {
-
             KVMessage.StatusType status = DB.putKV(key, value);
             if (getCacheStrategy() != CacheStrategy.None) {
                 if (Cache != null) {
@@ -520,9 +519,9 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         }
     }
 
-    public ECSHashRing getMetaData() {
-        return hashRing;
-    }
+//    public ECSHashRing getMetaData() {
+//        return hashRing;
+//    }
 
     @Override
     public void process(WatchedEvent event) {
@@ -577,6 +576,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                     break;
 
                 case KV_TRANSFER:
+
+                case SEND:
                     assert tokens.length == 4;
                     int target = Integer.parseInt(tokens[1]);
                     String[] range = new String[]{
@@ -591,6 +592,16 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
                     String msgPath = ZK_SERVER_PATH + "/" + port + "/op";
                     ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+
+                    break;
+
+                case DELETE:
+
+                    this.lockWrite();
+                    // delete hashRange??
+                    this.unlockWrite();
+                    this.clearCache();
+                    ZK.delete(path);
 
                     break;
                 default:
@@ -618,7 +629,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         return hashRingString;
     }
 
-//    public ECSHashRing getHashRing() {
+    //    public ECSHashRing getHashRing() {
 //        return hashRing;
 //    }
 //

@@ -45,18 +45,15 @@ public class ECS implements IECSClient, Watcher {
     private static final String ZK_START_CMD = "zookeeper-3.4.11/bin/zkServer.sh start";
     //private static final String ZK_STOP_CMD = "zookeeper-3.4.11/bin/zkServer.sh stop";
 
-    //public enum OPERATIONS {START, STOP, SHUT_DOWN, UPDATE, TRANSFER, INIT, STATE_CHANGE, KV_TRANSFER, TRANSFER_FINISH}
-
 
     /**
-     * @param configFilePath
-     * @throws IOException
+     * @param configFilePath path to confid file ecs.config
+     * @throws IOException exceptions
      */
 
     public ECS(String configFilePath) throws IOException {
 
         logger.info("[ECS] Starting new ECS...");
-
 
         String cmd = PWD + "/" + ZK_START_CMD;
 
@@ -155,6 +152,7 @@ public class ECS implements IECSClient, Watcher {
 
         // TODO: initial state of hash ring?
         hashRing = new ECSHashRing();
+
         pushHashRingInTree();
         pushHashRingInZnode();
 
@@ -200,6 +198,22 @@ public class ECS implements IECSClient, Watcher {
 
                 n.setFlag(ECSNodeMessage.ECSNodeFlag.START);
                 n.setServerStateType(IKVServer.ServerStateType.STARTED);
+
+                if (hashRing.isReplicable()) {
+                    Collection<ECSNode> replicas = hashRing.getReplicas(n);
+
+                    for (ECSNode coordinator : replicas) {
+                        ECSDataReplication dataReplicate = new ECSDataReplication(coordinator, n, coordinator.getNodeHashRange());
+
+                        try {
+                            dataReplicate.start(zk, ZKAPP);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } else {
+                    logger.warn("[ECS] Hash ring size less than 3!");
+                }
             }
         }
 
@@ -391,11 +405,9 @@ public class ECS implements IECSClient, Watcher {
                 logger.error("[ECS] Error! " + e);
                 e.printStackTrace();
             }
-
             start_script(n);
 
         }
-
         return null;
     }
 
@@ -424,7 +436,6 @@ public class ECS implements IECSClient, Watcher {
             e.printStackTrace();
         }
     }
-
 
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
@@ -475,6 +486,23 @@ public class ECS implements IECSClient, Watcher {
             n.setFlag(ECSNodeMessage.ECSNodeFlag.KV_TRANSFER);
             logger.debug("[ECS] adding node to remove: " + name);
             logger.debug("[ECS] Remove node hash: " + n.getNodeHashRange()[0] + ":" + n.getNodeHashRange()[1]);
+
+            if (hashRing.isReplicable()) {
+                Collection<ECSNode> replicas = hashRing.getReplicas(n);
+
+                for (ECSNode coordinator : replicas) {
+                    ECSDataReplication dataReplicate = new ECSDataReplication(coordinator, hashRing.getLastReplica(coordinator), coordinator.getNodeHashRange());
+
+                    try {
+                        dataReplicate.start(zk, ZKAPP);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                logger.warn("[ECS] Hash ring size less than 3!");
+            }
+
             toRemove.add(n);
 
             //String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() +"/op";
@@ -640,10 +668,6 @@ public class ECS implements IECSClient, Watcher {
 
     }
 
-    /*
-     *****HELPER FUNCTIONS*****
-     */
-
     public void addingAvailableServerNodes(String name, String host, int port) {
 
         if (availableServers.containsKey(name)) {
@@ -724,7 +748,6 @@ public class ECS implements IECSClient, Watcher {
         }
         return true;
     }
-
 
     public boolean ifAllValidServerNames(Collection<String> nodeNames) {
         if (nodeNames.size() <= hashRing.getSize()) {

@@ -14,7 +14,9 @@ public interface IECSNode {
         KV_RECEIVE,
         SHUT_DOWN,
         UPDATE,
-        TRANSFER_FINISH
+        TRANSFER_FINISH,
+        SEND,
+        DELETE
     }
 
 

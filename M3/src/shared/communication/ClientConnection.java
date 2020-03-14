@@ -346,7 +346,6 @@ public class ClientConnection implements Runnable {
                         } catch (Exception e) {
                             msg_send = new TextMessage("PUT_ERROR + exception");
                         }
-
                         break;
                     case "GET":
                         try {
@@ -367,9 +366,7 @@ public class ClientConnection implements Runnable {
                         msg_send = new TextMessage("CMD NOT RECOGNIZED: " + cmd);
                 }
             }
-
         }
-
         sendMessage(msg_send);
     }
 

@@ -54,7 +54,6 @@ public class ECSClient implements IECSClient {
 
         switch (tokens[0]) {
             case "shutdown":
-
                 if (client != null) {
                     if (shutdown()) {
                         stop = true;
@@ -299,9 +298,7 @@ public class ECSClient implements IECSClient {
     @Override
     public IECSNode addNode(String cacheStrategy, int cacheSize, boolean isSole) {
         client.addNodes(1, cacheStrategy, cacheSize);
-
         return null;
-
     }
 
     @Override

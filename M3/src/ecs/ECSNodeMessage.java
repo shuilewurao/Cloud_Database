@@ -9,6 +9,15 @@ public interface ECSNodeMessage {
         KV_TRANSFER,       /* Data transfer occurred */
         SHUT_DOWN,         /* Node has shutdown*/
         UPDATE,            /* Node has updated */
-        TRANSFER_FINISH    /* Data transfer operation finished */
+        TRANSFER_FINISH,   /* Data transfer operation finished */
+
+        /* ----- M3 ----- */
+        SEND,
+        DELETE
+    }
+
+    enum ECSTransferType {
+        COPY,
+        DELETE
     }
 }
