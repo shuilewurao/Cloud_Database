@@ -14,12 +14,13 @@ import java.io.*;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class ECS implements IECSClient, Watcher {
 
     private Logger logger = Logger.getRootLogger();
 
-    private static final String SERVER_JAR = "m2-server.jar";
+    private static final String SERVER_JAR = "m3-server.jar";
     // Assumes that the jar file is located at the same dir on the remote server
     private static final String JAR_PATH = new File(System.getProperty("user.dir"), SERVER_JAR).toString();
 
@@ -191,7 +192,6 @@ public class ECS implements IECSClient, Watcher {
             if (n.getServerStateType() == IKVServer.ServerStateType.STOPPED) {
                 logger.debug("[ECS] node to start: " + n.name);
 
-                toStart.add(n);
                 String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
 
                 broadcast(msgPath, IECSNode.ECSNodeFlag.START.name(), sig);
@@ -199,21 +199,30 @@ public class ECS implements IECSClient, Watcher {
                 n.setFlag(ECSNodeMessage.ECSNodeFlag.START);
                 n.setServerStateType(IKVServer.ServerStateType.STARTED);
 
-                if (hashRing.isReplicable()) {
-                    Collection<ECSNode> replicas = hashRing.getReplicas(n);
+                toStart.add(n);
+            }
+        }
 
-                    for (ECSNode coordinator : replicas) {
-                        ECSDataReplication dataReplicate = new ECSDataReplication(coordinator, n, coordinator.getNodeHashRange());
+        sig.countDown();
 
-                        try {
-                            dataReplicate.start(zk, ZKAPP);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
+        for (ECSNode n : toStart) {
+            if (hashRing.isReplicable()) {
+                Collection<ECSNode> replicas = hashRing.getReplicas(n);
+
+                for (ECSNode coordinator : replicas) {
+
+                    CountDownLatch sig1 = new CountDownLatch(replicas.size());
+
+                    ECSDataReplication dataReplicate = new ECSDataReplication(coordinator, n, coordinator.getNodeHashRange());
+
+                    try {
+                        dataReplicate.start(zk);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
-                } else {
-                    logger.warn("[ECS] Hash ring size less than 3!");
                 }
+            } else {
+                logger.warn("[ECS] Hash ring size less than 3!");
             }
         }
 
@@ -489,13 +498,13 @@ public class ECS implements IECSClient, Watcher {
 
             if (hashRing.isReplicable()) {
                 Collection<ECSNode> replicas = hashRing.getReplicas(n);
-
+                CountDownLatch sig1 = new CountDownLatch(replicas.size());
                 for (ECSNode coordinator : replicas) {
                     ECSDataReplication dataReplicate = new ECSDataReplication(coordinator, hashRing.getLastReplica(coordinator), coordinator.getNodeHashRange());
 
                     try {
-                        dataReplicate.start(zk, ZKAPP);
-                    } catch (InterruptedException e) {
+                        dataReplicate.start(zk);
+                    } catch (InterruptedException | KeeperException e) {
                         e.printStackTrace();
                     }
                 }

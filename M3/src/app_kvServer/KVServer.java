@@ -525,6 +525,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     @Override
     public void process(WatchedEvent event) {
+
         logger.info("[KVServer] watcher is triggered");
         List<String> children;
 
@@ -552,32 +553,34 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             switch (IECSNode.ECSNodeFlag.valueOf(tokens[0])) {
                 case INIT:
                     ZK.deleteNoWatch(path);
+                    //ZK.update(path, "".getBytes());
                     logger.info("[KVServer] Server started!");
                     break;
+
                 case SHUT_DOWN:
                     ZK.deleteNoWatch(path);
+                    //ZK.update(path, "".getBytes());
                     logger.info("[KVServer] Server shutdown!");
                     shutdown();
-
                     break;
-//                case UPDATE:
-//                    break;
-//
+
                 case START:
-                    this.start();
                     ZK.deleteNoWatch(path);
+                    //ZK.update(path, "".getBytes());
+                    this.start();
                     logger.info("[KVServer] Server start taking request!");
                     break;
-//
                 case STOP:
-                    this.stop();
                     ZK.deleteNoWatch(path);
+                    //ZK.update(path, "".getBytes());
+                    this.stop();
                     logger.info("[KVServer] Server stopped!");
+                    break;
+                case KV_RECEIVE:
+                    ZK.deleteNoWatch(path);
                     break;
 
                 case KV_TRANSFER:
-
-                case SEND:
                     assert tokens.length == 4;
                     int target = Integer.parseInt(tokens[1]);
                     String[] range = new String[]{
@@ -590,8 +593,21 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                         logger.warn("[KVServer] move data failure!");
                     }
 
-                    String msgPath = ZK_SERVER_PATH + "/" + port + "/op";
-                    ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                    String msgPath = ZK_SERVER_PATH + "/" + port + ECS.ZK_OP_PATH;
+
+                    if (zk.exists(msgPath, false) == null) {
+                        ZKAPP.create(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                    } else {
+                        ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                    }
+
+                    String targetPath = ZK_SERVER_PATH + "/" + target + ECS.ZK_OP_PATH;
+
+                    if (zk.exists(targetPath, false) == null) {
+                        ZKAPP.create(targetPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                    } else {
+                        ZK.update(targetPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                    }
 
                     break;
 
@@ -602,10 +618,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                     this.unlockWrite();
                     this.clearCache();
                     ZK.delete(path);
-
                     break;
-                default:
-                    logger.debug("[KVServer] process " + tokens[0]);
+
             }
 
             if (this.isRunning())

@@ -15,7 +15,7 @@ public class ZK {
 
     //public int ZK_PORT = 2181;
     //public static final String ZK_SERVER_PATH = "/server";
-    public final CountDownLatch connectedSignal = new CountDownLatch(1);
+    public static CountDownLatch connectedSignal = new CountDownLatch(1);
 
     public ZooKeeper connect() throws IOException, IllegalStateException {
         zk = new ZooKeeper(ZK_HOST, ZK_TIMEOUT, watchedEvent -> {
@@ -76,5 +76,4 @@ public class ZK {
     public static List<ACL> getacl(String path) throws KeeperException, InterruptedException {
         return zk.getACL(path, zk.exists(path, true));
     }
-
 }
