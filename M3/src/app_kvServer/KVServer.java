@@ -10,10 +10,7 @@ import ecs.*;
 import logger.LogSetup;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.*;
 import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.communication.ClientConnection;
@@ -283,10 +280,13 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             if (serverThread != null)
                 serverThread.interrupt();
             serverSocket.close();
+            ZKAPP.close();
         } catch (IOException e) {
             logger.error("[KVServer] Error! " +
                     "Unable to close socket on port: " + port, e);
             e.printStackTrace();
+        } catch (InterruptedException e) {
+            logger.error("Unable to close ZK session. ");
         }
     }
 
@@ -316,7 +316,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     public static void main(String[] args) throws IOException {
         try {
-            new LogSetup("logs/server.log", Level.DEBUG);
+            new LogSetup("logs/server.log", Level.ALL);
             if (args.length != 3) {
                 logger.error("[KVServer] Error! Invalid number of arguments!");
                 logger.error("[KVServer] Usage: Server <port> <cacheSize> <strategy>!");
@@ -367,6 +367,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             e.printStackTrace();
         }
 
+
         try {
             //remove the init message
             List<String> children = zk.getChildren(zkNodePath, false, null);
@@ -385,6 +386,29 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             logger.debug("[KVServer] Unable to get child nodes");
             e.printStackTrace();
         }
+
+
+
+        try {
+            // add an alive node for failure detection
+            if (zk.exists(ECS.ZK_LIVE_SERVERS, false) != null) {
+                String alivePath = ECS.ZK_LIVE_SERVERS + "/" + this.port;
+
+                // This znode shall be deleted when the session ends (even unexpectedly).
+                zk.create(alivePath, "".getBytes(),
+                        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                logger.info("[KVServer] ZK node for failure detection created");
+            } else {
+                logger.fatal("[KVServer] ZK_LIVE_SERVERS root DNE!");
+            }
+
+        } catch (KeeperException | InterruptedException e) {
+            logger.error( "Unable to create zknode for failure detection");
+            e.printStackTrace();
+        }
+
+
+
 
         try {
             // setup hashRing info

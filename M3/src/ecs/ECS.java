@@ -3,10 +3,8 @@ package ecs;
 import app_kvECS.IECSClient;
 import app_kvServer.IKVServer;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.*;
+import org.apache.zookeeper.data.Stat;
 import shared.Constants;
 import shared.HashingFunction.MD5;
 
@@ -40,6 +38,7 @@ public class ECS implements IECSClient, Watcher {
     public static final String ZK_SERVER_PATH = "/server";
     public static final String ZK_HASH_TREE = "/metadata";
     public static final String ZK_OP_PATH = "/op";
+    public static final String ZK_LIVE_SERVERS = "/failure_detection";
 
     private static final String PWD = System.getProperty("user.dir");
     //private static final String RUN_SERVER_SCRIPT = "script.sh";
@@ -148,6 +147,15 @@ public class ECS implements IECSClient, Watcher {
         zk = ZKAPP.connect();
 
         logger.info("[ECS] ZooKeeper started!" + ZK_HOST);
+
+        try {
+            if (zk.exists(ZK_LIVE_SERVERS, false) == null) {
+                ZKAPP.create(ZK_LIVE_SERVERS, "".getBytes());
+            }
+        } catch (KeeperException | InterruptedException e) {
+            e.printStackTrace();
+            logger.error("Could not create the znode for monitoring the liveness of servers");
+        }
 
         logger.info("[ECS] Initializing Logical Hash Ring...");
 
@@ -396,6 +404,7 @@ public class ECS implements IECSClient, Watcher {
     }
 
     @Override
+    // WARN: always return null
     public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
 
         CountDownLatch sig = new CountDownLatch(hashRing.getSize());
@@ -417,8 +426,62 @@ public class ECS implements IECSClient, Watcher {
             start_script(n);
 
         }
+
+        // create znode with watches for failure detection on each alive server
+        for(Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()){
+            ECSNode n = entry.getValue();
+            registerFailureDetectionZNode(n.getNodePort(), n.getNodeHash());
+        }
+
         return null;
     }
+
+    private void registerFailureDetectionZNode(int node_port, String hash){
+
+        int i;
+        for(i=0; i<5;i++) {
+
+            try {
+                Stat exists = zk.exists(ZK_LIVE_SERVERS + "/" + node_port, null);
+                zk.getData(ZK_LIVE_SERVERS + "/" + node_port,
+                        new Watcher() {
+                            @Override
+                            public void process(WatchedEvent we) {
+                                switch (we.getType()) {
+                                    case NodeDeleted:
+                                        logger.warn("[ECS] Server" + hash + " shutdown detected");
+                                        switch (hashRing.getNodeByHash(MD5.HashInBI(hash)).getServerStateType()) {
+                                            case STARTED:
+                                                logger.warn("[ECS] Stared server" + hash + " just crashed");
+                                                // TODO
+                                                break;
+                                            case STOPPED:
+                                                logger.warn("[ECS] Stopped server" + hash + " just crashed");
+                                                // TODO
+                                                break;
+                                            default:
+                                                break;
+                                        }
+                                        break;
+                                    default:
+                                        logger.warn("[ECS]: Failure Detector on Server " + node_port + " is fired for event " + we.getType());
+                                }
+                            }
+                        }, null);
+                logger.info("[ECS] Liveness Watcher has been set on server " + hash);
+                return;
+            } catch (KeeperException | InterruptedException e) {
+                //e.printStackTrace();
+                try {
+                    Thread.sleep(i * 500);
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+        logger.error("[ECS] Unable to create znode watcher on port " + node_port + " 's failure detection");
+    }
+
 
     @Override
     public boolean awaitNodes(int count, int timeout) throws Exception {
