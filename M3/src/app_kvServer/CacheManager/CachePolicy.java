@@ -37,7 +37,7 @@ public abstract class CachePolicy {
         synchronized (cacheList) {
             //TODO: invalid value
 
-            if (value == null) {
+            if (value == null || value.equals("")) {
                 if (inCache(key)) {
                     deleteCache(key);
                 }

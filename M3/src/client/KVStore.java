@@ -129,9 +129,17 @@ public class KVStore implements KVCommInterface {
                 to be converted to KVMessage
              */
 
-            msg = msg_receive.getMsg().trim();
+            String[] tokens = msg_receive.getMsg().split("\\" + DELIMITER);
 
-            return new KVConvertMessage(key, value, msg);
+            if (tokens.length == 1) {
+                return new KVConvertMessage("", value, tokens[0]);
+            }
+
+            if (tokens.length == 3) {
+                value = tokens[2];
+            }
+
+            return new KVConvertMessage(tokens[1], value, tokens[0]);
 
         } else {
             logger.debug("[KVStore] key value error! Returning default status PUT_ERROR");
@@ -166,7 +174,7 @@ public class KVStore implements KVCommInterface {
             String value = "";
 
             if (tokens.length == 1) {
-                return new KVConvertMessage(null, value, tokens[0]);
+                return new KVConvertMessage("", value, tokens[0]);
             }
 
             if (tokens.length == 3) {
@@ -202,7 +210,7 @@ public class KVStore implements KVCommInterface {
         byte[] msgBytes = msg.getMsgBytes();
         output.write(msgBytes, 0, msgBytes.length);
         output.flush();
-        logger.info("[KVStore] Send message: '" + msg.getMsg() + "'");
+        logger.info("[KVStore] Send message: " + msg.getMsg());
     }
 
     private TextMessage receiveMessage() throws IOException {
@@ -333,7 +341,7 @@ public class KVStore implements KVCommInterface {
 
         } else if (tokens[0].equals(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name())) {
 
-            logger.debug("[KVStore]: hashring received:" + tokens[1]);
+            logger.debug("[KVStore]: hashRing received:" + tokens[1]);
             ECSHashRing hashRing = new ECSHashRing(tokens[1]);
 
             BigInteger hash = MD5.HashInBI(key);
@@ -359,7 +367,6 @@ public class KVStore implements KVCommInterface {
 
             sendMessage(msg_sent);
             TextMessage new_msg_receive = receiveMessage();
-
 
             logger.debug("[KVStore] retry for not responsible server: " + new_msg_receive.getMsg());
 

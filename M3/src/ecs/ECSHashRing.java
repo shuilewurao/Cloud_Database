@@ -252,16 +252,13 @@ public class ECSHashRing {
         ECSNode last = node;
         for (int i = 0; i < REPLICA_SIZE; ++i) {
             last = getNextNode(last.name);
-
-            if (last.name.equals(node.name))
-                return null;
         }
         return last;
     }
 
     public String[] getResponsibleHashRange(ECSNode node) {
 
-        ECSNode currNode = node;
+        ECSNode currNode = this.getNodeByServerName(node.name);
 
         for (int i = 0; i < REPLICA_SIZE; ++i) {
             currNode = getNextNode(currNode.name);
@@ -280,7 +277,7 @@ public class ECSHashRing {
 
         Set<ECSNode> result = new HashSet<>();
 
-        ECSNode currNode = coordinator;
+        ECSNode currNode = this.getNodeByServerName(coordinator.name);
 
         for (int i = 0; i < REPLICA_SIZE; ++i) {
             ECSNode next = getNextNode(currNode.name);

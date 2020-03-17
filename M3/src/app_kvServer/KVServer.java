@@ -14,6 +14,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.Stat;
 import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.communication.ClientConnection;
@@ -25,6 +26,7 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static ecs.ECS.ZK_HASH_TREE;
@@ -34,6 +36,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     private static Logger logger = Logger.getRootLogger();
 
+    private String name;
     private int port;
     private int cacheSize;
     private CacheStrategy strategy;
@@ -57,6 +60,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     private ECSHashRing hashRing;
     private String zkNodePath;
 
+    private KVServerDataReplicationManager dataReplicationManager;
+
     /**
      * Start KV Server at given port
      *
@@ -71,6 +76,37 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     public KVServer(int port, int cacheSize, String strategy) {
         // TODO Auto-generated method stub
         this.port = port;
+
+        switch (port) {
+            case 50000:
+                this.name = "server1";
+                break;
+            case 50001:
+                this.name = "server2";
+                break;
+            case 50002:
+                this.name = "server3";
+                break;
+            case 50003:
+                this.name = "server4";
+                break;
+            case 50004:
+                this.name = "server5";
+                break;
+            case 50005:
+                this.name = "server6";
+                break;
+            case 50006:
+                this.name = "server7";
+                break;
+            case 50007:
+                this.name = "server8";
+                break;
+            default:
+                logger.error("[KVServer] Unknown port: " + port);
+                close();
+        }
+
         this.cacheSize = cacheSize;
         this.strategy = CacheStrategy.valueOf(strategy);
         threadList = new ArrayList<>();
@@ -248,6 +284,9 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             serverSocket = new ServerSocket(port);
             logger.info("[KVServer] Server listening on port: "
                     + serverSocket.getLocalPort());
+
+            this.dataReplicationManager = new KVServerDataReplicationManager(this.name, getHostname(), this.port);
+
             return true;
 
         } catch (IOException e) {
@@ -266,6 +305,9 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             if (serverSocket != null) {
                 serverSocket.close();
             }
+            if (dataReplicationManager != null)
+                dataReplicationManager.clear();
+
         } catch (IOException e) {
             logger.error("[KVServer] Error! " +
                     "Unable to close socket on port: " + port, e);
@@ -276,18 +318,14 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     @Override
     public void close() {
         running = false;
-        try {
-            for (Thread thread : threadList) {
-                thread.interrupt();
-            }
-            if (serverThread != null)
-                serverThread.interrupt();
-            serverSocket.close();
-        } catch (IOException e) {
-            logger.error("[KVServer] Error! " +
-                    "Unable to close socket on port: " + port, e);
-            e.printStackTrace();
+        for (Thread thread : threadList) {
+            thread.interrupt();
         }
+        if (serverThread != null)
+            serverThread.interrupt();
+        kill();
+        clearCache();
+
     }
 
     /**
@@ -404,7 +442,11 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                             lockWrite();
                         }
                         logger.info("[KVServer] Hash Ring updated");
-                    } catch (KeeperException | InterruptedException e) {
+
+                        if (dataReplicationManager != null) {
+                            dataReplicationManager.update(hashRing);
+                        }
+                    } catch (KeeperException | InterruptedException | IOException e) {
                         logger.info("[KVServer] Unable to update the metadata node");
                         e.printStackTrace();
                     }
@@ -593,6 +635,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                         logger.warn("[KVServer] move data failure!");
                     }
 
+                    updateTransferProgress(100);
+
                     String msgPath = ZK_SERVER_PATH + "/" + port + ECS.ZK_OP_PATH;
 
                     if (zk.exists(msgPath, false) == null) {
@@ -608,16 +652,16 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                     } else {
                         ZK.update(targetPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
                     }
-
+                    unlockWrite();
                     break;
 
                 case DELETE:
 
-                    this.lockWrite();
+                    //this.lockWrite();
                     // delete hashRange??
                     this.unlockWrite();
                     this.clearCache();
-                    ZK.delete(path);
+                    ZK.deleteNoWatch(path);
                     break;
 
             }
@@ -647,15 +691,23 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 //        return hashRing;
 //    }
 //
-    public boolean isResponsible(String key) {
+    public boolean isResponsible(String key, String cmd) {
 
         ECSNode node = hashRing.getNodeByHash(MD5.HashInBI(key));
+        ECSNode thisServer = hashRing.getNodeByHash(MD5.HashInBI(this.getHashRingStr()));
         if (node == null) {
             logger.error("[KVStore] No node in hash ring is responsible for key " + key);
             return false;
         }
+        boolean responsible = node.getNodePort() == port;
 
-        return node.getNodePort() == port;
+        if (cmd.equals("GET") || cmd.equals("PUT_REPLICATE")) {
+            Collection<ECSNode> replicationNodes =
+                    hashRing.getReplicas(node);
+            responsible = responsible || replicationNodes.contains(thisServer);
+
+        }
+        return responsible;
     }
 
     public boolean receiveTransferredData(String data) {
@@ -671,5 +723,30 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             return false;
         }
         return true;
+    }
+
+    public void updateTransferProgress(int transferProgress) {
+        try {
+            String msg = new String(zk.getData(zkNodePath + ECS.ZK_OP_PATH, false, null));
+
+            if (msg.equals(ECSNodeMessage.ECSNodeFlag.TRANSFER_FINISH.name()))
+                return;
+
+            msg = msg.concat(Constants.DELIMITER + transferProgress);
+
+            Stat stat = zk.setData(zkNodePath + ECS.ZK_OP_PATH, msg.getBytes(),
+                    zk.exists(zkNodePath + ECS.ZK_OP_PATH, false).getVersion());
+            logger.info("[KVServer] Update TransferProgress: " + transferProgress);
+
+        } catch (InterruptedException | KeeperException e) {
+            logger.info("[KVServer] Unable to update progress");
+            e.printStackTrace();
+        }
+
+    }
+
+    public KVServerDataReplicationManager getDataReplicationManager() {
+        return this.dataReplicationManager;
+
     }
 }

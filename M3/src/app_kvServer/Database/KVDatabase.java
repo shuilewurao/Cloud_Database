@@ -323,7 +323,7 @@ public class KVDatabase implements IKVDatabase {
     private byte[] KVPairToBytes(String key, String value) throws IOException {
         byte valid = (byte) 1;
         String validity = new String(new byte[]{valid}, StandardCharsets.UTF_8);
-        return (validity + DELIM + encodeValue(key) + DELIM + encodeValue(value) + "\r\n").getBytes("UTF-8");
+        return (validity + DELIM + encodeValue(key) + DELIM + encodeValue(value) + "\r\n").getBytes(StandardCharsets.UTF_8);
     }
 
     private String encodeValue(String value) {

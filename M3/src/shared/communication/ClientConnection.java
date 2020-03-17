@@ -1,6 +1,8 @@
 package shared.communication;
 
 import app_kvServer.IKVServer;
+import app_kvServer.KVServerDataReplicationManager;
+import ecs.ECSNode;
 import shared.Constants;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
@@ -10,6 +12,8 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.*;
 
@@ -30,6 +34,7 @@ public class ClientConnection implements Runnable {
     private static final int DROP_SIZE = 128 * BUFFER_SIZE;
 
     private KVServer server;
+    private KVServerDataReplicationManager dataReplicationManager;
     private Socket clientSocket;
     private InputStream input;
     private OutputStream output;
@@ -71,11 +76,7 @@ public class ClientConnection implements Runnable {
                     String[] tokens = msg_received.split("\\" + DELIMITER);
 
                     String cmd = tokens[0];
-                    String key = null;
-
-                    if (tokens.length >= 2) {
-                        key = tokens[1];
-                    }
+                    String key = tokens[1];
 
                     TextMessage msg_send;
                     logger.debug("[ClientConnection] CMD: " + cmd);
@@ -168,11 +169,11 @@ public class ClientConnection implements Runnable {
         }
     }
 
-    private String cmdPut(String key, String value) {
+    private String cmdPut(String cmd, String key, String value) {
     	/*
     		return msg should be a StatusType string
     	 */
-        if (key.equals("null")) {
+        if (key.equals("")) {
             return "PUT_ERROR";
         }
         boolean inStorage = server.inStorage(key);
@@ -181,9 +182,13 @@ public class ClientConnection implements Runnable {
             value = "";
 
         try {
-            server.putKV(key, value.equals("") ? null : value);
+            server.putKV(key, value);
 
-            if (inStorage && (value.equals(""))) {
+            if (cmd.equals("PUT")) {
+                dataReplicationManager.forward(cmd, key, value);
+            }
+
+            if (inStorage && value.equals("")) {
                 return "DELETE_SUCCESS";
             } else if (inStorage) {
                 return "PUT_UPDATE";
@@ -194,7 +199,8 @@ public class ClientConnection implements Runnable {
             }
 
         } catch (Exception e) {
-
+            logger.error("[ClientConnection] Error! " + e);
+            e.printStackTrace();
             if (value.equals("")) {
                 return "DELETE_ERROR + exception";
             } else {
@@ -227,7 +233,7 @@ public class ClientConnection implements Runnable {
         byte[] msgBytes = msg.getMsgBytes();
         output.write(msgBytes, 0, msgBytes.length);
         output.flush();
-        logger.info("[ClientConnection] SEND \t<"
+        logger.info("[ClientConnection] SEND: \t<"
                 + clientSocket.getInetAddress().getHostAddress() + ":"
                 + clientSocket.getPort() + ">: '"
                 + msg.getMsg() + "'");
@@ -294,7 +300,7 @@ public class ClientConnection implements Runnable {
 
         /* build final String */
         TextMessage msg = new TextMessage(msgBytes);
-        logger.info("RECEIVE \t<"
+        logger.info("[ClientConnection] RECEIVE \t<"
                 + clientSocket.getInetAddress().getHostAddress() + ":"
                 + clientSocket.getPort() + ">: '"
                 + msg.getMsg().trim() + "'");
@@ -306,7 +312,6 @@ public class ClientConnection implements Runnable {
         TextMessage msg_send;
 
         // checks for distributed servers
-        logger.debug("[ClientConnection] IMP cmd: " + cmd);
         if (cmd.equals("Transferring_Data")) {
             try {
                 logger.debug("[ClientConnection] receiving transferred data: " + key);
@@ -322,28 +327,35 @@ public class ClientConnection implements Runnable {
             }
 
         } else {
-            logger.debug("[ClientConnection] cmd: " + cmd);
             if (this.server.getServerState() == IKVServer.ServerStateType.STOPPED) {
                 // TODO: also needs to check if it is a ECS request
 
                 logger.debug("[ClientConnection] current server state is:" + this.server.getServerState().name());
                 msg_send = new TextMessage(KVMessage.StatusType.SERVER_STOPPED.name());
-            } else if (!server.isResponsible(key)) {
-                String hashRingStr = server.getHashRingStr();
+
+            } else if (!server.isResponsible(key, cmd)) {
+
+                logger.debug("[ClientConnection] Server not responsible!");
                 msg_send = new TextMessage(
-                        KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() + Constants.DELIMITER + hashRingStr);
+                        KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name());
+
             } else if (this.server.isWriteLocked() && cmd.equals("PUT")) {
+
                 msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
+
             } else {
                 switch (cmd) {
+                    case "PUT_REPLICATE":
                     case "PUT":
-                        String value = "null";
+                        String value = "";
                         if (tokens.length == 3) {
                             value = tokens[2];
                         }
                         try {
-                            msg_send = new TextMessage(cmdPut(key, value));
+                            msg_send = new TextMessage(cmdPut(cmd, key, value));
                         } catch (Exception e) {
+                            logger.error("[ClientConnection] Error! " + e);
+                            e.printStackTrace();
                             msg_send = new TextMessage("PUT_ERROR + exception");
                         }
                         break;

@@ -52,8 +52,7 @@ public class KVConvertMessage implements KVMessage {
                 this.status = StatusType.SERVER_NOT_RESPONSIBLE;
                 break;
             default:
-                System.out.println("Default case for parsing status in KVConvertMessage");
-                this.status = null;
+                System.out.println("[KVConvertMessage] Default case for parsing status in KVConvertMessage");
         }
     }
 

@@ -1,12 +1,10 @@
 package ecs;
 
-import com.google.gson.Gson;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import shared.Constants;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +43,7 @@ public class ECSDataReplication implements Watcher {
         this.hashRange = hashRange;
         this.type = TransferType.DELETE;
         this.sender = deleter;
-        this.prompt = this.sender.getNodeName() + " delete: ";
+        this.prompt = "[ECSDR] " + this.sender.getNodeName() + " delete: ";
     }
 
     public ECSDataReplication(ECSNode sender, ECSNode receiver, String[] hashRange) {
@@ -61,7 +59,7 @@ public class ECSDataReplication implements Watcher {
         broadcast(ECS.ZK_SERVER_PATH + "/" + this.receiver.port + ECS.ZK_OP_PATH, IECSNode.ECSNodeFlag.KV_RECEIVE.name(), connectedSignal);
 
         boolean sigWait = connectedSignal.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
-        boolean ack = true ;
+        boolean ack = true;
         if (!sigWait) {
             if (zk.exists(ECS.ZK_SERVER_PATH + "/" + this.receiver.port + ECS.ZK_OP_PATH, false) != null) {
                 ack = false;
@@ -69,12 +67,12 @@ public class ECSDataReplication implements Watcher {
         }
 
         if (!ack) {
-            logger.error("Failed to ack receiver of data " + receiver);
-            logger.error("hash range is " + hashRange[0] + " to " + hashRange[1]);
+//            logger.error("[ECSDR] Failed to ack receiver of data " + receiver.name);
+//            logger.error("[ECSDR] hash range is " + hashRange[0] + " to " + hashRange[1]);
             return false;
         }
 
-        logger.info("Confirmed receiver node " + receiver.name);
+        logger.info("[ECSDR] receiver " + receiver.name);
 
         String to_msg = IECSNode.ECSNodeFlag.KV_TRANSFER.name() +
                 Constants.DELIMITER + receiver.getNodePort()
@@ -83,10 +81,21 @@ public class ECSDataReplication implements Watcher {
 
         broadcast(ECS.ZK_SERVER_PATH + "/" + this.sender.port + ECS.ZK_OP_PATH, to_msg, connectedSignal);
 
-        boolean sigWait1 = connectedSignal.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
-        ack = true ;
+        sigWait = connectedSignal.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
+        ack = true;
+        if (!sigWait) {
+            if (zk.exists(ECS.ZK_SERVER_PATH + "/" + this.receiver.port + ECS.ZK_OP_PATH, false) != null) {
+                ack = false;
+            }
+        }
 
-        logger.info("Confirmed sender node " + sender.name);
+        if (!ack) {
+//            logger.error("[ECSDR] Failed to ack receiver of data " + receiver.name);
+//            logger.error("[ECSDR] hash range is " + hashRange[0] + " to " + hashRange[1]);
+            return false;
+        }
+
+        logger.info("[ECSDR] sender " + sender.name);
         return true;
     }
 
@@ -96,30 +105,25 @@ public class ECSDataReplication implements Watcher {
                 return delete(zk);
             case COPY:
                 return copy(zk);
-            default:
-                logger.fatal("unrecognized transfer type");
-                return false;
         }
+        return false;
     }
 
     private boolean delete(ZooKeeper zk) throws InterruptedException, KeeperException {
-        broadcast(ECS.ZK_SERVER_PATH + "/" + this.receiver.port + ECS.ZK_OP_PATH, IECSNode.ECSNodeFlag.DELETE.name(), connectedSignal);
+
+        this.zk = zk;
+        broadcast(ECS.ZK_SERVER_PATH + "/" + this.sender.port + ECS.ZK_OP_PATH, IECSNode.ECSNodeFlag.DELETE.name(), connectedSignal);
 
         boolean sigWait = connectedSignal.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
-        boolean ack = true ;
+        boolean ack = true;
         if (!sigWait) {
-            if (zk.exists(ECS.ZK_SERVER_PATH + "/" + this.receiver.port + ECS.ZK_OP_PATH, false) != null) {
+            if (this.zk.exists(ECS.ZK_SERVER_PATH + "/" + this.sender.port + ECS.ZK_OP_PATH, false) != null) {
                 ack = false;
             }
         }
-
-        if (!ack) {
-            logger.error("Failed to ack receiver of data " + receiver);
-            logger.error("hash range is " + hashRange[0] + " to " + hashRange[1]);
-            return false;
-        }
-
-        return true;
+        //            logger.error("[ECSDR] Failed to ack receiver of data " + receiver.name);
+        //            logger.error("[ECSDR] hash range is " + hashRange[0] + " to " + hashRange[1]);
+        return ack;
     }
 
     /**
@@ -135,7 +139,7 @@ public class ECSDataReplication implements Watcher {
         try {
             checkSender();
             if (senderComplete && receiverComplete) {
-                logger.info(prompt + "transmission complete");
+                logger.info(prompt + " complete");
                 return true;
             }
             zk.exists(ECS.ZK_SERVER_PATH + "/" + this.sender.port + ECS.ZK_OP_PATH, this);
@@ -162,8 +166,7 @@ public class ECSDataReplication implements Watcher {
                     return true;
                 // No data change
                 // Must be a timeout
-                logger.error("TIMEOUT triggered before receiving any progress on data transferring");
-                logger.error("final progress " + senderProgress + "%");
+                logger.error("[ECSDR] TIMEOUT triggered before receiving any progress on data transferring");
                 return false;
             }
         }
@@ -174,7 +177,7 @@ public class ECSDataReplication implements Watcher {
 
         if (msg.equals(ECSNodeMessage.ECSNodeFlag.TRANSFER_FINISH.name())) {
             receiverComplete = true;
-            logger.info(prompt + "receiver side complete");
+            logger.info(prompt + "receiver complete");
         } else {
             zk.exists(ECS.ZK_SERVER_PATH + "/" + this.receiver.port + ECS.ZK_OP_PATH, this);
         }
@@ -185,14 +188,22 @@ public class ECSDataReplication implements Watcher {
         // Monitor sender
         String msg = new String(zk.getData(ECS.ZK_SERVER_PATH + "/" + this.sender.port + ECS.ZK_OP_PATH, false, null));
 
-
-
         if (msg.equals(ECSNodeMessage.ECSNodeFlag.TRANSFER_FINISH.name())) {
             // Sender complete, now monitoring receiver
             senderComplete = true;
-            logger.info(prompt + "sender side complete");
+            logger.info(prompt + "sender complete");
             checkReceiver();
         } else {
+
+            int transferProgress;
+
+            String[] tmp = msg.split("\\" + Constants.DELIMITER);
+
+            if (tmp[tmp.length - 1].equals("100")) {
+                transferProgress = Integer.parseInt(tmp[tmp.length - 1]);
+                senderProgress = transferProgress;
+            }
+
             // Continue listening for sender progress
             zk.exists(ECS.ZK_SERVER_PATH + "/" + this.sender.port + ECS.ZK_OP_PATH, this);
             if (sig != null) sig.countDown();
@@ -202,18 +213,17 @@ public class ECSDataReplication implements Watcher {
     public void broadcast(String msgPath, String msg, CountDownLatch sig) {
 
         try {
-            if (zk.exists(msgPath, this) == null) {
-                zk.create(msgPath, msg.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            if (this.zk.exists(msgPath, this) == null) {
+                this.zk.create(msgPath, msg.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             } else {
                 logger.warn("[ECS] " + msgPath + " already exists... updating and deleting children...");
-                zk.setData(msgPath, msg.getBytes(), zk.exists(msgPath, true).getVersion());
-                List<String> children = zk.getChildren(msgPath, false);
+                this.zk.setData(msgPath, msg.getBytes(), this.zk.exists(msgPath, true).getVersion());
+                List<String> children = this.zk.getChildren(msgPath, false);
                 for (String child : children)
-                    zk.delete(msgPath + "/" + child, zk.exists(msgPath + "/" + child, true).getVersion());
-
+                    this.zk.delete(msgPath + "/" + child, this.zk.exists(msgPath + "/" + child, true).getVersion());
             }
 
-            if (zk.exists(msgPath, this) == null) {
+            if (this.zk.exists(msgPath, this) == null) {
                 sig.countDown();
                 logger.debug("[ECS] Unable to create path " + msgPath);
             }
@@ -239,18 +249,17 @@ public class ECSDataReplication implements Watcher {
                 e.printStackTrace();
             }
         } else {
-            logger.warn("Other unexpected event monitored " + event);
-            logger.warn("Continue listening for progress");
+            logger.warn("[ECSDR] " + event);
         }
     }
 
     @Override
     public String toString() {
-        return "ECSDataTransferIssuer{" +
-                "sender=" + sender +
-                ", receiver=" + receiver +
-                ", hashRange=" + Arrays.toString(hashRange) +
-                ", type=" + type +
+        return "[ECSDR] ECSDataTransferIssuer{" +
+                "sender = " + sender +
+                ", receiver = " + receiver +
+                ", hashRange = " + Arrays.toString(hashRange) +
+                ", typ e= " + type +
                 '}';
     }
 }
