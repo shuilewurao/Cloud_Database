@@ -17,9 +17,9 @@ public class AdditionalTest extends TestCase {
     private KVStore kvClient_LFU;
 
     public void setUp() {
-        kvClient_FIFO = new KVStore("localhost", 50000);
-        kvClient_LRU = new KVStore("localhost", 51000);
-        kvClient_LFU = new KVStore("localhost", 52000);
+        kvClient_FIFO = new KVStore("localhost", 51000);
+        kvClient_LRU = new KVStore("localhost", 52000);
+        kvClient_LFU = new KVStore("localhost", 53000);
         try {
             kvClient_FIFO.connect();
             kvClient_LRU.connect();
@@ -37,7 +37,7 @@ public class AdditionalTest extends TestCase {
     @Test
     public void test_Connection() {
         Exception ex1 = null, ex2 = null;
-        KVStore kvClient = new KVStore("localhost", 50000);
+        KVStore kvClient = new KVStore("localhost", 51000);
         try {
             kvClient.connect();
         } catch (Exception e) {

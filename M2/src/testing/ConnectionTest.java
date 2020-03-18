@@ -9,12 +9,11 @@ import junit.framework.TestCase;
 
 public class ConnectionTest extends TestCase {
 
-
     public void testConnectionSuccess() {
 
         Exception ex = null;
 
-        KVStore kvClient = new KVStore("localhost", 50000);
+        KVStore kvClient = new KVStore("localhost", 51000);
         System.out.println("new KVStore");
 
         try {
@@ -30,7 +29,7 @@ public class ConnectionTest extends TestCase {
 
     public void testUnknownHost() {
         Exception ex = null;
-        KVStore kvClient = new KVStore("unknown", 50000);
+        KVStore kvClient = new KVStore("unknown", 51000);
 
         try {
             kvClient.connect();
