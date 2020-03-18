@@ -1,6 +1,9 @@
 package shared.messages;
 
+import org.apache.log4j.Logger;
+
 public class KVConvertMessage implements KVMessage {
+    private Logger logger = Logger.getRootLogger();
     private String key;
     private String value;
     private StatusType status;
@@ -12,7 +15,7 @@ public class KVConvertMessage implements KVMessage {
 
         String trimmedStatus = status.trim();
 
-//            logger.debug("Parsing trimmed status: " + trimmedStatus);
+        logger.debug("[KVConvertMsg] Parsing trimmed status: " + trimmedStatus);
 
         switch (trimmedStatus) {
             case "GET":
@@ -71,8 +74,6 @@ public class KVConvertMessage implements KVMessage {
         return key;
     }
 
-    ;
-
     /**
      * @return the value that is associated with this message,
      * null if not value is associated.
@@ -81,8 +82,6 @@ public class KVConvertMessage implements KVMessage {
     public String getValue() {
         return value;
     }
-
-    ;
 
     /**
      * @return a status string that is used to identify request types,

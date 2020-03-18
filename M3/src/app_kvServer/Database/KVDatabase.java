@@ -53,7 +53,7 @@ public class KVDatabase implements IKVDatabase {
 
         if (synchLUT != null) {
             synchLUT.clear();
-            logger.info("Clear synchronized LUT");
+            logger.info("[DB] Clear synchronized LUT");
         }
 
         // delete storage file
@@ -61,14 +61,14 @@ public class KVDatabase implements IKVDatabase {
             File f = new File(getDBPath());
             boolean result = f.delete();
             if (!result) {
-                logger.error("Unable to delete storage file");
+                logger.error("[DB] Unable to delete storage file");
             } else {
-                logger.info("Storage file deleted successfully.");
+                logger.info("[DB] Storage file deleted successfully.");
             }
-            logger.info("Storage file deleted successfully.");
+            logger.info("[DB] Storage file deleted successfully.");
             openFile();
         } catch (Exception x) {
-            logger.error("File" + this.DBFileName + "can not be deleted");
+            logger.error("[DB] File" + this.DBFileName + "can not be deleted");
         }
 
         // delete lookup table
@@ -76,11 +76,11 @@ public class KVDatabase implements IKVDatabase {
             File f = new File(getLUTPath());
             boolean result = f.delete();
             if (!result) {
-                logger.error("Unable to delete LUT file");
+                logger.error("[DB] Unable to delete LUT file");
             }
-            logger.info("Lookup Table deleted successfully.");
+            logger.info("[DB] Lookup Table deleted successfully.");
         } catch (Exception x) {
-            logger.error("File" + this.LUTName + "can not be deleted");
+            logger.error("[DB] File" + this.LUTName + "can not be deleted");
         }
 
     }
@@ -93,11 +93,11 @@ public class KVDatabase implements IKVDatabase {
             //String val = byteArrayToValue(results);
             String[] content = new String(results, StandardCharsets.UTF_8).split(DELIM);
             if (content.length == 3 && content[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 1) {
-                logger.info("Key: " + Key + "exist " + " in FileSystem");
+                logger.info("[DB] Key: " + Key + " exist " + " in FileSystem");
                 return decodeValue(content[2]).trim();
             }
 
-            logger.debug("Key: " + Key + "not exist " + " in FileSystem");
+            logger.debug("[DB] Key: " + Key + " not exist " + " in FileSystem");
 
 
             if (content.length >= 1 && this.synchLUT.containsKey(Key) && content[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 0) {
@@ -105,7 +105,7 @@ public class KVDatabase implements IKVDatabase {
             }
             return null;
         } else {
-            logger.info("Key: " + Key + " does not exist " + " in FileSystem");
+            logger.info("[DB] Key: " + Key + " does not exist " + " in FileSystem");
             return null;
         }
     }
@@ -115,16 +115,16 @@ public class KVDatabase implements IKVDatabase {
         KVEntry kve = synchLUT.get(K);
         StatusType status = StatusType.PUT_ERROR;
         try {
-            if (V == null) {
+            if (V == null || V.equals("")) {
                 if (kve == null) {
-                    logger.error("Try to delete an entry with non-exist key: " + K);
+                    logger.error("[DB] Try to delete an entry with non-exist key: " + K);
                     status = StatusType.DELETE_ERROR;
-                    throw new IOException("Try to delete an entry with non-exist key: " + K);
+                    throw new IOException("[DB] Try to delete an entry with non-exist key: " + K);
                 } else {
                     ModifyValidByte(kve.start_offset, kve.end_offset);
                     deleteKVEntry(K);
                     status = StatusType.DELETE_SUCCESS;
-                    logger.info("Create [Key: " + K + ", Value: " + V + "] in FileSystem");
+                    logger.info("[DB] Create [Key: " + K + ", Value: " + V + "] in FileSystem");
                 }
             } else {
                 byte[] msg = KVPairToBytes(K, V);
@@ -132,10 +132,10 @@ public class KVDatabase implements IKVDatabase {
 
                 if (kve == null) {
                     status = StatusType.PUT_SUCCESS;
-                    logger.info("Create [Key: " + K + ", Value: " + V + "] in FileSystem");
+                    logger.info("[DB] Create [Key: " + K + ", Value: " + V + "] in FileSystem");
                 } else {
                     status = StatusType.PUT_UPDATE;
-                    logger.info("Update [Key: " + K + ", Value: " + V + "] in FileSystem");
+                    logger.info("[DB] Update [Key: " + K + ", Value: " + V + "] in FileSystem");
                 }
             }
             saveLUT();
@@ -155,7 +155,7 @@ public class KVDatabase implements IKVDatabase {
 
         KVEntry added = new KVEntry(location, location + bytes.length);
         synchLUT.put(K, added);
-        logger.info("Write Byte Array to disk");
+        logger.info("[DB] Write Byte Array to disk");
 
         return location;
     }
@@ -176,7 +176,7 @@ public class KVDatabase implements IKVDatabase {
         raf.seek(start);
         raf.write(bytes);
         raf.close();
-        logger.info("Modify Valid Byte at Location: " + start);
+        logger.info("[DB] Modify Valid Byte at Location: " + start);
 
         return true;
     }
@@ -184,7 +184,7 @@ public class KVDatabase implements IKVDatabase {
 
     private synchronized void deleteKVEntry(String K) throws IOException {
         synchLUT.remove(K);
-        logger.info("Delete Key: " + K + " from FileSystem");
+        logger.info("[DB] Delete Key: " + K + " from FileSystem");
     }
 
     public boolean inStorage(String K) {
@@ -202,7 +202,7 @@ public class KVDatabase implements IKVDatabase {
 
     private void openFile() {
 
-        logger.info("Initialize iterate storage file ...");
+        logger.info("[DB] Initialize iterate storage file ...");
         boolean fileDNE;
         try {
             // create directory of persisted storage
@@ -210,7 +210,7 @@ public class KVDatabase implements IKVDatabase {
             if (!dir.exists()) {
                 boolean mkdir_result = dir.mkdir();
                 if (!mkdir_result) {
-                    logger.error("Unable to create file " + this.DIR);
+                    logger.error("[DB] Unable to create file " + this.DIR);
                     return;
                 }
             }
@@ -220,23 +220,23 @@ public class KVDatabase implements IKVDatabase {
 
             fileDNE = tempDBfile.createNewFile();
             if (fileDNE) {
-                logger.info("New storage file created");
+                logger.info("[DB] New storage file created");
             } else {
-                logger.info("Storage file found");
+                logger.info("[DB] Storage file found");
             }
 
             File tempLUTfile = new File(getLUTPath());
 
             fileDNE = tempLUTfile.createNewFile();
             if (fileDNE) {
-                logger.info("New LUT file created");
+                logger.info("[DB] New LUT file created");
             } else {
-                logger.info("LUT file found");
+                logger.info("[DB] LUT file found");
             }
 
         } catch (IOException e) {
             e.printStackTrace();
-            logger.error("Error when trying to initialize file instance", e);
+            logger.error("[DB] Error when trying to initialize file instance", e);
         }
     }
 
@@ -253,12 +253,12 @@ public class KVDatabase implements IKVDatabase {
             tmpLUT = (Map<String, KVEntry>) in.readObject();
             in.close();
             fileIn.close();
-            logger.info("Lookup Table is loaded.");
+            logger.info("[DB] Lookup Table is loaded.");
         } catch (IOException i) {
             i.printStackTrace();
-            logger.error(" IOException: Load LookUp Table");
+            logger.error("[DB] IOException: Load LookUp Table");
         } catch (ClassNotFoundException c) {
-            logger.error("Load LookUp Table ClassNotFoundException");
+            logger.error("[DB] Load LookUp Table ClassNotFoundException");
             c.printStackTrace();
         } finally {
             // TODO: Flow
@@ -274,11 +274,11 @@ public class KVDatabase implements IKVDatabase {
             out.writeObject(this.synchLUT);
             out.close();
             fileOut.close();
-            logger.info("Serialized data is saved in " + LUTName);
+            logger.info("[DB] Serialized data is saved in " + LUTName);
 
         } catch (IOException i) {
             i.printStackTrace();
-            logger.error("Load LookUp Table IOException");
+            logger.error("[DB] Load LookUp Table IOException");
 
         }
         return false;
@@ -293,10 +293,10 @@ public class KVDatabase implements IKVDatabase {
             bytes = new byte[(int) (kve.end_offset - kve.start_offset)];
             raf.read(bytes);
             raf.close();
-            logger.info("Find Byte Array From disk");
+            logger.info("[DB] Find Byte Array From disk");
             return bytes;
         } catch (IOException e) {
-            logger.error("Read disk failed");
+            logger.error("[DB] Read disk failed");
             throw e;
         }
     }
@@ -428,7 +428,7 @@ public class KVDatabase implements IKVDatabase {
     }
 
     public boolean receiveTransferdData(String content) {
-        System.out.println("[KVDatabase] Transfer data:" + content);
+        System.out.println("[DB] Transfer data:" + content);
 
         String[] kv_pairs = content.split("\r\n");
 

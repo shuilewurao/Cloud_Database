@@ -728,7 +728,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     public boolean isResponsible(String key, String cmd) {
 
         ECSNode node = hashRing.getNodeByHash(MD5.HashInBI(key));
-        ECSNode thisServer = hashRing.getNodeByHash(MD5.HashInBI(this.getHashRingStr()));
+        ECSNode thisServer = hashRing.getNodeByServerName(this.name);
         if (node == null) {
             logger.error("[KVStore] No node in hash ring is responsible for key " + key);
             return false;

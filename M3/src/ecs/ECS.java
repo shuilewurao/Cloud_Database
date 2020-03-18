@@ -305,6 +305,7 @@ public class ECS implements IECSClient, Watcher {
 
         hashRing.removeAllNode();
         pushHashRingInZnode();
+
         return pushHashRingInTree();
     }
 

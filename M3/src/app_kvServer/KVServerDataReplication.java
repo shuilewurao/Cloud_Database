@@ -1,15 +1,14 @@
 package app_kvServer;
 
-import app_kvClient.IKVClient;
 import ecs.ECSNode;
 import org.apache.log4j.Logger;
 import shared.Constants;
 import shared.messages.TextMessage;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
-import java.util.HashSet;
-import java.util.Set;
 
 public class KVServerDataReplication {
 
@@ -20,7 +19,6 @@ public class KVServerDataReplication {
     private int port;
     private boolean running;
     private Socket clientSocket;
-    private Set<IKVClient> listeners;
     private OutputStream output;
     private InputStream input;
 
@@ -41,27 +39,35 @@ public class KVServerDataReplication {
         return name;
     }
 
-    public void dataReplication(String cmd, String k, String v) throws IOException {
+    public void dataReplication(String cmd, String k, String v) {
         assert !cmd.equals("PUT");
+
+        logger.debug(prompt + " data replication in " + this.name);
 
         String msg;
 
         msg = "PUT_REPLICATE" + Constants.DELIMITER + k + Constants.DELIMITER + v;
+        String msg_receive;
 
-        sendMessage(new TextMessage(msg));
+        try {
+            sendMessage(new TextMessage(msg));
+            msg_receive = receiveMessage().getMsg().trim();
+            String[] tokens = msg_receive.split("\\" + Constants.DELIMITER);
 
-        String msg_receive = receiveMessage().getMsg().trim();
+            logger.debug(prompt + "msg received: " + msg_receive);
 
-        String[] tokens = msg_receive.split("\\" + Constants.DELIMITER);
-
-        if (tokens[0].equals("PUT_SUCCESS") || tokens[0].equals("PUT_UPDATE") || tokens[0].equals("DELETE_SUCCESS"))
-            logger.warn(prompt + cmd + " " + k + " " + v + " in " + this.name + " failed!");
+            if (!tokens[0].equals("PUT_SUCCESS") && !tokens[0].equals("PUT_UPDATE") && !tokens[0].equals("DELETE_SUCCESS"))
+                logger.warn(prompt + cmd + " " + k + " " + v + " in " + this.name + " failed: " + tokens[0]);
+        } catch (IOException e) {
+            logger.error(prompt + "Error! " + e);
+            e.printStackTrace();
+        }
 
     }
 
     public void connect() throws IOException {
         this.clientSocket = new Socket(this.host, this.port);
-        this.listeners = new HashSet<>();
+
         logger.info("[KVStore] Connection established");
         this.output = clientSocket.getOutputStream();
         this.input = clientSocket.getInputStream();
@@ -76,9 +82,7 @@ public class KVServerDataReplication {
 
         try {
             tearDownConnection();
-            for (IKVClient listener : listeners) {
-                listener.handleStatus(IKVClient.SocketStatus.DISCONNECTED);
-            }
+
         } catch (IOException ioe) {
             logger.error("[KVStore] Unable to close connection!");
         }
@@ -90,10 +94,6 @@ public class KVServerDataReplication {
 
     public void setRunning(boolean run) {
         running = run;
-    }
-
-    public void addListener(IKVClient listener) {
-        listeners.add(listener);
     }
 
     private void tearDownConnection() throws IOException {

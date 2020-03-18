@@ -48,6 +48,7 @@ public class ClientConnection implements Runnable {
      */
     public ClientConnection(KVServer server, Socket clientSocket) {
         this.server = server;
+        this.dataReplicationManager = server.getDataReplicationManager();
         this.clientSocket = clientSocket;
         this.isOpen = true;
     }
@@ -173,13 +174,8 @@ public class ClientConnection implements Runnable {
     	/*
     		return msg should be a StatusType string
     	 */
-        if (key.equals("")) {
-            return "PUT_ERROR";
-        }
-        boolean inStorage = server.inStorage(key);
 
-        if (value == null)
-            value = "";
+        boolean inStorage = server.inStorage(key);
 
         try {
             server.putKV(key, value);
@@ -198,13 +194,15 @@ public class ClientConnection implements Runnable {
                 return "PUT_SUCCESS";
             }
 
+
         } catch (Exception e) {
             logger.error("[ClientConnection] Error! " + e);
             e.printStackTrace();
+            e.getCause();
             if (value.equals("")) {
-                return "DELETE_ERROR + exception";
+                return "DELETE_ERROR + " + e;
             } else {
-                return "PUT_ERROR + exception";
+                return "PUT_ERROR + " + e;
             }
         }
     }
@@ -346,6 +344,7 @@ public class ClientConnection implements Runnable {
             } else {
                 switch (cmd) {
                     case "PUT_REPLICATE":
+                        logger.info("[ClientConnection] processing for PUT_REPLICATE");
                     case "PUT":
                         String value = "";
                         if (tokens.length == 3) {
