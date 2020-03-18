@@ -43,9 +43,9 @@ public class HashringTest extends TestCase {
     public void test_addNodes(){
     	Exception ex = null;
     	try{
-	    	hr_test.addNode(new ECSNode("1", "localhost", 50001));
-	    	hr_test.addNode(new ECSNode("2", "localhost", 50002));
-	    	hr_test.addNode(new ECSNode("3", "localhost", 50003));
+	    	hr_test.addNode(new ECSNode("server1", "localhost", 50001));
+	    	hr_test.addNode(new ECSNode("server2", "localhost", 50002));
+	    	hr_test.addNode(new ECSNode("server3", "localhost", 50003));
     	}catch(Exception e)
     	{
     		ex = e;
@@ -56,9 +56,9 @@ public class HashringTest extends TestCase {
     public void test_getNodes(){
     	Exception ex = null;
     	try{
-    		ECSNode temp = new ECSNode("4", "localhost", 50004);
-	    	hr_test.getNodeByName("4");
-	    	hr_test.getNodeByHash(temp.getNodeHash());
+    		ECSNode temp = new ECSNode("server4", "localhost", 50004);
+	    	hr_test.getNodeByServerName("server4");
+	    	hr_test.getNodeByHash(temp.getNodeHashBI());
     	}catch(Exception e)
     	{
     		ex = e;
@@ -69,7 +69,7 @@ public class HashringTest extends TestCase {
     public void test_removeNodes(){
     	Exception ex = null;
     	try{
-	    	hr_test.removeNode(hr_test.getNodeByName("4"));
+	    	hr_test.removeNode(hr_test.getNodeByServerName("server4"));
     	}catch(Exception e)
     	{
     		ex = e;

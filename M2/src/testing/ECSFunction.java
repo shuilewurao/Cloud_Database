@@ -7,6 +7,9 @@ import ecs.ECSNode;
 import ecs.IECSNode;
 import ecs.ECSHashRing;
 import org.apache.zookeeper.data.Stat;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import junit.framework.TestCase;
 
@@ -19,24 +22,25 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
-public class ECSFunction extends TestCase {
+public class ECSFunction extends TestCase{
     private Collection<KVStore> kvClient = new ArrayList();
 	private Exception ex = null;
 	private ECS ecs;
     private CountDownLatch connectedSignal = new CountDownLatch(1);
     private  int numGetClients = 5;
 
+    @Before
     public void setUp() {
     	try{
      		ecs = new ECS("./ecs.config");
             ecs.addNodes(3, "FIFO", 10);
-            ecs.start_script();
             ecs.start();
     	}catch(Exception e){
     		//System.out.println("ECS Test error "+e);
     	}
     }
 
+    @After
     public void tearDown() {
     	try{
             ecs.shutdown();
@@ -55,14 +59,14 @@ public class ECSFunction extends TestCase {
                 Exception ex = null;
                 System.out.println("Host " + node.getNodeHost() + "Port " + node.getNodePort());
                 KVStore client = new KVStore(node.getNodeHost(), node.getNodePort());
-                assertNotNull(client);
+                Assert.assertNotNull(client);
                 try{
                     client.connect();
                 }catch(Exception e){
                     ex = e;
                 }
                 kvClient.add(client);
-                assertNull(ex);
+                Assert.assertNull(ex);
             }
      }
 
@@ -87,6 +91,6 @@ public class ECSFunction extends TestCase {
             }catch(Exception e){
                 ex = e;
             }
-            assertNull(ex);
+            Assert.assertNull(ex);
      }
 }

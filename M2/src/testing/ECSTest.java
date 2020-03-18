@@ -2,10 +2,7 @@ package testing;
 
 import client.KVStore;
 import app_kvServer.KVServer;
-import ecs.ECS;
-import ecs.ECSNode;
-import ecs.IECSNode;
-import ecs.ECSHashRing;
+import ecs.*;
 import org.apache.zookeeper.data.Stat;
 import org.junit.Test;
 import junit.framework.TestCase;
@@ -81,7 +78,7 @@ public class ECSTest extends TestCase {
             Map<String, IECSNode> nodes = ecs.getNodes();
             for(IECSNode node : nodes.values())
             {
-                assertEquals(KVMessage.ServerStateType.STARTED, node.getServerStateType());
+                assertEquals(ECSNodeMessage.ECSNodeFlag.START, node.getFlag());
             }
             //assertNull(ex);
     }
@@ -138,7 +135,7 @@ public class ECSTest extends TestCase {
             Map<String, IECSNode> nodes = ecs.getNodes();
             for(IECSNode node : nodes.values())
             {
-                assertEquals(KVMessage.ServerStateType.STOPPED, node.getServerStateType());
+                assertEquals(ECSNodeMessage.ECSNodeFlag.STOP, node.getFlag());
             }
      }
 
@@ -156,7 +153,7 @@ public class ECSTest extends TestCase {
             Map<String, IECSNode> nodes = ecs.getNodes();
             for(IECSNode node : nodes.values())
             {
-                assertEquals(KVMessage.ServerStateType.SHUT_DOWN, node.getServerStateType());
+                assertEquals(ECSNodeMessage.ECSNodeFlag.SHUT_DOWN, node.getFlag());
             }
      }
 }
