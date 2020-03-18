@@ -333,9 +333,10 @@ public class ClientConnection implements Runnable {
 
             } else if (!server.isResponsible(key, cmd)) {
 
+                String hashRingStr = server.getHashRingStr();
                 logger.debug("[ClientConnection] Server not responsible!");
                 msg_send = new TextMessage(
-                        KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name());
+                        KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() + Constants.DELIMITER + hashRingStr);
 
             } else if (this.server.isWriteLocked() && cmd.equals("PUT")) {
 
