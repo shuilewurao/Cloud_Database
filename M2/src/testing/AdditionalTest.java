@@ -10,8 +10,6 @@ import shared.messages.KVMessage;
 
 public class AdditionalTest extends TestCase {
 
-    // TODO add your test cases, at least 3
-
     private KVStore kvClient_FIFO;
     private KVStore kvClient_LRU;
     private KVStore kvClient_LFU;

@@ -1,64 +1,90 @@
 package testing;
 
-import org.junit.Test;
-
 import client.KVStore;
+import ecs.ECS;
 import junit.framework.TestCase;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException;
+import org.junit.Test;
 import shared.messages.KVMessage;
 import shared.messages.KVMessage.StatusType;
 
+import java.io.IOException;
+
+import org.junit.FixMethodOrder;
+import org.junit.runners.MethodSorters;
 
 public class InteractionTest extends TestCase {
 
-    private KVStore kvClient;
+    private Logger logger = Logger.getRootLogger();
 
-    public void setUp() {
-        kvClient = new KVStore("localhost", 51000);
-        try {
-            kvClient.connect();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private ECS ecs;
+    private KVStore kvClient;
+    private int port = 50005;
+
+
+    public void setUp() throws IOException {
+
+
     }
 
     public void tearDown() {
-        kvClient.disconnect();
+
+
     }
 
+//    public void testConnectECS() throws KeeperException, InterruptedException, IOException {
+//
+//        logger.debug("[TEST] 0");
+//
+//        ecs = new ECS("./ecs.config");
+//
+//        ecs.addNodes(1, "FIFO", 10);
+//        Thread.sleep(2000);
+//
+//        ecs.start();
+//        Thread.sleep(2000);
+//
+//    }
+
     @Test
-    public void testPut() {
+    public void testPut() throws IOException, InterruptedException {
+
+        logger.debug("[TEST] 1");
+
+        kvClient = new KVStore("localhost", port);
+        kvClient.connect();
+
+        Thread.sleep(1000);
+
         String key = "foo2";
         String value = "bar2";
         KVMessage response = null;
-        Exception ex = null;
 
         try {
             response = kvClient.put(key, value);
         } catch (Exception e) {
-            ex = e;
+            e.printStackTrace();
         }
 
-        assertTrue(ex == null && response.getStatus() == StatusType.PUT_SUCCESS);
-    }
+        assert response != null;
 
-    @Test
-    public void testPutDisconnected() {
+        assertTrue(response.getStatus().name().equals(StatusType.PUT_SUCCESS.name()) || response.getStatus().name().equals(StatusType.PUT_UPDATE.name()));
+
+        Thread.sleep(1000);
         kvClient.disconnect();
-        String key = "foo";
-        String value = "bar";
-        Exception ex = null;
-
-        try {
-            kvClient.put(key, value);
-        } catch (Exception e) {
-            ex = e;
-        }
-
-        assertNotNull(ex);
     }
 
     @Test
-    public void testUpdate() {
+    public void testUpdate() throws IOException, InterruptedException {
+
+        logger.debug("[TEST] 2");
+
+        KVStore kvClient = new KVStore("localhost", port);
+        kvClient.connect();
+
+        Thread.sleep(1000);
+
         String key = "updateTestValue";
         String initialValue = "initial";
         String updatedValue = "updated";
@@ -75,11 +101,23 @@ public class InteractionTest extends TestCase {
         }
 
         assertTrue((ex == null && response.getStatus().name().equals(StatusType.PUT_UPDATE.name())
-                && response.getValue().equals(updatedValue)) || (ex == null && response.getStatus().name().equals(StatusType.SERVER_NOT_RESPONSIBLE.name())));
+                && response.getValue().equals(updatedValue)));
+
+        //kvClient.disconnect();
+        Thread.sleep(1000);
+        kvClient.disconnect();
     }
 
     @Test
-    public void testDelete() {
+    public void testDelete() throws IOException, InterruptedException {
+
+        logger.debug("[TEST] 3");
+
+        KVStore kvClient = new KVStore("localhost", port);
+        kvClient.connect();
+
+        Thread.sleep(1000);
+
         String key = "deleteTestValue";
         String value = "toDelete";
 
@@ -88,17 +126,30 @@ public class InteractionTest extends TestCase {
 
         try {
             kvClient.put(key, value);
-            response = kvClient.put(key, "null");
+            Thread.sleep(1000);
+            response = kvClient.put(key, "");
 
         } catch (Exception e) {
             ex = e;
         }
 
         assertTrue(ex == null && response.getStatus().name().equals(StatusType.DELETE_SUCCESS.name()));
+
+        //kvClient.disconnect();
+        Thread.sleep(1000);
+        kvClient.disconnect();
     }
 
     @Test
-    public void testGet() {
+    public void testGet() throws IOException, InterruptedException {
+
+        logger.debug("[TEST] 4");
+
+        KVStore kvClient = new KVStore("localhost", port);
+        kvClient.connect();
+
+        Thread.sleep(1000);
+
         String key = "foo";
         String value = "bar";
         KVMessage response = null;
@@ -110,12 +161,22 @@ public class InteractionTest extends TestCase {
         } catch (Exception e) {
             ex = e;
         }
-
-        assertTrue(ex == null && response.getValue().equals("bar"));
+        assertTrue(ex == null && (response.getValue().equals("bar")));
+        //kvClient.disconnect();
+        Thread.sleep(1000);
+        kvClient.disconnect();
     }
 
     @Test
-    public void testGetUnsetValue() {
+    public void testGetUnsetValue() throws IOException, InterruptedException {
+
+        logger.debug("[TEST] 5");
+
+        KVStore kvClient = new KVStore("localhost", port);
+        kvClient.connect();
+
+        Thread.sleep(1000);
+
         String key = "an unset value";
         KVMessage response = null;
         Exception ex = null;
@@ -126,8 +187,36 @@ public class InteractionTest extends TestCase {
             ex = e;
         }
 
+
         assertTrue(ex == null && response.getStatus().name().equals(StatusType.GET_ERROR.name()));
+        //kvClient.disconnect();
+        Thread.sleep(1000);
+        kvClient.disconnect();
     }
 
+    @Test
+    public void testPutDisconnected() throws Exception {
+
+        logger.debug("[TEST] 6");
+
+        KVStore kvClient = new KVStore("localhost", port);
+        kvClient.connect();
+
+        kvClient.disconnect();
+        String key = "foo";
+        String value = "bar";
+        Exception ex = null;
+
+        try {
+            kvClient.put(key, value);
+        } catch (Exception e) {
+            ex = e;
+        }
+
+        assertNotNull(ex);
+        //ecs.shutdown();
+        kvClient.disconnect();
+
+    }
 
 }

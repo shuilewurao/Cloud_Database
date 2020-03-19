@@ -29,7 +29,7 @@ public class ConnectionTest extends TestCase {
 
     public void testUnknownHost() {
         Exception ex = null;
-        KVStore kvClient = new KVStore("unknown", 51000);
+        KVStore kvClient = new KVStore("unknown", 52000);
 
         try {
             kvClient.connect();

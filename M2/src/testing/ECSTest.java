@@ -1,159 +1,131 @@
 package testing;
 
+import app_kvServer.IKVServer;
 import client.KVStore;
-import app_kvServer.KVServer;
-import ecs.*;
-import org.apache.zookeeper.data.Stat;
-import org.junit.Test;
+import ecs.ECS;
+import ecs.ECSNode;
+import ecs.ECSNodeMessage;
+import ecs.IECSNode;
 import junit.framework.TestCase;
-import shared.messages.KVMessage;
+import org.junit.Test;
 
-
-import app_kvECS.ECSClient;
-import org.apache.zookeeper.*;
-
-import java.io.IOException;
-import java.math.BigInteger;
-
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 public class ECSTest extends TestCase {
     private KVStore kvClient;
-	private Exception ex = null;
-	private ECS ecs;
+    private ECS ecs;
     private CountDownLatch connectedSignal = new CountDownLatch(1);
-    private  int numGetClients = 5;
 
     public void setUp() {
-    	try{
-    		//ecsApp = new ECSClient("./ecs.config");
-     		 ecs = new ECS("./ecs.config");
-    	}catch(Exception e){
-    		//System.out.println("ECS Test error "+e);
-    	}
-    }
-
-    public void tearDown() {
-    	try{
-    		//ecsApp.shutdown();
-    	}catch(Exception e){
-    		//System.out.println("ECS Test error "+e);
-    	}
+        try {
+            //ecsApp = new ECSClient("./ecs.config");
+            ecs = new ECS("./ecs.config");
+        } catch (Exception e) {
+            //System.out.println("ECS Test error "+e);
+        }
     }
 
     @Test
-     public void test_createECS()
-     {
-     		Exception ex = null;
-     		try{
-    			new ECS("./ecs.config");
-     		}catch(Exception e){
-     			ex = e;
-     		}
-     		assertNull(ex);
-     }
-
-    @Test
-     public void test_addNode()
-     {
-     		Exception ex = null;
-     		try{
-    			ecs.addNodes(3, "FIFO", 10);
-     		}catch(Exception e){
-     			ex = e;
-     		}
-     		assertNull(ex);
-     }
-
-    @Test
-     public void test_startNode()
-     {
-            Exception ex = null;
-            try{
-                ecs.start();
-            }catch(Exception e){
-                ex = e;
-            }
-            Map<String, IECSNode> nodes = ecs.getNodes();
-            for(IECSNode node : nodes.values())
-            {
-                assertEquals(ECSNodeMessage.ECSNodeFlag.START, node.getFlag());
-            }
-            //assertNull(ex);
+    public void test_addNode() {
+        Exception ex = null;
+        try {
+            ecs.addNodes(3, "FIFO", 10);
+        } catch (Exception e) {
+            ex = e;
+            e.printStackTrace();
+        }
+        assertNull(ex);
     }
 
-     @Test
-     public void test_removeNode()
-     {
-     		Exception ex = null;
-     		try{
-    			ecs.addNodes(2, "FIFO", 10);
-     		}catch(Exception e){
-     			ex = e;
-     		}
-    		Map<String, IECSNode> map = ecs.getNodes();
+    @Test
+    public void test_startNode() {
+        try {
+            ecs.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        Map<String, IECSNode> nodes = ecs.getNodes();
+        for (IECSNode node : nodes.values()) {
+            assertEquals(ECSNodeMessage.ECSNodeFlag.START, node.getFlag());
+        }
+        //assertNull(ex);
+    }
 
-     		try{
-	    		Collection<String> keys = map.keySet();
-	    		ecs.removeNodes(keys);
-     		}catch(Exception e){
-     			ex = e;
-     		}
-     		assertNull(ex);
-     }
+    @Test
+    public void test_removeNode() {
+        Exception ex = null;
+        try {
+            ecs.addNodes(2, "FIFO", 10);
+        } catch (Exception e) {
+            ex = e;
+            e.printStackTrace();
+        }
+        Map<String, IECSNode> map = ecs.getNodes();
 
-     @Test
-     public void test_removeNonExistNode()
-     {
-     		Exception ex = null;
+        try {
+            Collection<String> keys = map.keySet();
+            ecs.removeNodes(keys);
+        } catch (Exception e) {
+            ex = e;
+            e.printStackTrace();
+        }
+        assertNull(ex);
+    }
 
-     		try{
-	    		Collection<String> keys = Arrays.asList("None-1","None-2");
-	    		ecs.removeNodes(keys);
-     		}catch(Exception e){
-     			ex = e;
-     		}
-     		assertNotNull(ex);
-     }
+    @Test
+    public void test_removeNonExistNode() {
+        Exception ex = null;
 
-     @Test
-     public void test_stop()
-     {
-     		Exception ex = null;
-            try{
-                ecs.addNodes(2, "FIFO", 10);
-            }catch(Exception e){
-                ex = e;
-            }
-     		try{
-	    		ecs.stop();
-     		}catch(Exception e){
-     			ex = e;
-     		}
-            assertNull(ex);
-            Map<String, IECSNode> nodes = ecs.getNodes();
-            for(IECSNode node : nodes.values())
-            {
-                assertEquals(ECSNodeMessage.ECSNodeFlag.STOP, node.getFlag());
-            }
-     }
+        try {
+            Collection<String> keys = Arrays.asList("None-1", "None-2");
+            ecs.removeNodes(keys);
+        } catch (Exception e) {
+            ex = e;
+            e.printStackTrace();
+        }
+        assertNull(ex);
+    }
 
-          @Test
-     public void test_shutdown()
-     {
-            Exception ex = null;
+    @Test
+    public void test_stop() {
+        Exception ex = null;
+        try {
+            ecs.addNodes(2, "FIFO", 10);
+        } catch (Exception e) {
+            ex = e;
+            e.printStackTrace();
+        }
+        try {
+            ecs.stop();
+        } catch (Exception e) {
+            ex = e;
+            e.printStackTrace();
+        }
+        assertNull(ex);
+        Map<String, IECSNode> nodes = ecs.getNodes();
+        for (IECSNode node : nodes.values()) {
+            assertEquals(ECSNodeMessage.ECSNodeFlag.STOP, node.getFlag());
+        }
+    }
 
-            try{
-                ecs.shutdown();
-            }catch(Exception e){
-                ex = e;
-            }
-            assertNull(ex);
-            Map<String, IECSNode> nodes = ecs.getNodes();
-            for(IECSNode node : nodes.values())
-            {
-                assertEquals(ECSNodeMessage.ECSNodeFlag.SHUT_DOWN, node.getFlag());
-            }
-     }
+    @Test
+    public void test_shutdown() {
+        Exception ex = null;
+
+        try {
+            ecs.shutdown();
+        } catch (Exception e) {
+            ex = e;
+            e.printStackTrace();
+        }
+        assert ex == null;
+        HashMap<String, ECSNode> nodes = ecs.getAvailableServers();
+        for (IECSNode node : nodes.values()) {
+            assertEquals(IKVServer.ServerStateType.SHUT_DOWN, node.getServerStateType());
+        }
+    }
 }
