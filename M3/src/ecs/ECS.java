@@ -229,7 +229,7 @@ public class ECS implements IECSClient, Watcher {
 
                 for (ECSNode r : replicas) {
                     ECSNode lastNode = hashRing.getLastReplica(r);
-                    lastNode = hashRing.getNextNode(lastNode.name);
+                    lastNode = hashRing.getNextNode(lastNode.getNodeHash());
                     String[] deleteRange = hashRing.getLastReplica(lastNode).getNodeHashRange();
                     toReplicate.add(new ECSDataReplication(r, deleteRange));
                 }

@@ -228,7 +228,7 @@ public class ECSHashRing {
 
             logger.debug("\t\tnode name: " + node.getNodeName());
             logger.debug("\t\tprev node: " + getPrevNode(node.name).getNodeName());
-            logger.debug("\t\tnext node: " + getNextNode(node.name).getNodeName());
+            logger.debug("\t\tnext node: " + getNextNode(node.getNodeHash()).getNodeName());
             logger.debug("\t\tnode start hash: " + node.getNodeHashRange()[0]);
             logger.debug("\t\tnode end hash: " + node.getNodeHashRange()[1]);
             logger.debug("\t\t**************************************************");
