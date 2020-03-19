@@ -248,27 +248,26 @@ public class ECSHashRing {
      * two replicas
      */
 
-    public ECSNode getLastReplica(ECSNode node) {
-        ECSNode last = node;
-        for (int i = 0; i < REPLICA_SIZE; ++i) {
-            last = getNextNode(last.name);
-        }
-        return last;
-    }
+//    public ECSNode getLastReplica(ECSNode node) {
+//        ECSNode last = node;
+//        for (int i = 0; i < REPLICA_SIZE; ++i) {
+//            last = getNextNode(last.name);
+//        }
+//        return last;
+//    }
 
     public String[] getResponsibleHashRange(ECSNode node) {
 
-        ECSNode currNode = this.getNodeByServerName(node.name);
+        ECSNode curr = node;
 
-        for (int i = 0; i < REPLICA_SIZE; ++i) {
-            currNode = getNextNode(currNode.name);
-            // check if loops around
-            if (getNextNode(currNode.name).name.equals(node.name))
+        for (int i = 0; i < REPLICA_SIZE; i++) {
+            curr = getPrevNode(curr.getNodeHash());
+            if (curr.getNodeName().equals((node.getNodeName())))
                 break;
         }
 
         return new String[]{
-                getNextNode(currNode.name).getNodeHash(),
+                curr.getStartHash(),
                 node.getNodeHash()
         };
     }
@@ -280,7 +279,7 @@ public class ECSHashRing {
         ECSNode currNode = this.getNodeByServerName(coordinator.name);
 
         for (int i = 0; i < REPLICA_SIZE; ++i) {
-            ECSNode next = getNextNode(currNode.name);
+            ECSNode next = getNextNode(currNode.getNodeHash());
             result.add(next);
             currNode = next;
         }
@@ -288,6 +287,24 @@ public class ECSHashRing {
         result.remove(coordinator);
         return result;
     }
+
+    public Collection<ECSNode> getPredecessors(ECSNode replica) {
+
+        Set<ECSNode> result = new HashSet<>();
+
+        ECSNode currNode = this.getNodeByServerName(replica.name);
+
+        for (int i = 0; i < REPLICA_SIZE; ++i) {
+            ECSNode prev = getPrevNode(currNode.getNodeHash());
+            result.add(prev);
+            currNode = prev;
+        }
+
+        result.remove(replica);
+        return result;
+    }
+
+
 
     public boolean isReplicable() {
         if (this.getSize() >= 3) {
@@ -297,4 +314,15 @@ public class ECSHashRing {
             return false;
         }
     }
+
+    // find the replica will clear its responsibility for node n
+    public ECSNode getOldLastReplication(ECSNode n){
+        ECSNode currNode = n;
+        for (int i = 0; i < REPLICA_SIZE+1; i++) {
+            currNode = getNextNode(currNode.getNodeHash());
+        }
+        return currNode;
+    }
+
+
 }

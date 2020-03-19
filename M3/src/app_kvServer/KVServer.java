@@ -33,8 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static ecs.ECS.ZK_HASH_TREE;
-import static ecs.ECS.ZK_SERVER_PATH;
+import static ecs.ECS.*;
 
 public class KVServer implements IKVServer, Runnable, Watcher {
 
@@ -116,6 +115,9 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         threadList = new ArrayList<>();
         serverThread = null;
 
+        serverState = ServerStateType.STOPPED;
+        this.writeLocked = true;
+
         switch (strategy) {
             case "FIFO":
                 Cache = new FIFO(cacheSize);
@@ -135,8 +137,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
         this.zkNodePath = ZK_SERVER_PATH + "/" + port;
         this.DB = new KVDatabase(port);
-        serverState = ServerStateType.STOPPED;
-        this.writeLocked = true;
+
 
         initKVServer();
     }
@@ -425,7 +426,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
             if (!children.isEmpty()) {
 
-                String msgPath = zkNodePath + "/" + children.get(0);
+                //String msgPath = zkNodePath + "/" + children.get(0);
+                String msgPath = zkNodePath +ECS.ZK_OP_PATH;
                 byte[] data = ZK.readNullStat(msgPath);
                 logger.debug("[KVServer] checking ZK Msg: " + children.toString() + ": " + new String(data));
                 if (new String(data).equals(IECSNode.ECSNodeFlag.INIT.name())) {
@@ -495,6 +497,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             e.printStackTrace();
         }
 
+
         try {
             // set watcher on children
             zk.getChildren(this.zkNodePath, this, null);
@@ -502,6 +505,24 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         } catch (InterruptedException | KeeperException e) {
             logger.error("[KVServer] Unable to get set watcher on children");
             e.printStackTrace();
+        }
+
+        // inform ECS the actual completion of INIT
+        try {
+            if (zk != null) {
+                //String path = "/AwaitNode";
+                Stat s = zk.exists(ZK_AWAIT_NODES, true);
+                Stat sNode = zk.exists(ZK_AWAIT_NODES + "/" + port, true);
+
+                if (s != null && sNode == null) {
+                    zk.create(ZK_AWAIT_NODES + "/" + port,
+                            "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                }
+            }
+        } catch (KeeperException e) {
+            logger.error("KVServer create await node " + e);
+        } catch (InterruptedException ie) {
+            logger.error("KVServer create await node " + ie);
         }
     }
 
@@ -577,6 +598,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
             if (result.getMsg().equals("Transferring_Data_SUCCESS")) {
                 DB.deleteKVPairByRange(range);
+                clearCache();
                 this.unlockWrite();
                 logger.debug("[KVServer] Transfer success at senders!");
                 return true;
@@ -593,6 +615,25 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             return false;
 
         }
+    }
+
+    public boolean deleteData(String[] range) {
+
+        if (range.length < 2) {
+            logger.debug("[KVServer] Invalid hash range for move data");
+            return false;
+        }
+
+        this.lockWrite();
+
+        DB.deleteDBData(range);
+
+        clearCache();
+        this.unlockWrite();
+        logger.info("[KVServer] Deleted data within ["+range[0] +","+range[1]);
+        return true;
+
+
     }
 
 //    public ECSHashRing getMetaData() {
@@ -630,7 +671,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                 case INIT:
                     ZK.deleteNoWatch(path);
                     //ZK.update(path, "".getBytes());
-                    logger.info("[KVServer] Server started!");
+                    logger.info("[KVServer] Server initialized!");
                     break;
 
                 case SHUT_DOWN:
@@ -669,7 +710,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                         logger.warn("[KVServer] move data failure!");
                     }
 
-                    updateTransferProgress(100);
+                    //updateTransferProgress(100);
 
                     String msgPath = ZK_SERVER_PATH + "/" + port + ECS.ZK_OP_PATH;
 
@@ -679,22 +720,21 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                         ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
                     }
 
-                    String targetPath = ZK_SERVER_PATH + "/" + target + ECS.ZK_OP_PATH;
-
-                    if (zk.exists(targetPath, false) == null) {
-                        ZKAPP.create(targetPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
-                    } else {
-                        ZK.update(targetPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
-                    }
+//                    String targetPath = ZK_SERVER_PATH + "/" + target + ECS.ZK_OP_PATH;
+//
+//                    if (zk.exists(targetPath, false) == null) {
+//                        ZKAPP.create(targetPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+//                    } else {
+//                        ZK.update(targetPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+//                    }
                     unlockWrite();
                     break;
 
                 case DELETE:
-
-                    //this.lockWrite();
-                    // delete hashRange??
-                    this.unlockWrite();
-                    this.clearCache();
+                    assert tokens.length == 3;
+                    String[] range_d = new String[]{
+                            tokens[1], tokens[2]};
+                    this.deleteData(range_d);
                     ZK.deleteNoWatch(path);
                     break;
 
@@ -709,13 +749,6 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         }
     }
 
-//    public void update(ECSHashRing hashRing) {
-//        ECSNode node = hashRing.getNodeByName(this.serverName);
-//        if (node == null) {
-//            // server idle or shutdown
-//            this.clearStorage();
-//        }
-//    }
 
     public String getHashRingStr() {
         return hashRingString;
@@ -750,33 +783,18 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         DB.receiveTransferdData(data);
         unlockWrite();
 
-        try {
-            ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
-        } catch (KeeperException | InterruptedException e) {
-            e.printStackTrace();
-            return false;
-        }
+ //       try {
+//            if (zk.exists(msgPath, false) == null) {
+//                ZKAPP.create(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                logger.debug("[KVServer] received finish "+data);
+//            }else{
+//                logger.debug("[KVServer] finished but can not create path in zk");
+//            }
+//        } catch (KeeperException | InterruptedException e) {
+//            e.printStackTrace();
+//            return false;
+//        }
         return true;
-    }
-
-    public void updateTransferProgress(int transferProgress) {
-        try {
-            String msg = new String(zk.getData(zkNodePath + ECS.ZK_OP_PATH, false, null));
-
-            if (msg.equals(ECSNodeMessage.ECSNodeFlag.TRANSFER_FINISH.name()))
-                return;
-
-            msg = msg.concat(Constants.DELIMITER + transferProgress);
-
-            Stat stat = zk.setData(zkNodePath + ECS.ZK_OP_PATH, msg.getBytes(),
-                    zk.exists(zkNodePath + ECS.ZK_OP_PATH, false).getVersion());
-            logger.info("[KVServer] Update TransferProgress: " + transferProgress);
-
-        } catch (InterruptedException | KeeperException e) {
-            logger.info("[KVServer] Unable to update progress");
-            e.printStackTrace();
-        }
-
     }
 
     public KVServerDataReplicationManager getDataReplicationManager() {

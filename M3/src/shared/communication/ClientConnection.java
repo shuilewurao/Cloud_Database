@@ -84,28 +84,6 @@ public class ClientConnection implements Runnable {
                     logger.debug("[ClientConnection] key: " + key);
 
                     // checks for distributed servers
-                    /*
-                    if (cmd.equals("Transferring_Data")) {
-                        try {
-                            logger.debug("[ClientConnection] receiving transferred data: " + msg_received);
-
-                            boolean result = cmdTransfer(key);
-
-                            if (result) {
-                                msg_send = new TextMessage("Transferring_Data_SUCCESS");
-                            } else {
-                                msg_send = new TextMessage("Transferring_Data_ERROR");
-                            }
-                        } catch (Exception e) {
-                            // TODO: will this be sent?
-                            logger.error("[ClientConnection] Exception in data transfer");
-                            msg_send = new TextMessage("Transferring_Data_ERROR");
-                        }
-                        sendMessage(msg_send);
-                        continue;
-
-                    }
-                    */
                     handleClientRequest(cmd, key, tokens, msg_received);
 
 /*
@@ -312,8 +290,9 @@ public class ClientConnection implements Runnable {
         // checks for distributed servers
         if (cmd.equals("Transferring_Data")) {
             try {
-                logger.debug("[ClientConnection] receiving transferred data: " + key);
-                boolean result = cmdTransfer(msg_received.split("\\" + DELIMITER, 2)[1]);
+                String data=msg_received.split("\\" + DELIMITER, 2)[1];
+                logger.debug("[ClientConnection] receiving transferred data: " + data);
+                boolean result = cmdTransfer(data);
                 if (result) {
                     msg_send = new TextMessage("Transferring_Data_SUCCESS");
                 } else {
@@ -338,8 +317,11 @@ public class ClientConnection implements Runnable {
                 msg_send = new TextMessage(
                         KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() + Constants.DELIMITER + hashRingStr);
 
-            } else if (this.server.isWriteLocked() && cmd.equals("PUT")) {
-
+            } else if (this.server.isWriteLocked() &&
+                    (cmd.equals(KVMessage.StatusType.PUT.name()) ||
+                            cmd.equals(KVMessage.StatusType.PUT_REPLICATE.name())
+                    ) //TODO: PUT_REPLICATE
+            ) {
                 msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
 
             } else {

@@ -1,6 +1,7 @@
 package app_kvECS;
 
 import ecs.ECS;
+import ecs.ECSNode;
 import ecs.IECSNode;
 import logger.LogSetup;
 import org.apache.log4j.Level;
@@ -297,18 +298,18 @@ public class ECSClient implements IECSClient {
 
     @Override
     public IECSNode addNode(String cacheStrategy, int cacheSize, boolean isSole) {
-        client.addNodes(1, cacheStrategy, cacheSize);
+        //client.addNodes(1, cacheStrategy, cacheSize);
+        client.addNode(cacheStrategy, cacheSize, true);
         return null;
     }
 
     @Override
-    public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) throws IOException {
-
+    public Collection<ECSNode> addNodes(int count, String cacheStrategy, int cacheSize) throws IOException {
         return client.addNodes(count, cacheStrategy, cacheSize);
     }
 
     @Override
-    public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
+    public Collection<IECSNode> setupNodes(Collection<ECSNode> nodes) {
         return null;
     }
 

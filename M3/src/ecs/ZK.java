@@ -50,7 +50,7 @@ public class ZK {
     public static void update(String path, byte[] data) throws KeeperException, InterruptedException {
 
         zk.setData(path, data, zk.exists(path, true).getVersion());
-        List<String> children = zk.getChildren(path, false);
+        List<String> children = zk.getChildren(path, false); // TODO: watch ?
         for (String child : children) delete(path + "/" + child);
     }
 

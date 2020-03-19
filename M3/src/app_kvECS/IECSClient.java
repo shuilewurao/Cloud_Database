@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Collection;
 
+import ecs.ECSNode;
 import ecs.IECSNode;
 
 public interface IECSClient {
@@ -46,14 +47,14 @@ public interface IECSClient {
      *
      * @return set of strings containing the names of the nodes
      */
-    public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) throws IOException;
+    public Collection<ECSNode> addNodes(int count, String cacheStrategy, int cacheSize) throws IOException;
 
     /**
      * Sets up `count` servers with the ECS (in this case Zookeeper)
      *
      * @return array of strings, containing unique names of servers
      */
-    public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize);
+    public Collection<IECSNode> setupNodes(Collection<ECSNode> nodes);
 
     /**
      * Wait for all nodes to report status or until timeout expires
