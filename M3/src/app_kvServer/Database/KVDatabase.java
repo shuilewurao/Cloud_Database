@@ -121,7 +121,7 @@ public class KVDatabase implements IKVDatabase {
                     status = StatusType.DELETE_ERROR;
                     throw new IOException("[DB] Try to delete an entry with non-exist key: " + K);
                 } else {
-                    ModifyValidByte(kve.start_offset, kve.end_offset);
+                    //ModifyValidByte(kve.start_offset, kve.end_offset);
                     deleteKVEntry(K);
                     status = StatusType.DELETE_SUCCESS;
                     logger.info("[DB] Create [Key: " + K + ", Value: " + V + "] in FileSystem");
@@ -160,26 +160,26 @@ public class KVDatabase implements IKVDatabase {
         return location;
     }
 
-    // TODO: Invalidate
-    /*
-    This invalidates an entry in storage
-     */
-    public synchronized boolean ModifyValidByte(long start, long end) throws IOException {
-
-        RandomAccessFile raf = new RandomAccessFile(getDBPath(), "rw");
-        raf.seek(start);
-        //byte[] bytes = new byte[(int) (end - start)];
-        byte[] bytes = new byte[(int) (1)];
-        raf.read(bytes);
-
-        bytes[0] = (byte) 0;
-        raf.seek(start);
-        raf.write(bytes);
-        raf.close();
-        logger.info("[DB] Modify Valid Byte at Location: " + start);
-
-        return true;
-    }
+//    // TODO: Invalidate
+//    /*
+//    This invalidates an entry in storage
+//     */
+//    public synchronized boolean ModifyValidByte(long start, long end) throws IOException {
+//
+//        RandomAccessFile raf = new RandomAccessFile(getDBPath(), "rw");
+//        raf.seek(start);
+//        //byte[] bytes = new byte[(int) (end - start)];
+//        byte[] bytes = new byte[(int) (1)];
+//        raf.read(bytes);
+//
+//        bytes[0] = (byte) 0;
+//        raf.seek(start);
+//        raf.write(bytes);
+//        raf.close();
+//        logger.info("[DB] Modify Valid Byte at Location: " + start);
+//
+//        return true;
+//    }
 
 
     private synchronized void deleteKVEntry(String K) throws IOException {
@@ -310,14 +310,6 @@ public class KVDatabase implements IKVDatabase {
         return null;
     }
 
-    private String byteArrayToKV(byte[] Bytes) {
-
-        String[] content = new String(Bytes, StandardCharsets.UTF_8).split(DELIM);
-        if (content.length == 3 && content[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 1) {
-            return decodeValue(content[1]) + DELIM + decodeValue(content[2]).trim() + "\r\n";
-        }
-        return null;
-    }
 
     // TODO: exception
     private byte[] KVPairToBytes(String key, String value) throws IOException {
@@ -376,9 +368,9 @@ public class KVDatabase implements IKVDatabase {
                     String copied_str;
                     if (tokens[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 1) {
                         if (tokens.length == 3) {
-                            copied_str = decodeValue(tokens[1]) + DELIMITER + decodeValue(tokens[2]) + "\r\n";
+                            copied_str = decodeValue(tokens[1]) + DELIMITER + decodeValue(tokens[2].trim()) + DELIMITER+DELIMITER;
                         } else if (tokens.length == 2) {
-                            copied_str = decodeValue(tokens[1]) + "\r\n";
+                            copied_str = decodeValue(tokens[1].trim()) + DELIMITER+DELIMITER;
                         } else {
                             logger.debug("[DB] An invalid kve in Database/");
                             continue;
@@ -400,7 +392,7 @@ public class KVDatabase implements IKVDatabase {
 
     public synchronized boolean deleteKVPairByRange(String[] hashRange) {
 
-        try {
+//        try {
             String startRange = hashRange[0];
             String endRange = hashRange[1];
             logger.info("[DB] Remove Keys from look up table from " + startRange + " to" + endRange);
@@ -412,7 +404,7 @@ public class KVDatabase implements IKVDatabase {
                 KVEntry kve = entry.getValue();
                 if (MD5.isKeyinRange(key, startRange, endRange))//Check for key in range or not
                 {
-                    ModifyValidByte(kve.start_offset, kve.end_offset);
+                    //ModifyValidByte(kve.start_offset, kve.end_offset);
                     synchLUT.remove(entry.getKey());
                     logger.debug("[DB] Delete Key: " + key);
                 }
@@ -420,24 +412,23 @@ public class KVDatabase implements IKVDatabase {
             saveLUT();
 
             return true;
-        } catch (IOException ioe) {
-            logger.debug("[DB] Unable to delete KV Pair By range");
-            return false;
-        }
+//        } catch (IOException ioe) {
+//            logger.debug("[DB] Unable to delete KV Pair By range");
+//            return false;
+//        }
 
     }
 
     public boolean receiveTransferdData(String content) {
-        System.out.println("[DB] Transfer data:" + content);
 
-        String[] kv_pairs = content.split("\r\n");
+        String[] kv_pairs = content.split( "\\"+DELIMITER+"\\"+DELIMITER);
 
         try {
             for (String kv : kv_pairs) {
                 String[] k_v = kv.split("\\" + DELIMITER);
                 // As PUT
                 byte[] bytes = KVPairToBytes(k_v[0].trim(), k_v[1].trim());
-                //System.out.println("Key-Value: [" +kv+"]");
+                logger.debug("[DB] received KV "+k_v[0].trim()+","+k_v[1].trim());
                 appendEntry(bytes, k_v[0].trim());
             }
             saveLUT();
@@ -448,6 +439,36 @@ public class KVDatabase implements IKVDatabase {
             logger.error("[DB] Unable to make transfer data to server:" + this.portNo);
             return false;
         }
+
+
+    }
+
+
+    public boolean deleteDBData(String[] hashRange) {
+
+
+        String startRange = hashRange[0];
+        String endRange = hashRange[1];
+        //assume I get port Number and Address
+        // using for-each loop for iteration over Map.entrySet()
+        //StringBuilder stringList = new StringBuilder();
+        logger.debug("[DB] Get Hash Range from " + hashRange[0] + " to " + hashRange[1]);
+
+        for (Map.Entry<String, KVEntry> entry : synchLUT.entrySet()) {
+            BigInteger key = MD5.HashInBI(entry.getKey());
+            KVEntry kve = entry.getValue();
+            //System.out.println("Key: "+entry.getKey()+ " in Server:"+this.PortNumber%10);
+
+
+            if (MD5.isKeyinRange(key, startRange, endRange))//Check for key in range or not
+            {
+                logger.debug("[DB] Delete Key " + entry.getKey());
+                synchLUT.remove(entry.getKey());
+            }
+        }
+        saveLUT();
+
+        return true;
 
 
     }
