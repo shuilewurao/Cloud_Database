@@ -71,7 +71,10 @@ public class ClientConnection implements Runnable {
                     String[] tokens = msg_received.split("\\" + DELIMITER);
 
                     String cmd = tokens[0];
-                    String key = null;
+
+                    assert cmd != null;
+
+                    String key = "";
 
                     if (tokens.length >= 2) {
                         key = tokens[1];
@@ -172,20 +175,18 @@ public class ClientConnection implements Runnable {
     	/*
     		return msg should be a StatusType string
     	 */
-        if (key.equals("null")) {
+        if (key.equals("") || key == null) {
             return "PUT_ERROR";
         }
         boolean inStorage = server.inStorage(key);
 
-        if (value == null)
-            value = "";
-
         try {
-            server.putKV(key, value.equals("") ? null : value);
+            server.putKV(key, value);
 
-            if (inStorage && (value.equals(""))) {
+            if (inStorage && (value.equals("") || value == null)) {
                 return "DELETE_SUCCESS";
             } else if (inStorage) {
+                logger.debug("value is: " + value);
                 return "PUT_UPDATE";
             } else if (value.equals("")) {
                 return "DELETE_ERROR";
@@ -337,7 +338,8 @@ public class ClientConnection implements Runnable {
             } else {
                 switch (cmd) {
                     case "PUT":
-                        String value = "null";
+
+                        String value = "";
                         if (tokens.length == 3) {
                             value = tokens[2];
                         }

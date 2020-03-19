@@ -94,6 +94,7 @@ public class ECSClient implements IECSClient {
                     printError("Invalid number of parameters!");
                 }
                 break;
+
             case "add":
                 if (tokens.length == 3) {
                     int cacheSize = Integer.parseInt(tokens[1]);
@@ -114,18 +115,21 @@ public class ECSClient implements IECSClient {
                     logger.error("[ECSClient] user input error for command \"add\"!");
                     printError("Invalid number of parameters!");
                 }
-
-
                 break;
+
             case "remove":
                 if (tokens.length >= 2) {
-
-
                     try {
                         String[] indexArr = Arrays.stream(tokens, 1, tokens.length).toArray(String[]::new);
 
                         Collection<String> index = Arrays.asList(indexArr);
-                        removeNodes(index);
+                        if (removeNodes(index)) {
+                            logger.info("[ECSClient] Remove success!");
+                            System.out.println(PROMPT + "Remove success!");
+                        } else {
+                            logger.error("[ECSClient] user input error for removeNodes!");
+                            printError("[ECSClient] user input error for removeNodes!");
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -134,9 +138,8 @@ public class ECSClient implements IECSClient {
                     logger.error("[ECSClient] user input error for command \"remove\"!");
                     printError("Invalid number of parameters!");
                 }
-
-
                 break;
+
             case "start":
                 if (tokens.length == 1) {
                     if (client != null) {
@@ -175,8 +178,8 @@ public class ECSClient implements IECSClient {
                     logger.error("[ECSClient]] user input error for command \"stop\"!");
                     printError("Invalid number of parameters!");
                 }
-
                 break;
+
             case "logLevel":
                 if (tokens.length == 2) {
                     String level = setLevel(tokens[1]);
@@ -192,12 +195,12 @@ public class ECSClient implements IECSClient {
                     logger.error("[ECSClient] Invalid number of parameters!");
                     printError("Invalid number of parameters!");
                 }
-
                 break;
-            case "help":
 
+            case "help":
                 printHelp();
                 break;
+
             default:
                 printError("Unknown command!");
                 printHelp();
@@ -323,11 +326,6 @@ public class ECSClient implements IECSClient {
 
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
-        // TODO
-        if (!client.ifAllValidServerNames(nodeNames)) {
-
-            return false;
-        }
 
         return client.removeNodes(nodeNames);
     }

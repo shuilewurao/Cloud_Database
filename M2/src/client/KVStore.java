@@ -71,6 +71,8 @@ public class KVStore implements KVCommInterface {
             tearDownConnection();
             for (IKVClient listener : listeners) {
                 listener.handleStatus(IKVClient.SocketStatus.DISCONNECTED);
+                listener = null;
+
             }
         } catch (IOException ioe) {
             logger.error("[KVStore] Unable to close connection!");
@@ -116,6 +118,8 @@ public class KVStore implements KVCommInterface {
             String msg;
 
             msg = "PUT" + DELIMITER + key + DELIMITER + value;
+
+            logger.debug("[KVStore] msg to send: " + msg);
 
             TextMessage msg_send = new TextMessage(msg);
 
@@ -359,7 +363,6 @@ public class KVStore implements KVCommInterface {
 
             sendMessage(msg_sent);
             TextMessage new_msg_receive = receiveMessage();
-
 
             logger.debug("[KVStore] retry for not responsible server: " + new_msg_receive.getMsg());
 

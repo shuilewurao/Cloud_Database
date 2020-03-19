@@ -190,7 +190,7 @@ public class ECS implements IECSClient, Watcher {
             ECSNode n = entry.getValue();
 
             // Only start STOPPED nodes
-            if (n.getServerStateType() == IKVServer.ServerStateType.STOPPED) {
+            if (n.getServerStateType().name().equals(IKVServer.ServerStateType.STOPPED.name())) {
                 logger.debug("[ECS] node to start: " + n.name);
 
                 toStart.add(n);
@@ -247,7 +247,11 @@ public class ECS implements IECSClient, Watcher {
 
     @Override
     public boolean shutdown() throws Exception {
-        // for each active node, disconnect them? call KVStore??
+
+        for (ECSNode node : getAvailableServers().values()) {
+            node.setServerStateType(IKVServer.ServerStateType.SHUT_DOWN);
+            availableServers.put(node.getNodeName(), node);
+        }
 
         CountDownLatch sig = new CountDownLatch(hashRing.getSize());
 
@@ -282,7 +286,6 @@ public class ECS implements IECSClient, Watcher {
 
             String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
             broadcast(msgPath, IECSNode.ECSNodeFlag.STOP.name(), sig);
-
         }
         pushHashRingInZnode();
         return pushHashRingInTree();
@@ -374,25 +377,30 @@ public class ECS implements IECSClient, Watcher {
 
     @Override
     public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
-
+        logger.debug("[ECS] setting up new nodes: " + count);
         CountDownLatch sig = new CountDownLatch(hashRing.getSize());
 
         for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
 
             ECSNode n = entry.getValue();
 
-            String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
+            if (n.getServerStateType().name().equals(IKVServer.ServerStateType.STOPPED.name())) {
 
-            broadcast(msgPath, IECSNode.ECSNodeFlag.INIT.name(), sig);
+                String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
 
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                logger.error("[ECS] Error! " + e);
-                e.printStackTrace();
+                logger.debug("[ECS] setup zpath: " + msgPath);
+
+                broadcast(msgPath, IECSNode.ECSNodeFlag.INIT.name(), sig);
+
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    logger.error("[ECS] Error! " + e);
+                    e.printStackTrace();
+                }
+
+                start_script(n);
             }
-
-            start_script(n);
 
         }
 
@@ -428,48 +436,23 @@ public class ECS implements IECSClient, Watcher {
 
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
-        logger.debug("[ECS]: Removing nodes: " + nodeNames);
+
+        if (!isAllValidNames(nodeNames) || this.hashRing.getSize() < 1)
+            return false;
 
         // if only one node on ring
         CountDownLatch sig = new CountDownLatch(hashRing.getSize());
-
-        if (hashRing.getSize() == 1) {
-            logger.info("[ECS]: Only one node in hash ring!");
-            assert nodeNames.size() == 1;
-            for (String name : nodeNames) {
-
-                assert name != null;
-
-                ECSNode n = hashRing.getNodeByServerName(name);
-
-                if (n == null) {
-                    logger.error("[ECS] node is not in Hash Ring: " + name);
-                    continue;
-                }
-
-                String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
-                broadcast(msgPath, IECSNode.ECSNodeFlag.SHUT_DOWN.name(), sig);
-
-                n.shutdown();
-                hashRing.removeNode(n);
-                availableServers.put(n.getNodeName(), n);
-            }
-            return true;
-        }
 
         boolean ret = true;
         List<ECSNode> toRemove = new ArrayList<>();
 
         for (String name : nodeNames) {
 
-            assert name != null;
-
             ECSNode n = hashRing.getNodeByServerName(name);
 
-
             if (n == null) {
-                logger.error("[ECS] node is not in Hash Ring: " + name);
-                continue;
+                logger.error("[ECS] null node in hash ring from " + name);
+                return false;
             }
 
             n.setFlag(ECSNodeMessage.ECSNodeFlag.KV_TRANSFER);
@@ -726,8 +709,15 @@ public class ECS implements IECSClient, Watcher {
     }
 
 
-    public boolean ifAllValidServerNames(Collection<String> nodeNames) {
+    public boolean isAllValidNames(Collection<String> nodeNames) {
         if (nodeNames.size() <= hashRing.getSize()) {
+
+            for (String name : nodeNames) {
+                if (hashRing.getNodeByServerName(name) == null) {
+                    logger.debug("[ECS] server name " + name + " not found in hash ring!");
+                    return false;
+                }
+            }
             return true;
         } else {
             logger.error("[ECSClient] Invalid # of nodes to remove.");
@@ -735,6 +725,9 @@ public class ECS implements IECSClient, Watcher {
         }
     }
 
+    public HashMap<String, ECSNode> getAvailableServers() {
+        return availableServers;
+    }
 
     @Override
     public void process(WatchedEvent watchedEvent) {

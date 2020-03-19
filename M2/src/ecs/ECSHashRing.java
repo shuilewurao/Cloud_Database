@@ -187,6 +187,9 @@ public class ECSHashRing {
 
     public String[] removeNode(ECSNode node) {
 
+        if (node == null)
+            return null;
+
         logger.debug("[ECSHashRing] Removing node:");
 
         printNode(node);

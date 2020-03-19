@@ -115,7 +115,7 @@ public class KVDatabase implements IKVDatabase {
         KVEntry kve = synchLUT.get(K);
         StatusType status = StatusType.PUT_ERROR;
         try {
-            if (V == null) {
+            if (V.equals("")) {
                 if (kve == null) {
                     logger.error("[DB] Try to delete an entry with non-exist key: " + K);
                     status = StatusType.DELETE_ERROR;
