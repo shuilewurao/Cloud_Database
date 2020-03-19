@@ -20,13 +20,6 @@ public class ECSDataReplication implements Watcher {
     private ECSNode receiver;
     private String[] hashRange;
 
-    private boolean senderComplete = false;
-    private boolean receiverComplete = false;
-
-    private Integer senderProgress = -1;
-    private Integer receiverProgress = -1;
-
-    private String prompt;
 
     private CountDownLatch sig = null;
     //private CountDownLatch connectedSignal = new CountDownLatch(1);
@@ -43,7 +36,6 @@ public class ECSDataReplication implements Watcher {
         this.hashRange = hashRange;
         this.type = TransferType.DELETE;
         this.sender = deleter;
-        this.prompt = "[ECSDR] " + this.sender.getNodeName() + " delete: ";
     }
 
     public ECSDataReplication(ECSNode sender, ECSNode receiver, String[] hashRange) {
@@ -51,7 +43,6 @@ public class ECSDataReplication implements Watcher {
         this.type = TransferType.COPY;
         this.sender = sender;
         this.receiver = receiver;
-        this.prompt = sender.getNodeName() + "->" + receiver.getNodeName() + ": ";
     }
 
     private boolean init() throws InterruptedException, KeeperException {
@@ -123,7 +114,7 @@ public class ECSDataReplication implements Watcher {
         this.zk = zk;
         sig = new CountDownLatch(1);
 
-        logger.info("[ECSDR] delete " + sender.name);
+        logger.info("[ECSDR] offloading " + sender.name);
         String msg = IECSNode.ECSNodeFlag.DELETE.name()
                 + Constants.DELIMITER + hashRange[0]
                 + Constants.DELIMITER + hashRange[1];
@@ -174,82 +165,6 @@ public class ECSDataReplication implements Watcher {
         return true;
     }
 
-
-
-//        try {
-//            checkSender();
-//            if (senderComplete && receiverComplete) {
-//                logger.info(prompt + " complete");
-//                return true;
-//            }
-//            zk.exists(ECS.ZK_SERVER_PATH + "/" + this.sender.port + ECS.ZK_OP_PATH, this);
-//        } catch (KeeperException e) {
-//            logger.error(e.getMessage());
-//            logger.error(e.getPath() + " : " + e.getResults());
-//            return false;
-//        }
-//
-//        while (true) {
-//            Integer psender = senderProgress;
-//            Integer preciver = receiverProgress;
-//
-//            sig = new CountDownLatch(1);
-//            sig.await(TIMEOUT, TimeUnit.MILLISECONDS); // TODO
-//
-//            if (senderComplete && receiverComplete) {
-//                // Complete
-//                return true;
-//            } else if (receiverProgress.equals(preciver)
-//                    && senderProgress.equals(psender)) {
-//                if (senderProgress.equals(100))
-//                    // the action is complete
-//                    return true;
-//                // No data change
-//                // Must be a timeout
-//                logger.error("[ECSDR] TIMEOUT triggered before receiving any progress on data transferring");
-//                return false;
-//            }
-//        }
-    //}
-//
-//    private void checkReceiver() throws KeeperException, InterruptedException {
-//        String msg = new String(zk.getData(ECS.ZK_SERVER_PATH + "/" + this.receiver.port + ECS.ZK_OP_PATH, false, null));
-//
-//        if (msg.equals(ECSNodeMessage.ECSNodeFlag.TRANSFER_FINISH.name())) {
-//            receiverComplete = true;
-//            logger.info(prompt + "receiver complete");
-//        } else {
-//            zk.exists(ECS.ZK_SERVER_PATH + "/" + this.receiver.port + ECS.ZK_OP_PATH, this);
-//        }
-//        if (sig != null) sig.countDown();
-//    }
-//
-//    // TODO
-//    private void checkSender() throws KeeperException, InterruptedException {
-//        // Monitor sender
-//        String msg = new String(zk.getData(ECS.ZK_SERVER_PATH + "/" + this.sender.port + ECS.ZK_OP_PATH, false, null));
-//
-//        if (msg.equals(ECSNodeMessage.ECSNodeFlag.TRANSFER_FINISH.name())) {
-//            // Sender complete, now monitoring receiver
-//            senderComplete = true;
-//            logger.info(prompt + "sender complete");
-//            checkReceiver();
-//        } else {
-//
-//            int transferProgress;
-//
-//            String[] tmp = msg.split("\\" + Constants.DELIMITER);
-//
-//            if (tmp[tmp.length - 1].equals("100")) {
-//                transferProgress = Integer.parseInt(tmp[tmp.length - 1]);
-//                senderProgress = transferProgress;
-//            }
-//
-//            // Continue listening for sender progress
-//            zk.exists(ECS.ZK_SERVER_PATH + "/" + this.sender.port + ECS.ZK_OP_PATH, this);
-//            if (sig != null) sig.countDown();
-//        }
-//    }
 
     public void broadcast(String msgPath, String msg, CountDownLatch sig) {
 

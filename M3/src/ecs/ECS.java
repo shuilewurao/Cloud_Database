@@ -361,11 +361,11 @@ public class ECS implements IECSClient, Watcher {
 
         Collection<ECSNode> nodes = addNodes(1, cacheStrategy, cacheSize);
 
-        try {
-            awaitNodes(1, 30000);
-        } catch (Exception e) {
-           logger.error("[ECS] "+e);
-        }
+//        try {
+//            awaitNodes(1, 30000);
+//        } catch (Exception e) {
+//           logger.error("[ECS] "+e);
+//        }
 
         ECSNode added = nodes.iterator().next();
 
@@ -954,8 +954,8 @@ public class ECS implements IECSClient, Watcher {
         }else{
             logger.info("[ECS] Identify add invariant conditions");
             String[] responsibleRange = hashRing.getResponsibleHashRange(added);
-            ECSNode prev = hashRing.getPrevNode(added.getNodeHash());
-            toReplicate.add(new ECSDataReplication(prev, added, responsibleRange));
+            ECSNode next = hashRing.getNextNode(added.getNodeHash());
+            toReplicate.add(new ECSDataReplication(next, added, responsibleRange));
 
             Collection<ECSNode> coordinators = this.hashRing.getPredecessors(added);
             //Collection<ECSNode> replicas = this.hashRing.getReplicas(added);

@@ -64,6 +64,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     private String zkNodePath;
 
     private KVServerDataReplicationManager dataReplicationManager;
+    private boolean replicable=true;
 
     /**
      * Start KV Server at given port
@@ -118,26 +119,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         serverState = ServerStateType.STOPPED;
         this.writeLocked = true;
 
-        switch (strategy) {
-            case "FIFO":
-                Cache = new FIFO(cacheSize);
-                break;
-            case "LRU":
-                Cache = new LRU(cacheSize);
-                break;
-            case "LFU":
-                Cache = new LFU(cacheSize);
-                break;
-            default:
-                this.strategy = CacheStrategy.None;
-                logger.error("[KVServer] Invalid Cache Strategy!");
-                // TODO: handling
-                break;
-        }
-
         this.zkNodePath = ZK_SERVER_PATH + "/" + port;
-        this.DB = new KVDatabase(port);
-
 
         initKVServer();
     }
@@ -597,8 +579,11 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             tempClient.disconnect();
 
             if (result.getMsg().equals("Transferring_Data_SUCCESS")) {
-                DB.deleteKVPairByRange(range);
-                clearCache();
+                // copy only when working with replicas
+                if(!replicable){
+                    DB.deleteKVPairByRange(range);
+                    clearCache();
+                }
                 this.unlockWrite();
                 logger.debug("[KVServer] Transfer success at senders!");
                 return true;
