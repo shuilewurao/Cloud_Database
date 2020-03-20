@@ -447,15 +447,16 @@ public class ECS implements IECSClient, Watcher {
         try {
             if (zk.exists(msgPath, this) == null) {
                 ZKAPP.create(msgPath, msg.getBytes());
+                logger.debug("[ECS] ZK created " + msg + " in " + msgPath);
             } else {
-                logger.warn("[ECS] " + msgPath + " already exists... updating and deleting children...");
+                logger.warn("[ECS] " + msgPath + " already exists... updating to: " + msg + " and deleting children...");
                 ZK.update(msgPath, msg.getBytes());
             }
 
-            if (zk.exists(msgPath, this) == null) {
-                sig.countDown();
-                logger.debug("[ECS] Unable to create path " + msgPath);
-            }
+            //if (zk.exists(msgPath, this) == null) {
+            sig.countDown();
+            //logger.debug("[ECS] Broadcast to  path " + msgPath + "="+zk.exists(msgPath, this) == null?"null":"created" );
+            //}
         } catch (KeeperException | InterruptedException e) {
             logger.error("[ECS] Exception sending ZK msg at " + msgPath + ": " + e);
             e.printStackTrace();
@@ -469,37 +470,24 @@ public class ECS implements IECSClient, Watcher {
         if (!isAllValidNames(nodeNames) || this.hashRing.getSize() < 1)
             return false;
 
-        // if only one node on ring
-        CountDownLatch sig = new CountDownLatch(hashRing.getSize());
-
-        boolean ret = true;
         List<ECSNode> toRemove = new ArrayList<>();
 
         for (String name : nodeNames) {
+            assert name != null;
 
             ECSNode n = hashRing.getNodeByServerName(name);
-
             if (n == null) {
-                logger.error("[ECS] null node in hash ring from " + name);
-                return false;
+                logger.error("[ECS] node is not in Hash Ring: " + name);
+                continue;
             }
 
-            n.setFlag(ECSNodeMessage.ECSNodeFlag.KV_TRANSFER);
-            logger.debug("[ECS] adding node to remove: " + name);
-            logger.debug("[ECS] Remove node hash: " + n.getNodeHashRange()[0] + ":" + n.getNodeHashRange()[1]);
             toRemove.add(n);
-
-            //String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() +"/op";
-            //broadcast(msgPath, IECSNode.ECSNodeFlag.KV_TRANSFER.name(), sig);
-
-            //ECSNode node = availableServers.get(name);
-
-            // assert node != null;
+            hashRing.removeNode(n);
 
         }
 
-        pushHashRingInZnode();
-        ret &= pushHashRingInTree();
+        boolean ret = true;
+        CountDownLatch sig = new CountDownLatch(toRemove.size());
 
         if (migrateRemovedServers(toRemove))
             logger.info("[ECS] data transfer success!");
@@ -514,8 +502,8 @@ public class ECS implements IECSClient, Watcher {
             broadcast(msgPath, IECSNode.ECSNodeFlag.SHUT_DOWN.name(), sig);
 
             n.shutdown();
-            hashRing.removeNode(n);
             availableServers.put(n.getNodeName(), n);
+
             try {
                 zk.delete(ZK_AWAIT_NODES + "/" + n.getPort(), -1);
 
@@ -524,8 +512,15 @@ public class ECS implements IECSClient, Watcher {
             }
             serverCount--;
         }
+        
         pushHashRingInZnode();
         ret &= pushHashRingInTree();
+
+        try {
+            sig.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            logger.error("[ECS] latch timeout " + e);
+        }
 
         return ret;
     }
@@ -715,7 +710,6 @@ public class ECS implements IECSClient, Watcher {
             if (zk.exists(ZK_SERVER_PATH, false) == null) {
                 ZKAPP.create(ZK_SERVER_PATH, "".getBytes());  // NOTE: has to be persistent
             } else {
-
 
                 for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
 

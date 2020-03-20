@@ -323,7 +323,7 @@ public class KVDatabase implements IKVDatabase {
     private byte[] KVPairToBytes(String key, String value) throws IOException {
         byte valid = (byte) 1;
         String validity = new String(new byte[]{valid}, StandardCharsets.UTF_8);
-        return (validity + DELIM + encodeValue(key) + DELIM + encodeValue(value) + "\r\n").getBytes("UTF-8");
+        return (validity + DELIM + encodeValue(key) + DELIM + encodeValue(value) + "\r\n").getBytes(StandardCharsets.UTF_8);
     }
 
     private String encodeValue(String value) {
@@ -371,7 +371,7 @@ public class KVDatabase implements IKVDatabase {
                     // valid bit checking
                     logger.debug("[DB] Move an valid KV entry");
                     byte[] result = readKVMsg(kve);
-                    logger.debug("[DB] " + result.toString());
+                    logger.debug("[DB] " + new String(result));
                     String[] tokens = new String(result, StandardCharsets.UTF_8).split(DELIM);
                     String copied_str;
                     if (tokens[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 1) {
@@ -392,7 +392,7 @@ public class KVDatabase implements IKVDatabase {
         }
 
         String result = stringList.toString();
-        logger.debug("[DB] sent" + result);
+        logger.debug("[DB] sent " + result);
 
         return result;
     }
@@ -428,7 +428,6 @@ public class KVDatabase implements IKVDatabase {
     }
 
     public boolean receiveTransferdData(String content) {
-        System.out.println("[KVDatabase] Transfer data:" + content);
 
         String[] kv_pairs = content.split("\\" + DELIMITER + "\\" + DELIMITER);
 
@@ -437,7 +436,7 @@ public class KVDatabase implements IKVDatabase {
                 String[] k_v = kv.split("\\" + DELIMITER);
                 // As PUT
                 byte[] bytes = KVPairToBytes(k_v[0].trim(), k_v[1].trim());
-                //System.out.println("Key-Value: [" +kv+"]");
+                logger.debug("[DB] received KV " + k_v[0].trim() + "," + k_v[1].trim());
                 appendEntry(bytes, k_v[0].trim());
             }
             saveLUT();

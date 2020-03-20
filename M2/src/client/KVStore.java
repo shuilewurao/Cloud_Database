@@ -339,7 +339,7 @@ public class KVStore implements KVCommInterface {
 
         } else if (tokens[0].equals(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name())) {
 
-            logger.debug("[KVStore]: hashring received:" + tokens[1]);
+            logger.debug("[KVStore]: hashRing received:" + tokens[1]);
             ECSHashRing hashRing = new ECSHashRing(tokens[1]);
 
             BigInteger hash = MD5.HashInBI(key);

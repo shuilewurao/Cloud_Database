@@ -275,6 +275,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     @Override
     public void close() {
         running = false;
+
         try {
             for (Thread thread : threadList) {
                 thread.interrupt();
@@ -282,10 +283,13 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             if (serverThread != null)
                 serverThread.interrupt();
             serverSocket.close();
+            ZKAPP.close();
         } catch (IOException e) {
             logger.error("[KVServer] Error! " +
                     "Unable to close socket on port: " + port, e);
             e.printStackTrace();
+        } catch (InterruptedException e) {
+            logger.error("Unable to close ZK session. ");
         }
     }
 
@@ -600,10 +604,26 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                         logger.warn("[KVServer] move data failure!");
                     }
 
-                    String msgPath = ZK_SERVER_PATH + "/" + port + "/op";
-                    ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                    //updateTransferProgress(100);
 
+                    String msgPath = ZK_SERVER_PATH + "/" + port + ECS.ZK_OP_PATH;
+
+                    if (zk.exists(msgPath, false) == null) {
+                        ZKAPP.create(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                    } else {
+                        ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+                    }
+
+//                    String targetPath = ZK_SERVER_PATH + "/" + target + ECS.ZK_OP_PATH;
+//
+//                    if (zk.exists(targetPath, false) == null) {
+//                        ZKAPP.create(targetPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+//                    } else {
+//                        ZK.update(targetPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
+//                    }
+                    unlockWrite();
                     break;
+
                 default:
                     logger.debug("[KVServer] process " + tokens[0]);
             }
@@ -646,16 +666,11 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     public boolean receiveTransferredData(String data) {
         lockWrite();
-        String msgPath = ZK_SERVER_PATH + "/" + port + "/op";
+
         DB.receiveTransferdData(data);
         unlockWrite();
 
-        try {
-            ZK.update(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
-        } catch (KeeperException | InterruptedException e) {
-            e.printStackTrace();
-            return false;
-        }
+        logger.debug("[KVServer] received finish " + data);
         return true;
     }
 }

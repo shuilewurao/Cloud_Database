@@ -85,6 +85,7 @@ public class ClientConnection implements Runnable {
                     logger.debug("[ClientConnection] key: " + key);
 
                     // checks for distributed servers
+                    handleClientRequest(cmd, key, tokens, msg_received);
                     /*
                     if (cmd.equals("Transferring_Data")) {
                         try {
@@ -107,7 +108,6 @@ public class ClientConnection implements Runnable {
 
                     }
                     */
-                    handleClientRequest(cmd, key, tokens, msg_received);
 
 /*
                     switch (cmd) {
@@ -307,7 +307,6 @@ public class ClientConnection implements Runnable {
         TextMessage msg_send;
 
         // checks for distributed servers
-        logger.debug("[ClientConnection] IMP cmd: " + cmd);
         if (cmd.equals("Transferring_Data")) {
             try {
                 logger.debug("[ClientConnection] receiving transferred data: " + key);
@@ -323,22 +322,25 @@ public class ClientConnection implements Runnable {
             }
 
         } else {
-            logger.debug("[ClientConnection] cmd: " + cmd);
             if (this.server.getServerState() == IKVServer.ServerStateType.STOPPED) {
                 // TODO: also needs to check if it is a ECS request
 
                 logger.debug("[ClientConnection] current server state is:" + this.server.getServerState().name());
                 msg_send = new TextMessage(KVMessage.StatusType.SERVER_STOPPED.name());
+
             } else if (!server.isResponsible(key)) {
+
                 String hashRingStr = server.getHashRingStr();
                 msg_send = new TextMessage(
                         KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() + Constants.DELIMITER + hashRingStr);
+
             } else if (this.server.isWriteLocked() && cmd.equals("PUT")) {
+
                 msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
+
             } else {
                 switch (cmd) {
                     case "PUT":
-
                         String value = "";
                         if (tokens.length == 3) {
                             value = tokens[2];
@@ -348,8 +350,8 @@ public class ClientConnection implements Runnable {
                         } catch (Exception e) {
                             msg_send = new TextMessage("PUT_ERROR + exception");
                         }
-
                         break;
+
                     case "GET":
                         try {
                             String value_return = cmdGet(key);
@@ -362,16 +364,13 @@ public class ClientConnection implements Runnable {
                         } catch (Exception e) {
                             msg_send = new TextMessage("GET_ERROR + exception");
                         }
-
                         break;
 
                     default:
                         msg_send = new TextMessage("CMD NOT RECOGNIZED: " + cmd);
                 }
             }
-
         }
-
         sendMessage(msg_send);
     }
 
