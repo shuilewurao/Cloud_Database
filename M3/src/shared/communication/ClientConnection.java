@@ -290,7 +290,7 @@ public class ClientConnection implements Runnable {
         // checks for distributed servers
         if (cmd.equals("Transferring_Data")) {
             try {
-                String data=msg_received.split("\\" + DELIMITER, 2)[1];
+                String data = msg_received.split("\\" + DELIMITER, 2)[1];
                 logger.debug("[ClientConnection] receiving transferred data: " + data);
                 boolean result = cmdTransfer(data);
                 if (result) {

@@ -10,7 +10,7 @@ public class FIFO extends CachePolicy {
         this.cacheList = Collections.synchronizedMap(
                 new LinkedHashMap<String, String>(
                         cacheSize
-                ){
+                ) {
                     @Override
                     protected boolean removeEldestEntry(Map.Entry eldest) {
                         return size() > getCacheSize();

@@ -255,7 +255,6 @@ public class ECSHashRing {
 //        }
 //        return last;
 //    }
-
     public String[] getResponsibleHashRange(ECSNode node) {
 
         ECSNode curr = node;
@@ -305,7 +304,6 @@ public class ECSHashRing {
     }
 
 
-
     public boolean isReplicable() {
         if (this.getSize() >= 3) {
             return true;
@@ -316,23 +314,22 @@ public class ECSHashRing {
     }
 
     // find the replica will clear its responsibility for node n
-    public ECSNode getOldLastReplication(ECSNode n){
+    public ECSNode getOldLastReplication(ECSNode n) {
         ECSNode currNode = n;
-        for (int i = 0; i < REPLICA_SIZE+1; i++) {
+        for (int i = 0; i < REPLICA_SIZE + 1; i++) {
             currNode = getNextNode(currNode.getNodeHash());
         }
         return currNode;
     }
 
     // find the replica will clear its responsibility for node n
-    public ECSNode getLastReplication(ECSNode n){
+    public ECSNode getLastReplication(ECSNode n) {
         ECSNode currNode = n;
         for (int i = 0; i < REPLICA_SIZE; i++) {
             currNode = getNextNode(currNode.getNodeHash());
         }
         return currNode;
     }
-
 
 
 }

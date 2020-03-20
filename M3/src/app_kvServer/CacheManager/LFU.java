@@ -10,9 +10,9 @@ public class LFU extends CachePolicy {
     public LFU(int cacheSize) {
         super(cacheSize);
         this.cacheList = Collections.synchronizedMap(
-                        new LinkedHashMap<String, String>(cacheSize, 0.75f, true));
+                new LinkedHashMap<String, String>(cacheSize, 0.75f, true));
         this.frequencyList = Collections.synchronizedMap(
-                        new TreeMap<String, Integer>());
+                new TreeMap<String, Integer>());
     }
 
     /*
@@ -52,8 +52,7 @@ public class LFU extends CachePolicy {
                 if (cacheList.containsKey(key)) {
                     frequencyUpdate(key);
                     return cacheList.get(key);
-                }
-                else {
+                } else {
                     return null;
                 }
             }
@@ -64,18 +63,18 @@ public class LFU extends CachePolicy {
     public void putKV(String key, String value) {
         synchronized (cacheList) {
             synchronized (frequencyList) {
-                if(value == null){
-                    if(inCache(key)){
+                if (value == null) {
+                    if (inCache(key)) {
                         deleteCache(key);
                     }
-                }else{
+                } else {
                     // update
-                    if(frequencyList.containsKey(key)){
+                    if (frequencyList.containsKey(key)) {
                         cacheList.put(key, value);
                         frequencyUpdate(key);
                     }
                     // add
-                    else{
+                    else {
                         if (maxCacheSize == cacheList.size()) {
                             evict();// Call Make space function
                         }

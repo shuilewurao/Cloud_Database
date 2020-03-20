@@ -64,7 +64,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     private String zkNodePath;
 
     private KVServerDataReplicationManager dataReplicationManager;
-    private boolean replicable=true;
+    private boolean replicable = true;
 
     /**
      * Start KV Server at given port
@@ -429,7 +429,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             if (!children.isEmpty()) {
 
                 //String msgPath = zkNodePath + "/" + children.get(0);
-                String msgPath = zkNodePath +ECS.ZK_OP_PATH;
+                String msgPath = zkNodePath + ECS.ZK_OP_PATH;
                 byte[] data = ZK.readNullStat(msgPath);
                 logger.debug("[KVServer] checking ZK Msg: " + children.toString() + ": " + new String(data));
                 if (new String(data).equals(IECSNode.ECSNodeFlag.INIT.name())) {
@@ -521,10 +521,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                             "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                 }
             }
-        } catch (KeeperException e) {
+        } catch (KeeperException | InterruptedException e) {
             logger.error("KVServer create await node " + e);
-        } catch (InterruptedException ie) {
-            logger.error("KVServer create await node " + ie);
         }
     }
 
@@ -600,7 +598,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
             if (result.getMsg().equals("Transferring_Data_SUCCESS")) {
                 // copy only when working with replicas
-                if(!replicable){
+                if (!replicable) {
                     DB.deleteKVPairByRange(range);
                     clearCache();
                 }
@@ -635,7 +633,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
         clearCache();
         this.unlockWrite();
-        logger.info("[KVServer] Deleted data within ["+range[0] +","+range[1]);
+        logger.info("[KVServer] Deleted data within [" + range[0] + "," + range[1]);
         return true;
 
 
@@ -788,10 +786,10 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         DB.receiveTransferdData(data);
         unlockWrite();
 
- //       try {
+        //       try {
 //            if (zk.exists(msgPath, false) == null) {
 //                ZKAPP.create(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
-                logger.debug("[KVServer] received finish "+data);
+        logger.debug("[KVServer] received finish " + data);
 //            }else{
 //                logger.debug("[KVServer] finished but can not create path in zk");
 //            }
