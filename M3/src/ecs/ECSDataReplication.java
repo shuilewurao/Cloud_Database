@@ -154,7 +154,7 @@ public class ECSDataReplication implements Watcher {
             String fromMsg = new String(ZK.readNullStat(fromPath));
             //String toMsg = new String(ZK.readNullStat(toPath));
             //if (fromMsg.equals(IECSNode.ECSNodeFlag.TRANSFER_FINISH.name()) && toMsg.equals(IECSNode.ECSNodeFlag.TRANSFER_FINISH.name())) {
-            if(fromMsg.equals(IECSNode.ECSNodeFlag.TRANSFER_FINISH.name())) {
+            if (fromMsg.equals(IECSNode.ECSNodeFlag.TRANSFER_FINISH.name())) {
 //                if (!(zk.exists(toPath, false) == null))
 //                    ZK.deleteNoWatch(toPath);
                 if (!(zk.exists(fromPath, false) == null))
@@ -163,7 +163,7 @@ public class ECSDataReplication implements Watcher {
             }
         }
 
-        logger.info("[ECSDR] Completed sent from "+this.sender);
+        logger.info("[ECSDR] Completed sent from " + this.sender);
         return true;
     }
 
@@ -174,7 +174,7 @@ public class ECSDataReplication implements Watcher {
             if (this.zk.exists(msgPath, this) == null) {
                 this.zk.create(msgPath, msg.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             } else {
-                logger.warn("[ECS] " + msgPath + " already exists... updating to "+msg+" and deleting children...");
+                logger.warn("[ECS] " + msgPath + " already exists... updating to " + msg + " and deleting children...");
                 this.zk.setData(msgPath, msg.getBytes(), this.zk.exists(msgPath, true).getVersion());
                 List<String> children = this.zk.getChildren(msgPath, false);
                 for (String child : children)
@@ -182,8 +182,8 @@ public class ECSDataReplication implements Watcher {
             }
 
             //if (this.zk.exists(msgPath, this) == null) {
-                sig.countDown();
-                //logger.debug("[ECS] Unable to create path " + msgPath);
+            sig.countDown();
+            //logger.debug("[ECS] Unable to create path " + msgPath);
             //}
         } catch (KeeperException | InterruptedException e) {
             logger.error("[ECS] Exception sending ZK msg at " + msgPath + ": " + e);
@@ -200,7 +200,7 @@ public class ECSDataReplication implements Watcher {
 //                } else if (!receiverComplete) {
 //                    checkReceiver();
 //                }
-                logger.debug("[ECSDR]: process() "+event);
+            logger.debug("[ECSDR]: process() " + event);
 //            } catch (KeeperException e) {
 //                logger.error(e.getMessage());
 //                e.printStackTrace();
