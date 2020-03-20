@@ -163,7 +163,6 @@ public class ECSDataReplication implements Watcher {
             }
         }
 
-        logger.info("[ECSDR] Completed sent from "+this.sender);
         return true;
     }
 

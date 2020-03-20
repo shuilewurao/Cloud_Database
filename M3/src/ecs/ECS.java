@@ -334,7 +334,7 @@ public class ECS implements IECSClient, Watcher {
 
         boolean ret = maintainAddInvariant(added);
 
-
+        logger.info("[ECS] "+added.getNodeName() +" has been added to service");
         return null;
     }
 
@@ -467,13 +467,13 @@ public class ECS implements IECSClient, Watcher {
                                     case NodeDeleted:
                                         //logger.warn("[ECS] Server" + hash + " shutdown detected");
                                         ECSNode n =  hashRing.getNodeByHash(MD5.HashInBI(hash));
+                                        if(n==null){
+                                            break;
+                                        }
                                         switch (n.getServerStateType()) {
                                             case STARTED:
-                                                // TODO
-                                                handleNodeFailure(n);
-                                                break;
                                             case STOPPED:
-                                                // TODO: currently no data transfer for STOPPED node
+                                                handleNodeFailure(n);
                                                 break;
                                             default:
                                                 break;
@@ -501,40 +501,22 @@ public class ECS implements IECSClient, Watcher {
 
     private void handleNodeFailure(ECSNode n){
 
-        if(hashRing.getActiveNodes().containsKey(MD5.HashInBI(n.getNodeHash()))){
-            handleNodeFailureNoDataTransfer(n);
-
-//            addNodes(1, "FIFO", 10);
-//
-//            if (hashRing.isReplicable()) {
-//                Collection<ECSNode> replicas = hashRing.getReplicas(n);
-//                CountDownLatch sig1 = new CountDownLatch(replicas.size());
-//                for (ECSNode coordinator : replicas) {
-//                    ECSDataReplication dataReplicate = new ECSDataReplication(coordinator, coordinator.getNodeHashRange());
-//
-//                    try {
-//                        dataReplicate.start(zk);
-//                    } catch (InterruptedException | KeeperException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//            } else {
-//                logger.warn("[ECS] Hash ring size less than 3!");
-//            }
-
-        }
-    }
-
-
-    private void handleNodeFailureNoDataTransfer(ECSNode n){
+        maintainRemoveInvariant(n);
 
         logger.warn("[ECS] Server" + n.getNodeHash() + " just crashed");
+
+        serverCount--;
+        try {
+            zk.delete(ZK_AWAIT_NODES + "/" + n.getPort(), -1);
+        } catch (InterruptedException | KeeperException e) {
+            logger.error("[ECS] "+e);
+        }
 
         boolean ret = true;
 
         n.shutdown();
         hashRing.removeNode(n);
-        // NOT available ? availableServers.put(n.getNodeName(), n);
+        availableServers.put(n.getNodeName(), n);
 
         //ret &=pushHashRingInZnode();
         ret &= pushHashRingInTree();
@@ -543,12 +525,18 @@ public class ECS implements IECSClient, Watcher {
             logger.error("[ECS] Errors in updating hash ring for handling server failure.");
         }
 
+        pushHashRingInTree(); // notify the other nodes this failure first
+
+        logger.info("[ECS] Adding a new server to replace the crashed one.");
+        addNode("FIFO", 1,true);
         try {
-            zk.delete(ZK_AWAIT_NODES + "/" + n.getPort(), -1);
-        } catch (InterruptedException | KeeperException e) {
-            logger.error("[ECS] "+e);
+            start();
+        } catch (KeeperException | InterruptedException e) {
+            logger.error("[ECS] Could not start the server when restoring a node failure");
         }
-        serverCount--;
+
+        pushHashRingInTree();
+
     }
 
 
@@ -852,9 +840,7 @@ public class ECS implements IECSClient, Watcher {
 
         boolean ret=true;
         if(hashRing.getSize() == 3){
-//            ECSNode cNode = hashRing.getPrevNode(added.getNodeHash());
-//            toReplicate.add(new ECSDataReplication(cNode, added, new String[]{added.getNodeHash(), added.getNodeHash()}));
-            // TODO
+            // No data transfer is needed
         }else{
             logger.info("[ECS] Identify remove invariant conditions");
             Collection<ECSNode> coordinators = hashRing.getPredecessors(remove);
