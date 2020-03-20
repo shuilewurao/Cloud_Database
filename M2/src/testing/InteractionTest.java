@@ -11,9 +11,6 @@ import shared.messages.KVMessage.StatusType;
 
 import java.io.IOException;
 
-import org.junit.FixMethodOrder;
-import org.junit.runners.MethodSorters;
-
 public class InteractionTest extends TestCase {
 
     private Logger logger = Logger.getRootLogger();
@@ -23,29 +20,24 @@ public class InteractionTest extends TestCase {
     private int port = 50005;
 
 
-    public void setUp() throws IOException {
+    public void setUp() throws IOException, InterruptedException, KeeperException {
+        ecs = new ECS("./ecs.config");
+
+        ecs.addNodes(1, "FIFO", 10);
+        Thread.sleep(2000);
+
+        ecs.start();
+        Thread.sleep(2000);
 
 
     }
 
-    public void tearDown() {
-
+    public void tearDown() throws Exception {
+        ecs.shutdown();
+        Thread.sleep(2000);
 
     }
 
-//    public void testConnectECS() throws KeeperException, InterruptedException, IOException {
-//
-//        logger.debug("[TEST] 0");
-//
-//        ecs = new ECS("./ecs.config");
-//
-//        ecs.addNodes(1, "FIFO", 10);
-//        Thread.sleep(2000);
-//
-//        ecs.start();
-//        Thread.sleep(2000);
-//
-//    }
 
     @Test
     public void testPut() throws IOException, InterruptedException {
@@ -214,7 +206,6 @@ public class InteractionTest extends TestCase {
         }
 
         assertNotNull(ex);
-        //ecs.shutdown();
         kvClient.disconnect();
 
     }

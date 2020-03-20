@@ -361,7 +361,7 @@ public class KVDatabase implements IKVDatabase {
             //System.out.println("Key: "+entry.getKey()+ " in Server:"+this.PortNumber%10);
             logger.debug("[DB] Key " + entry.getKey() + " in port:" + this.portNo);
 
-            if (MD5.isKeyinRange(key, startRange, endRange))//Check for key in range or not
+            if (MD5.isKeyInRange(key, startRange, endRange))//Check for key in range or not
             {
 
                 if (!kve.isValid()) {
@@ -376,9 +376,9 @@ public class KVDatabase implements IKVDatabase {
                     String copied_str;
                     if (tokens[0].getBytes(StandardCharsets.UTF_8)[0] == (byte) 1) {
                         if (tokens.length == 3) {
-                            copied_str = decodeValue(tokens[1]) + DELIMITER + decodeValue(tokens[2]) + "\r\n";
+                            copied_str = decodeValue(tokens[1]) + DELIMITER + decodeValue(tokens[2]) + DELIMITER + DELIMITER;
                         } else if (tokens.length == 2) {
-                            copied_str = decodeValue(tokens[1]) + "\r\n";
+                            copied_str = decodeValue(tokens[1]) + DELIMITER + DELIMITER;
                         } else {
                             logger.debug("[DB] An invalid kve in Database/");
                             continue;
@@ -410,7 +410,7 @@ public class KVDatabase implements IKVDatabase {
 
                 BigInteger key = MD5.HashInBI(entry.getKey());
                 KVEntry kve = entry.getValue();
-                if (MD5.isKeyinRange(key, startRange, endRange))//Check for key in range or not
+                if (MD5.isKeyInRange(key, startRange, endRange))//Check for key in range or not
                 {
                     ModifyValidByte(kve.start_offset, kve.end_offset);
                     synchLUT.remove(entry.getKey());
@@ -430,7 +430,7 @@ public class KVDatabase implements IKVDatabase {
     public boolean receiveTransferdData(String content) {
         System.out.println("[KVDatabase] Transfer data:" + content);
 
-        String[] kv_pairs = content.split("\r\n");
+        String[] kv_pairs = content.split("\\" + DELIMITER + "\\" + DELIMITER);
 
         try {
             for (String kv : kv_pairs) {

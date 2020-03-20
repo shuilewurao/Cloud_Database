@@ -1,18 +1,18 @@
 package testing;
 
-import java.io.IOException;
-
-import ecs.ECS;
-import org.apache.log4j.Level;
-
 import app_kvServer.KVServer;
+import ecs.ECS;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import logger.LogSetup;
+import org.apache.log4j.Level;
 import org.apache.zookeeper.KeeperException;
+
+import java.io.IOException;
 
 
 public class AllTests {
+
 	public static KVServer server_FIFO;
 	public static KVServer server_LRU;
 	public static KVServer server_LFU;
@@ -23,6 +23,8 @@ public class AllTests {
 			new LogSetup("logs/testing/test.log", Level.ALL);
 
 			ecs = new ECS("./ecs.config");
+			Thread.sleep(2000);
+
 			ecs.addNodes(1, "FIFO", 10);
 			Thread.sleep(2000);
 
@@ -52,18 +54,16 @@ public class AllTests {
 	public static Test suite() throws Exception {
 		TestSuite clientSuite = new TestSuite("Basic Storage ServerTest-Suite");
 
-		clientSuite.addTestSuite(ConnectionTest.class);
+		//clientSuite.addTestSuite(ConnectionTest.class);
+		ecs.shutdown();
 
-		clientSuite.addTestSuite(HashRingTest.class);
-		Thread.sleep(1000);
+		//clientSuite.addTestSuite(HashRingTest.class);
 
-		clientSuite.addTestSuite(InteractionTest.class);
-		Thread.sleep(1000);
+		//clientSuite.addTestSuite(InteractionTest.class);
 
-		clientSuite.addTestSuite(ECSTest.class);
-		Thread.sleep(1000);
+		//clientSuite.addTestSuite(ECSTest.class);
 
-		//clientSuite.addTestSuite(AdditionalTest.class);
+		clientSuite.addTestSuite(AdditionalTest.class);
 
 		return clientSuite;
 	}

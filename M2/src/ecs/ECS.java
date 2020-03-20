@@ -3,10 +3,8 @@ package ecs;
 import app_kvECS.IECSClient;
 import app_kvServer.IKVServer;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.*;
+import org.apache.zookeeper.data.Stat;
 import shared.Constants;
 import shared.HashingFunction.MD5;
 
@@ -14,6 +12,7 @@ import java.io.*;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class ECS implements IECSClient, Watcher {
 
@@ -39,11 +38,14 @@ public class ECS implements IECSClient, Watcher {
     public static final String ZK_SERVER_PATH = "/server";
     public static final String ZK_HASH_TREE = "/metadata";
     public static final String ZK_OP_PATH = "/op";
+    public static final String ZK_AWAIT_NODES = "/awaitNodes";
 
     private static final String PWD = System.getProperty("user.dir");
     //private static final String RUN_SERVER_SCRIPT = "script.sh";
     private static final String ZK_START_CMD = "zookeeper-3.4.11/bin/zkServer.sh start";
     //private static final String ZK_STOP_CMD = "zookeeper-3.4.11/bin/zkServer.sh stop";
+
+    private int serverCount = 0;
 
     //public enum OPERATIONS {START, STOP, SHUT_DOWN, UPDATE, TRANSFER, INIT, STATE_CHANGE, KV_TRANSFER, TRANSFER_FINISH}
 
@@ -56,7 +58,6 @@ public class ECS implements IECSClient, Watcher {
     public ECS(String configFilePath) throws IOException {
 
         logger.info("[ECS] Starting new ECS...");
-
 
         String cmd = PWD + "/" + ZK_START_CMD;
 
@@ -151,6 +152,15 @@ public class ECS implements IECSClient, Watcher {
 
         logger.info("[ECS] ZooKeeper started!" + ZK_HOST);
 
+        try {
+            Stat s = zk.exists(ZK_AWAIT_NODES, true);
+            if (s == null) {
+                zk.create(ZK_AWAIT_NODES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.PERSISTENT);
+            }
+        } catch (KeeperException | InterruptedException e) {
+            e.printStackTrace();
+        }
         logger.info("[ECS] Initializing Logical Hash Ring...");
 
         // TODO: initial state of hash ring?
@@ -257,18 +267,27 @@ public class ECS implements IECSClient, Watcher {
 
         for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
 
+
             logger.info("[ECS] Setting " + entry.getValue().getNodeName() + " to SHUTDOWN state!");
             ECSNode n = entry.getValue();
+
             n.setServerStateType(IKVServer.ServerStateType.SHUT_DOWN);
 
             String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
             broadcast(msgPath, IECSNode.ECSNodeFlag.SHUT_DOWN.name(), sig);
             n.shutdown();
             availableServers.put(n.getNodeName(), n);
+
+            zk.delete(ZK_AWAIT_NODES + "/" + n.getPort(), -1);
+            serverCount--;
+
         }
 
         hashRing.removeAllNode();
-        pushHashRingInZnode();
+
+        sig.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
+        //pushHashRingInZnode();
+
         return pushHashRingInTree();
     }
 
@@ -409,6 +428,16 @@ public class ECS implements IECSClient, Watcher {
 
     @Override
     public boolean awaitNodes(int count, int timeout) throws Exception {
+        long startTime = System.currentTimeMillis();
+
+        while (System.currentTimeMillis() - startTime < timeout) {
+            List<String> list = zk.getChildren(ZK_AWAIT_NODES, true);
+            if (list.size() - serverCount == count) {
+                serverCount += count;
+                // TODO: setupReplica();
+                return true;
+            }
+        }
 
         return false;
     }
@@ -487,6 +516,13 @@ public class ECS implements IECSClient, Watcher {
             n.shutdown();
             hashRing.removeNode(n);
             availableServers.put(n.getNodeName(), n);
+            try {
+                zk.delete(ZK_AWAIT_NODES + "/" + n.getPort(), -1);
+
+            } catch (InterruptedException | KeeperException e) {
+                logger.error("[ECS] " + e);
+            }
+            serverCount--;
         }
         pushHashRingInZnode();
         ret &= pushHashRingInTree();
@@ -592,7 +628,6 @@ public class ECS implements IECSClient, Watcher {
         Map<String, IECSNode> result = new HashMap<>();
 
         assert hashRing.getSize() != 0;
-
 
         for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
             ECSNode node = entry.getValue();

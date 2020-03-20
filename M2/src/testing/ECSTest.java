@@ -22,10 +22,20 @@ public class ECSTest extends TestCase {
 
     public void setUp() {
         try {
-            //ecsApp = new ECSClient("./ecs.config");
+
             ecs = new ECS("./ecs.config");
+            Thread.sleep(2000);
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    public void tearDown() {
+        try {
+            ecs.shutdown();
+            Thread.sleep(2000);
         } catch (Exception e) {
-            //System.out.println("ECS Test error "+e);
+            e.printStackTrace();
         }
     }
 
@@ -34,6 +44,8 @@ public class ECSTest extends TestCase {
         Exception ex = null;
         try {
             ecs.addNodes(3, "FIFO", 10);
+            Thread.sleep(2000);
+
         } catch (Exception e) {
             ex = e;
             e.printStackTrace();
@@ -43,16 +55,21 @@ public class ECSTest extends TestCase {
 
     @Test
     public void test_startNode() {
+        Exception ex = null;
         try {
+            ecs.addNodes(3, "FIFO", 10);
+            Thread.sleep(2000);
             ecs.start();
+            Thread.sleep(2000);
         } catch (Exception e) {
+            ex = e;
             e.printStackTrace();
         }
         Map<String, IECSNode> nodes = ecs.getNodes();
         for (IECSNode node : nodes.values()) {
             assertEquals(ECSNodeMessage.ECSNodeFlag.START, node.getFlag());
         }
-        //assertNull(ex);
+        assertNull(ex);
     }
 
     @Test
@@ -60,6 +77,9 @@ public class ECSTest extends TestCase {
         Exception ex = null;
         try {
             ecs.addNodes(2, "FIFO", 10);
+            Thread.sleep(2000);
+            ecs.start();
+            Thread.sleep(2000);
         } catch (Exception e) {
             ex = e;
             e.printStackTrace();
@@ -82,6 +102,7 @@ public class ECSTest extends TestCase {
 
         try {
             Collection<String> keys = Arrays.asList("None-1", "None-2");
+
             ecs.removeNodes(keys);
         } catch (Exception e) {
             ex = e;
@@ -95,10 +116,15 @@ public class ECSTest extends TestCase {
         Exception ex = null;
         try {
             ecs.addNodes(2, "FIFO", 10);
+            Thread.sleep(2000);
+            ecs.start();
+            Thread.sleep(2000);
+
         } catch (Exception e) {
             ex = e;
             e.printStackTrace();
         }
+
         try {
             ecs.stop();
         } catch (Exception e) {

@@ -1,7 +1,6 @@
 package ecs;
 
 import app_kvServer.IKVServer;
-import shared.messages.KVMessage;
 
 public interface IECSNode {
 

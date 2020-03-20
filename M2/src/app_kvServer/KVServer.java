@@ -10,10 +10,8 @@ import ecs.*;
 import logger.LogSetup;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.*;
+import org.apache.zookeeper.data.Stat;
 import shared.Constants;
 import shared.HashingFunction.MD5;
 import shared.communication.ClientConnection;
@@ -27,8 +25,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ecs.ECS.ZK_HASH_TREE;
-import static ecs.ECS.ZK_SERVER_PATH;
+import static ecs.ECS.*;
+import static ecs.ECS.ZK_AWAIT_NODES;
 
 public class KVServer implements IKVServer, Runnable, Watcher {
 
@@ -428,6 +426,22 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             logger.error("[KVServer] Unable to get set watcher on children");
             e.printStackTrace();
         }
+
+        try {
+            if (zk != null) {
+                //String path = "/AwaitNode";
+                Stat s = zk.exists(ZK_AWAIT_NODES, true);
+                Stat sNode = zk.exists(ZK_AWAIT_NODES + "/" + port, true);
+
+                if (s != null && sNode == null) {
+                    zk.create(ZK_AWAIT_NODES + "/" + port,
+                            "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                }
+            }
+            logger.debug("KVServer create await node!");
+        } catch (KeeperException | InterruptedException e) {
+            logger.error("KVServer create await node " + e);
+        }
     }
 
 
@@ -559,17 +573,14 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                     ZK.deleteNoWatch(path);
                     logger.info("[KVServer] Server shutdown!");
                     shutdown();
-
                     break;
-//                case UPDATE:
-//                    break;
-//
+
                 case START:
                     this.start();
                     ZK.deleteNoWatch(path);
                     logger.info("[KVServer] Server start taking request!");
                     break;
-//
+
                 case STOP:
                     this.stop();
                     ZK.deleteNoWatch(path);
@@ -618,7 +629,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         return hashRingString;
     }
 
-//    public ECSHashRing getHashRing() {
+    //    public ECSHashRing getHashRing() {
 //        return hashRing;
 //    }
 //

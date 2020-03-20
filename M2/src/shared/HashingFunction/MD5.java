@@ -36,7 +36,7 @@ public class MD5 {
     }
 
 
-    public static boolean isKeyinRange(BigInteger keyHash, String StartHash, String Endhash) {
+    public static boolean isKeyInRange(BigInteger keyHash, String StartHash, String Endhash) {
 
         BigInteger start = MD5.HashInBI(StartHash);
         BigInteger end = MD5.HashInBI(Endhash);

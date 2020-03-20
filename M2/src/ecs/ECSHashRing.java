@@ -51,8 +51,7 @@ public class ECSHashRing {
     public ECSNode getNodeByHash(BigInteger hash) {
         if (this.activeNodes.size() == 0)
             return null;
-
-
+        
         if (this.activeNodes.lastKey().compareTo(hash) < 0) {
             // return the first entry given the largest
             return this.activeNodes.firstEntry().getValue();
