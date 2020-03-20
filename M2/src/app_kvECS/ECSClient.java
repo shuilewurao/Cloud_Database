@@ -345,7 +345,7 @@ public class ECSClient implements IECSClient {
     public static void main(String[] args) {
         // TODO
         try {
-            new LogSetup("logs/ECSClient.log", Level.ALL);
+            new LogSetup("logs/ECSClient.log", Level.ERROR);
             if (args.length != 1) {
                 logger.error("[ECSClient] Error! Invalid number of arguments!");
                 logger.info("[ECSClient] Usage: ECS <ecs.config>!");
