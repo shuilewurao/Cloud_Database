@@ -121,7 +121,27 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
         this.zkNodePath = ZK_SERVER_PATH + "/" + port;
 
+        this.DB = new KVDatabase(port);
+
         initKVServer();
+
+        switch (strategy) {
+            case "FIFO":
+                Cache = new FIFO(cacheSize);
+                break;
+            case "LRU":
+                Cache = new LRU(cacheSize);
+                break;
+            case "LFU":
+                Cache = new LFU(cacheSize);
+                break;
+            default:
+                this.strategy = CacheStrategy.None;
+                logger.error("[KVServer] Invalid Cache Strategy!");
+                // TODO: handling
+                break;
+        }
+
     }
 
 

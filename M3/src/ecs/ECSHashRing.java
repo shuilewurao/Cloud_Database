@@ -324,5 +324,15 @@ public class ECSHashRing {
         return currNode;
     }
 
+    // find the replica will clear its responsibility for node n
+    public ECSNode getLastReplication(ECSNode n){
+        ECSNode currNode = n;
+        for (int i = 0; i < REPLICA_SIZE; i++) {
+            currNode = getNextNode(currNode.getNodeHash());
+        }
+        return currNode;
+    }
+
+
 
 }
