@@ -461,6 +461,21 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             e.printStackTrace();
         }
 
+        // if the server crashed previously, its storage may be out-of-synch (i.e. missing latest update or deletion).
+        try {
+            //remove the crashed znode
+            String path = ZK_CRASHED_NODES+"/"+port;
+            if (zk.exists(path, false) != null) {
+                DB.clearStorage();
+                ZK.deleteNoWatch(path);
+                logger.info("Clear storage for the crashed server.");
+            }
+
+        } catch (InterruptedException | KeeperException e) {
+            logger.debug("[KVServer] Unable to get child nodes");
+            e.printStackTrace();
+        }
+
 
         try {
             // setup hashRing info
@@ -513,11 +528,11 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         try {
             if (zk != null) {
                 //String path = "/AwaitNode";
-                Stat s = zk.exists(ZK_AWAIT_NODES, true);
-                Stat sNode = zk.exists(ZK_AWAIT_NODES + "/" + port, true);
+                Stat s = zk.exists(ZK_INIT_NODES, true);
+                Stat sNode = zk.exists(ZK_INIT_NODES + "/" + port, true);
 
                 if (s != null && sNode == null) {
-                    zk.create(ZK_AWAIT_NODES + "/" + port,
+                    zk.create(ZK_INIT_NODES + "/" + port,
                             "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                 }
             }

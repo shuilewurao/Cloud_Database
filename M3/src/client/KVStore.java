@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.concurrent.TimeUnit;
 
 public class KVStore implements KVCommInterface {
     /**
@@ -222,8 +223,10 @@ public class KVStore implements KVCommInterface {
         /* read first char from stream */
         byte read = (byte) input.read();
         boolean reading = true;
-
-        while (read != 13 && reading) {/* carriage return */
+        long endTime;
+        long duration = 0;
+        long startTime = System.nanoTime();
+        while (read != 13 && reading &&(duration <= 3)) {/* carriage return */
             /* if buffer filled, copy to msg array */
             if (index == BUFFER_SIZE) {
                 if (msgBytes == null) {
@@ -254,6 +257,12 @@ public class KVStore implements KVCommInterface {
 
             /* read next char from stream */
             read = (byte) input.read();
+            endTime = System.nanoTime();
+            duration = (endTime - startTime)/1000000000;
+        }
+        if(duration > 3){
+            TextMessage msg = new TextMessage("SERVER_STOPPED");
+            return msg;
         }
 
         if (msgBytes == null) {

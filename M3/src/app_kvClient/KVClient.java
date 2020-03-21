@@ -21,9 +21,11 @@ public class KVClient implements IKVClient {
     private KVStore client = null;
     private boolean stop = false;
     public boolean serverDown;
+    public boolean allFailed = false;
     public String latestRequest;
     public String latestAddress;
     private String serverAddress;
+    public int attemp;
     public int latestPort;
     private int serverPort;
     public boolean initialConnectionError;
@@ -34,6 +36,7 @@ public class KVClient implements IKVClient {
 
             try {
                 String cmdLine = stdin.readLine();
+                attemp = 0;                
                 this.handleCommand(cmdLine);
             } catch (IOException e) {
                 stop = true;
@@ -120,7 +123,7 @@ public class KVClient implements IKVClient {
                                     logger.info("[KVClient] SERVER_STOPPED");
                                     System.out.println(PROMPT + "SERVER_STOPPED");
                                 } else if (status == StatusType.SERVER_WRITE_LOCK) {
-                                    //serverDown = true;
+                                    serverDown = true;
                                     logger.info("[KVClient] SERVER_WRITE_LOCK");
                                     System.out.println(PROMPT + "SERVER_WRITE_LOCK");
                                 } else {
@@ -155,6 +158,7 @@ public class KVClient implements IKVClient {
                                     logger.info("[KVClient] SERVER_STOPPED");
                                     System.out.println(PROMPT + "SERVER_STOPPED");
                                 } else {
+                                    serverDown = true;
                                     logger.error("[KVClient] UNKNOWN DELETE ERROR");
                                 }
                             } catch (Exception e) {
@@ -203,6 +207,7 @@ public class KVClient implements IKVClient {
                                 logger.info("[KVClient] SERVER_STOPPED");
                                 System.out.println(PROMPT + "SERVER_STOPPED");
                             } else {
+                                serverDown = true;
                                 logger.error("[KVClient] UNKNOWN DELETE ERROR");
                             }
                         } catch (Exception e) {
@@ -251,26 +256,31 @@ public class KVClient implements IKVClient {
         }
         if(serverDown){
             int handleResult = handleServerDown();
-            if(handleResult == 0)
+            if(handleResult == 0){
                 printError("All servers are currently unavailable!");
-            else
+                allFailed = true;
+            }
+        }
+        else{
+            if(attemp > 0)
                 System.out.println("Connection resumed and previous client request executed");
-        }   
+            allFailed = false;
+            attemp = 0;
+        }
+        if(tokens[0].equals("disconnect"))
+            allFailed = true;
     }
     
     public int handleServerDown(){
         //disconnect();
         serverDown = true;
-        int serverNode = -1;
-        int attemp = 0;
         while(serverDown == true){
             try {
-                serverNode++;
                 attemp++;
                 if(attemp > 16)
                     return 0;
                 latestAddress = "localhost";
-                latestPort = 50000 + (serverNode % 8);
+                latestPort = 50000 + (attemp % 8);
                 newConnection(latestAddress, latestPort);
                 serverDown = false;
             }catch (Exception e) {
@@ -303,11 +313,12 @@ public class KVClient implements IKVClient {
     }
 
     private void disconnect() {
-        if (client != null) {
+        if ((client != null)&&(allFailed != true)) {
             client.disconnect();
             client = null;
         } else {
             printError("Not connected");
+            allFailed = true;
         }
     }
 

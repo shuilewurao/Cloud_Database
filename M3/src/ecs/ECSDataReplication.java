@@ -69,7 +69,7 @@ public class ECSDataReplication implements Watcher {
 //            return false;
 //        }
 
-        logger.info("[ECSDR] receiver " + receiver.name);
+        logger.debug("[ECSDR] receiver " + receiver.name);
 
         String to_msg = IECSNode.ECSNodeFlag.KV_TRANSFER.name() +
                 Constants.DELIMITER + receiver.getNodePort()
@@ -95,7 +95,7 @@ public class ECSDataReplication implements Watcher {
             return false;
         }
 
-        logger.info("[ECSDR] sender " + sender.name);
+        logger.debug("[ECSDR] sender " + sender.name);
         return true;
     }
 
@@ -114,7 +114,7 @@ public class ECSDataReplication implements Watcher {
         this.zk = zk;
         sig = new CountDownLatch(1);
 
-        logger.info("[ECSDR] offloading " + sender.name);
+        logger.info("[ECSDR] offloading " + sender.name+" from "+hashRange[0] + " to "+hashRange[1]);
         String msg = IECSNode.ECSNodeFlag.DELETE.name()
                 + Constants.DELIMITER + hashRange[0]
                 + Constants.DELIMITER + hashRange[1];
@@ -143,6 +143,7 @@ public class ECSDataReplication implements Watcher {
      */
     private boolean copy(ZooKeeper zk) throws InterruptedException, KeeperException {
         this.zk = zk;
+        logger.info("[ECSDR] Copying data from "+this.sender.name+" to "+this.receiver.name+" within ["+hashRange[0] + " , "+hashRange[1]+"]");
         if (!init()) return false;
 
         // Start listening sender's progress
@@ -162,6 +163,8 @@ public class ECSDataReplication implements Watcher {
                 break;
             }
         }
+        logger.info("[ECSDR] Copying data Finished.");
+
 
         return true;
     }
@@ -207,7 +210,7 @@ public class ECSDataReplication implements Watcher {
 //                e.printStackTrace();
 //            }
         } else {
-            logger.warn("[ECSDR] " + event);
+            logger.debug("[ECSDR] " + event);
         }
     }
 
