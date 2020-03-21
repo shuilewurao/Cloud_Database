@@ -1,7 +1,6 @@
 package testing;
 
 import app_kvServer.IKVServer;
-import client.KVStore;
 import ecs.ECS;
 import ecs.ECSNode;
 import ecs.ECSNodeMessage;
@@ -13,12 +12,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 
 public class ECSTest extends TestCase {
-    private KVStore kvClient;
     private ECS ecs;
-    private CountDownLatch connectedSignal = new CountDownLatch(1);
 
     public void setUp() {
         try {

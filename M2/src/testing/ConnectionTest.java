@@ -40,7 +40,6 @@ public class ConnectionTest extends TestCase {
         assertTrue(ex instanceof UnknownHostException);
     }
 
-
     public void testIllegalPort() {
         Exception ex = null;
         KVStore kvClient = new KVStore("localhost", 123456789);

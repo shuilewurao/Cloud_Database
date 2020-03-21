@@ -512,7 +512,7 @@ public class ECS implements IECSClient, Watcher {
             }
             serverCount--;
         }
-        
+
         pushHashRingInZnode();
         ret &= pushHashRingInTree();
 

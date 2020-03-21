@@ -57,13 +57,15 @@ public class AllTests {
         clientSuite.addTestSuite(ConnectionTest.class);
         ecs.shutdown();
 
-        clientSuite.addTestSuite(HashRingTest.class);
+        clientSuite.addTestSuite(DataParserTest.class);
 
-        clientSuite.addTestSuite(InteractionTest.class);
+        //clientSuite.addTestSuite(HashRingTest.class);
 
-        clientSuite.addTestSuite(ECSTest.class);
+        //clientSuite.addTestSuite(InteractionTest.class);
 
-        clientSuite.addTestSuite(AdditionalTest.class);
+        //clientSuite.addTestSuite(ECSTest.class);
+
+        // clientSuite.addTestSuite(AdditionalTest.class);
 
         return clientSuite;
     }
