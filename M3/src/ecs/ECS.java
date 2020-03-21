@@ -238,13 +238,12 @@ public class ECS implements IECSClient, Watcher {
         ret &= pushHashRingInTree();
         //ret &= pushHashRingInZnode();
 
-        if(ret==false){
+        if (ret == false) {
             logger.debug("[ECS] Unable to fully start");
         }
 
         return ret;
     }
-
 
 
     @Override
@@ -290,7 +289,7 @@ public class ECS implements IECSClient, Watcher {
 
         hashRing.removeAllNode();
 
-        sig.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS );
+        sig.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
         //pushHashRingInZnode();
 
         return pushHashRingInTree();
@@ -332,7 +331,7 @@ public class ECS implements IECSClient, Watcher {
 
         boolean ret = maintainAddInvariant(added);
 
-        logger.info("[ECS] "+added.getNodeName() +" has been added to service");
+        logger.info("[ECS] " + added.getNodeName() + " has been added to service");
         return null;
     }
 
@@ -409,7 +408,7 @@ public class ECS implements IECSClient, Watcher {
         try {
             awaitNodes(count, 30000);
         } catch (Exception e) {
-            logger.error("[ECS] "+e);
+            logger.error("[ECS] " + e);
         }
 
         return result;
@@ -417,11 +416,11 @@ public class ECS implements IECSClient, Watcher {
     }
 
     @Override
-    public Collection<IECSNode> setupNodes(Collection<ECSNode> nodes){
+    public Collection<IECSNode> setupNodes(Collection<ECSNode> nodes) {
 
         CountDownLatch sig = new CountDownLatch(nodes.size());
 
-        for (ECSNode n: nodes) {
+        for (ECSNode n : nodes) {
             logger.debug("[ECS] setting up " + n.name);
             String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
             broadcast(msgPath, IECSNode.ECSNodeFlag.INIT.name(), sig);
@@ -436,7 +435,7 @@ public class ECS implements IECSClient, Watcher {
         }
 
         // create znode with watches for failure detection on each alive server
-        for(ECSNode n: nodes){
+        for (ECSNode n : nodes) {
             registerFailureDetectionZNode(n.getNodePort(), n.getNodeHash());
         }
         try {
@@ -450,10 +449,10 @@ public class ECS implements IECSClient, Watcher {
         return null;
     }
 
-    private void registerFailureDetectionZNode(int node_port, String hash){
+    private void registerFailureDetectionZNode(int node_port, String hash) {
 
         int i;
-        for(i=0; i<5;i++) {
+        for (i = 0; i < 5; i++) {
 
             try {
                 Stat exists = zk.exists(ZK_LIVE_SERVERS + "/" + node_port, null);
@@ -464,8 +463,8 @@ public class ECS implements IECSClient, Watcher {
                                 switch (we.getType()) {
                                     case NodeDeleted:
                                         //logger.warn("[ECS] Server" + hash + " shutdown detected");
-                                        ECSNode n =  hashRing.getNodeByHash(MD5.HashInBI(hash));
-                                        if(n==null){
+                                        ECSNode n = hashRing.getNodeByHash(MD5.HashInBI(hash));
+                                        if (n == null) {
                                             break;
                                         }
                                         switch (n.getServerStateType()) {
@@ -497,7 +496,7 @@ public class ECS implements IECSClient, Watcher {
     }
 
 
-    private void handleNodeFailure(ECSNode n){
+    private void handleNodeFailure(ECSNode n) {
 
         maintainRemoveInvariant(n);
 
@@ -507,7 +506,7 @@ public class ECS implements IECSClient, Watcher {
         try {
             zk.delete(ZK_AWAIT_NODES + "/" + n.getPort(), -1);
         } catch (InterruptedException | KeeperException e) {
-            logger.error("[ECS] "+e);
+            logger.error("[ECS] " + e);
         }
 
         boolean ret = true;
@@ -519,14 +518,14 @@ public class ECS implements IECSClient, Watcher {
         //ret &=pushHashRingInZnode();
         ret &= pushHashRingInTree();
 
-        if(ret ==false){
+        if (ret == false) {
             logger.error("[ECS] Errors in updating hash ring for handling server failure.");
         }
 
         pushHashRingInTree(); // notify the other nodes this failure first
 
         logger.info("[ECS] Adding a new server to replace the crashed one.");
-        addNode("FIFO", 1,true);
+        addNode("FIFO", 1, true);
         try {
             start();
         } catch (KeeperException | InterruptedException e) {
@@ -538,15 +537,14 @@ public class ECS implements IECSClient, Watcher {
     }
 
 
-
     public void broadcast(String msgPath, String msg, CountDownLatch sig) {
 
         try {
             if (zk.exists(msgPath, this) == null) {
                 ZKAPP.create(msgPath, msg.getBytes());
-                logger.debug("[ECS] ZK created " + msg + " in " +msgPath );
+                logger.debug("[ECS] ZK created " + msg + " in " + msgPath);
             } else {
-                logger.warn("[ECS] " + msgPath + " already exists... updating to: "+msg+" and deleting children...");
+                logger.warn("[ECS] " + msgPath + " already exists... updating to: " + msg + " and deleting children...");
                 ZK.update(msgPath, msg.getBytes());
             }
 
@@ -563,6 +561,10 @@ public class ECS implements IECSClient, Watcher {
 
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
+
+        if (!isAllValidNames(nodeNames) || this.hashRing.getSize() < 1)
+            return false;
+
         logger.debug("[ECS]: Removing nodes: " + nodeNames);
 
         if (hashRing.getSize() - nodeNames.size() < 3) {
@@ -570,6 +572,7 @@ public class ECS implements IECSClient, Watcher {
         }
 
         List<ECSNode> toRemove = new ArrayList<>();
+
         for (String name : nodeNames) {
             assert name != null;
 
@@ -587,6 +590,7 @@ public class ECS implements IECSClient, Watcher {
 
         boolean ret = true;
         CountDownLatch sig = new CountDownLatch(toRemove.size());
+
         for (ECSNode n : toRemove) {
             // TODO: check transfer finish
             logger.debug("[ECS] removing: " + n.getNodeName());
@@ -611,7 +615,7 @@ public class ECS implements IECSClient, Watcher {
         try {
             sig.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            logger.error("[ECS] latch timeout "+e);
+            logger.error("[ECS] latch timeout " + e);
         }
 
         return ret;
@@ -645,7 +649,6 @@ public class ECS implements IECSClient, Watcher {
 //        }
 
     }
-
 
 
     @Override
@@ -763,8 +766,15 @@ public class ECS implements IECSClient, Watcher {
 //        return true;
 //    }
 
-    public boolean ifAllValidServerNames(Collection<String> nodeNames) {
+    public boolean isAllValidNames(Collection<String> nodeNames) {
         if (nodeNames.size() <= hashRing.getSize()) {
+
+            for (String name : nodeNames) {
+                if (hashRing.getNodeByServerName(name) == null) {
+                    logger.debug("[ECS] server name " + name + " not found in hash ring!");
+                    return false;
+                }
+            }
             return true;
         } else {
             logger.error("[ECSClient] Invalid # of nodes to remove.");
@@ -779,22 +789,21 @@ public class ECS implements IECSClient, Watcher {
     }
 
     /**
-     *
      * @param added previously idle servers
      */
-    private boolean maintainAddInvariant(ECSNode added){
+    private boolean maintainAddInvariant(ECSNode added) {
         // clear storage for non-restored server;
 
-        if(!hashRing.isReplicable()){
+        if (!hashRing.isReplicable()) {
             return false;
         }
         List<ECSDataReplication> toReplicate = new ArrayList<>();
 
-        boolean ret=true;
-        if(hashRing.getSize() == 3){
+        boolean ret = true;
+        if (hashRing.getSize() == 3) {
             ECSNode cNode = hashRing.getPrevNode(added.getNodeHash());
             toReplicate.add(new ECSDataReplication(cNode, added, new String[]{added.getNodeHash(), added.getNodeHash()}));
-        }else{
+        } else {
             logger.info("[ECS] Identify add invariant conditions");
             String[] responsibleRange = hashRing.getResponsibleHashRange(added);
             ECSNode next = hashRing.getNextNode(added.getNodeHash());
@@ -803,24 +812,20 @@ public class ECS implements IECSClient, Watcher {
             Collection<ECSNode> coordinators = this.hashRing.getPredecessors(added);
             //Collection<ECSNode> replicas = this.hashRing.getReplicas(added);
 
-            for(ECSNode c: coordinators){
-                ECSNode toClear =  hashRing.getOldLastReplication(c);
+            for (ECSNode c : coordinators) {
+                ECSNode toClear = hashRing.getOldLastReplication(c);
                 toReplicate.add(new ECSDataReplication(toClear, c.getNodeHashRange()));
             }
         }
 
-        try{
+        try {
             for (ECSDataReplication replication : toReplicate) {
                 ret &= replication.start(zk);
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException | KeeperException e) {
             e.printStackTrace();
             ret &= false;
-        } catch (KeeperException e) {
-            e.printStackTrace();
-            ret &= false;
-        }finally{
+        } finally {
             return ret;
         }
 
@@ -829,21 +834,22 @@ public class ECS implements IECSClient, Watcher {
 
     /**
      * IMP: the removing node is still on the ring
+     *
      * @param remove
      */
-    private boolean maintainRemoveInvariant(ECSNode remove){
+    private boolean maintainRemoveInvariant(ECSNode remove) {
         // clear storage for non-restored server;
 
         List<ECSDataReplication> toReplicate = new ArrayList<>();
 
-        boolean ret=true;
-        if(hashRing.getSize() == 3){
+        boolean ret = true;
+        if (hashRing.getSize() == 3) {
             // No data transfer is needed
-        }else{
+        } else {
             logger.info("[ECS] Identify remove invariant conditions");
             Collection<ECSNode> coordinators = hashRing.getPredecessors(remove);
-            for(ECSNode c: coordinators){
-                ECSNode toReceive =  hashRing.getOldLastReplication(c);
+            for (ECSNode c : coordinators) {
+                ECSNode toReceive = hashRing.getOldLastReplication(c);
                 toReplicate.add(new ECSDataReplication(c, toReceive, c.getNodeHashRange()));
             }
 
@@ -855,20 +861,18 @@ public class ECS implements IECSClient, Watcher {
                     remove.getNodeHashRange()));
         }
 
-        try{
+        try {
             for (ECSDataReplication replication : toReplicate) {
                 ret &= replication.start(zk);
             }
-        }
-        catch (InterruptedException | KeeperException e) {
-            logger.error("[ECS] maintain remove invariant "+e );
+        } catch (InterruptedException | KeeperException e) {
+            logger.error("[ECS] maintain remove invariant " + e);
             ret &= false;
-        } finally{
+        } finally {
             return ret;
         }
 
     }
-
 
 
 }

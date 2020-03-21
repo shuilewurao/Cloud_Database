@@ -782,7 +782,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     public boolean receiveTransferredData(String data) {
         lockWrite();
-        String msgPath = ZK_SERVER_PATH + "/" + port + "/op";
+        String msgPath = ZK_SERVER_PATH + "/" + port + ZK_OP_PATH;
         DB.receiveTransferdData(data);
         unlockWrite();
 

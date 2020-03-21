@@ -353,7 +353,6 @@ public class ClientConnection implements Runnable {
                         } catch (Exception e) {
                             msg_send = new TextMessage("GET_ERROR + exception");
                         }
-
                         break;
 
                     default:

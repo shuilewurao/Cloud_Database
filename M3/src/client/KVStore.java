@@ -347,7 +347,7 @@ public class KVStore implements KVCommInterface {
             BigInteger hash = MD5.HashInBI(key);
             ECSNode newServer = hashRing.getNodeByHash(hash);
 
-            logger.info("[KVStore] Now connect to: " + newServer);
+            logger.info("[KVStore] Now connect to: " + newServer.getNodeName());
             logger.debug("[KVStore] Node hash range: " + newServer.getNodeHashRange()[0]
                     + " -> " + newServer.getNodeHashRange()[1]);
             logger.debug("[KVStore] Key hash is: " + hash);

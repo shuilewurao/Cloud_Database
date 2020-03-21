@@ -322,7 +322,7 @@ public class ECSClient implements IECSClient {
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
         // TODO
-        if (!client.ifAllValidServerNames(nodeNames)) {
+        if (!client.isAllValidNames(nodeNames)) {
 
             return false;
         }
