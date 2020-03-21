@@ -25,6 +25,11 @@
   <property name="ecsmanifest.file" value="ECS_MANIFEST.MF"/>
   <property name="ecsmain.class" value="app_kvECS.ECSClient"/>
 
+  <!-- Configuration for performance application -->
+  <property name="performancejar.file" value="m3-performance.jar"/>
+  <property name="performancemanifest.file" value="PERFORMANCE_MANIFEST.MF"/>
+  <property name="performancemain.class" value="shared.Performance"/>
+
   <!-- path to libraries-->
   <path id="external.jars">
     <fileset dir="${lib.dir}" includes="**/*.jar"/>
@@ -66,8 +71,8 @@
   <target name="build" depends="init">
     <echo message="${ant.project.name}: ${ant.file}"/>
     <javac debug="true" debuglevel="${debuglevel}" destdir="bin"
-          source="${source}" target="${target}"
-          classpathref="project.classpath" includeantruntime="false">
+           source="${source}" target="${target}"
+           classpathref="project.classpath" includeantruntime="false">
       <src path="${src.dir}"/>
     </javac>
   </target>
@@ -84,7 +89,7 @@
     </manifest>
 
     <jar destfile="${clientjar.file}" basedir="${build.dir}"
-        manifest="${clientmanifest.file}">
+         manifest="${clientmanifest.file}">
       <fileset dir="${build.dir}" includes="**/*.class" />
       <zipgroupfileset dir="${lib.dir}" includes="**/*.jar" />
     </jar>
@@ -102,7 +107,7 @@
     </manifest>
 
     <jar destfile="${serverjar.file}" basedir="${build.dir}"
-        manifest="${servermanifest.file}">
+         manifest="${servermanifest.file}">
       <fileset dir="${build.dir}" includes="**/*.class" />
       <zipgroupfileset dir="${lib.dir}" includes="**/*.jar" />
     </jar>
@@ -120,14 +125,32 @@
     </manifest>
 
     <jar destfile="${ecsjar.file}" basedir="${build.dir}"
-        manifest="${ecsmanifest.file}">
+         manifest="${ecsmanifest.file}">
+      <fileset dir="${build.dir}" includes="**/*.class" />
+      <zipgroupfileset dir="${lib.dir}" includes="**/*.jar" />
+    </jar>
+  </target>
+
+  <!-- build performance jar -->
+  <target name="build-performance-jar" depends="build">
+    <delete file="${performancejar.file}" />
+    <delete file="${performancemanifest.file}" />
+
+    <manifest file="${performancemanifest.file}" >
+      <attribute name="built-by" value="${user.name}" />
+      <attribute name="Main-Class" value="${performancemain.class}" />
+      <attribute name="Class-Path" value="${project.classpath}"/>
+    </manifest>
+
+    <jar destfile="${performancejar.file}" basedir="${build.dir}"
+         manifest="${performancemanifest.file}">
       <fileset dir="${build.dir}" includes="**/*.class" />
       <zipgroupfileset dir="${lib.dir}" includes="**/*.jar" />
     </jar>
   </target>
 
   <!-- generate separate jar files for client and server application -->
-  <target name="build-jar" depends="build-client-jar, build-server-jar, build-ecs-jar" />
+  <target name="build-jar" depends="build-client-jar, build-server-jar, build-ecs-jar, build-performance-jar" />
 
   <!-- run test cases -->
   <target name="test" depends="build">

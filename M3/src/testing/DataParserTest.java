@@ -2,6 +2,7 @@ package testing;
 
 import client.KVStore;
 import ecs.ECS;
+import junit.framework.TestCase;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.junit.Test;
@@ -12,25 +13,23 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
-import static junit.framework.Assert.assertEquals;
-
-public class DataParserTest {
+public class DataParserTest extends TestCase {
     private Logger logger = Logger.getRootLogger();
 
     private ECS ecs;
     private KVStore kvClient;
     private int port = 50005;
 
-    private static List<String> msgs = DataParser.parseDataFrom("allen-p/inbox").subList(0, 10);
+    private static List<String> msgs = shared.DataParser.parseDataFrom("allen-p/inbox");
 
     public void setUp() throws IOException, InterruptedException, KeeperException {
         ecs = new ECS("./ecs.config");
 
         ecs.addNodes(1, "FIFO", 10);
-        Thread.sleep(2000);
+        Thread.sleep(1000);
 
         ecs.start();
-        Thread.sleep(2000);
+        Thread.sleep(1000);
 
     }
 
