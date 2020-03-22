@@ -20,16 +20,16 @@ public class AllTests {
 
     static {
         try {
-            new LogSetup("logs/testing/test.log", Level.ERROR);
+            new LogSetup("logs/testing/test.log", Level.ALL);
 
             ecs = new ECS("./ecs.config");
-            Thread.sleep(2000);
+            Thread.sleep(1000);
 
             ecs.addNodes(1, "FIFO", 10);
-            Thread.sleep(2000);
+            Thread.sleep(1000);
 
             ecs.start();
-            Thread.sleep(2000);
+            Thread.sleep(1000);
 
             server_FIFO = new KVServer(51000, 10, "FIFO");
             server_FIFO.clearStorage();
@@ -57,15 +57,12 @@ public class AllTests {
         clientSuite.addTestSuite(ConnectionTest.class);
         ecs.shutdown();
 
-        clientSuite.addTestSuite(DataParserTest.class);
-
         clientSuite.addTestSuite(HashRingTest.class);
 
         clientSuite.addTestSuite(InteractionTest.class);
 
         clientSuite.addTestSuite(ECSTest.class);
-
-        clientSuite.addTestSuite(AdditionalTest.class);
+        clientSuite.addTestSuite(M3Test.class);
 
         return clientSuite;
     }

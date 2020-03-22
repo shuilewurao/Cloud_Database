@@ -50,11 +50,17 @@ public class HashRingTest extends TestCase {
     }
 
     public void test_removeNodes() {
+
+        ECSNode temp = new ECSNode("server4", "localhost", 50004);
+
+        hr_test.addNode(new ECSNode("server3", "localhost", 50003));
+
         Exception ex = null;
         try {
-            hr_test.removeNode(hr_test.getNodeByServerName("server4"));
+            hr_test.removeNode(temp);
         } catch (Exception e) {
             ex = e;
+            e.printStackTrace();
         }
         assertNull(ex);
     }

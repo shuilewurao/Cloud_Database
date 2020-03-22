@@ -17,25 +17,22 @@ public class InteractionTest extends TestCase {
 
     private ECS ecs;
     private KVStore kvClient;
-    private int port = 50005;
+    private int port = 50000;
 
 
     public void setUp() throws IOException, InterruptedException, KeeperException {
         ecs = new ECS("./ecs.config");
 
         ecs.addNodes(1, "FIFO", 10);
-        Thread.sleep(2000);
+        Thread.sleep(1000);
 
         ecs.start();
-        Thread.sleep(2000);
-
-
+        Thread.sleep(1000);
     }
 
     public void tearDown() throws Exception {
         ecs.shutdown();
-        Thread.sleep(2000);
-
+        Thread.sleep(1000);
     }
 
 
