@@ -19,7 +19,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.concurrent.TimeUnit;
 
 public class KVStore implements KVCommInterface {
     /**
@@ -72,6 +71,8 @@ public class KVStore implements KVCommInterface {
             tearDownConnection();
             for (IKVClient listener : listeners) {
                 listener.handleStatus(IKVClient.SocketStatus.DISCONNECTED);
+                listener = null;
+
             }
         } catch (IOException ioe) {
             logger.error("[KVStore] Unable to close connection!");
@@ -118,6 +119,8 @@ public class KVStore implements KVCommInterface {
 
             msg = "PUT" + DELIMITER + key + DELIMITER + value;
 
+            logger.debug("[KVStore] msg to send: " + msg);
+
             TextMessage msg_send = new TextMessage(msg);
 
             sendMessage(msg_send);
@@ -130,17 +133,9 @@ public class KVStore implements KVCommInterface {
                 to be converted to KVMessage
              */
 
-            String[] tokens = msg_receive.getMsg().split("\\" + DELIMITER);
+            msg = msg_receive.getMsg().trim();
 
-            if (tokens.length == 1) {
-                return new KVConvertMessage("", value, tokens[0]);
-            }
-
-            if (tokens.length == 3) {
-                value = tokens[2];
-            }
-
-            return new KVConvertMessage(tokens[1], value, tokens[0]);
+            return new KVConvertMessage(key, value, msg);
 
         } else {
             logger.debug("[KVStore] key value error! Returning default status PUT_ERROR");
@@ -175,7 +170,7 @@ public class KVStore implements KVCommInterface {
             String value = "";
 
             if (tokens.length == 1) {
-                return new KVConvertMessage("", value, tokens[0]);
+                return new KVConvertMessage(null, value, tokens[0]);
             }
 
             if (tokens.length == 3) {
@@ -211,7 +206,7 @@ public class KVStore implements KVCommInterface {
         byte[] msgBytes = msg.getMsgBytes();
         output.write(msgBytes, 0, msgBytes.length);
         output.flush();
-        logger.info("[KVStore] Send message: " + msg.getMsg());
+        logger.info("[KVStore] Send message: '" + msg.getMsg() + "'");
     }
 
     private TextMessage receiveMessage() throws IOException {
@@ -223,10 +218,8 @@ public class KVStore implements KVCommInterface {
         /* read first char from stream */
         byte read = (byte) input.read();
         boolean reading = true;
-        long endTime;
-        long duration = 0;
-        long startTime = System.nanoTime();
-        while (read != 13 && reading &&(duration <= 3)) {/* carriage return */
+
+        while (read != 13 && reading) {/* carriage return */
             /* if buffer filled, copy to msg array */
             if (index == BUFFER_SIZE) {
                 if (msgBytes == null) {
@@ -257,12 +250,6 @@ public class KVStore implements KVCommInterface {
 
             /* read next char from stream */
             read = (byte) input.read();
-            endTime = System.nanoTime();
-            duration = (endTime - startTime)/1000000000;
-        }
-        if(duration > 3){
-            TextMessage msg = new TextMessage("SERVER_STOPPED");
-            return msg;
         }
 
         if (msgBytes == null) {
@@ -333,6 +320,8 @@ public class KVStore implements KVCommInterface {
          */
 
         String msg = msg_received.getMsg();
+
+        //logger.debug("[KVStore] msg received: " + msg);
 
         String[] tokens = msg.split("\\" + DELIMITER);
 
