@@ -53,6 +53,7 @@ public class Performance {
     }
 
     public void addNodes(Integer count) {
+        System.out.println("count: " + count);
         try {
             ecs.addNodes(count, this.CACHE_STRATEGY, this.CACHE_SIZE);
             Thread.sleep(10000);

@@ -109,6 +109,35 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             case 50009:
                 this.name = "server10";
                 break;
+            case 50010:
+                this.name = "server11";
+                break;
+            case 50011:
+                this.name = "server12";
+                break;
+            case 50012:
+                this.name = "server13";
+                break;
+            case 50013:
+                this.name = "server14";
+                break;
+            case 50014:
+                this.name = "server15";
+                break;
+            case 50015:
+                this.name = "server16";
+                break;
+            case 50016:
+                this.name = "server17";
+                break;
+            case 50017:
+                this.name = "server18";
+                break;
+            case 50018:
+                this.name = "server19";
+            case 50019:
+                this.name = "server20";
+                break;
             default:
                 this.name = "server";
         }
