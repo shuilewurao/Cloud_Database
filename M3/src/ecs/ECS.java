@@ -291,12 +291,13 @@ public class ECS implements IECSClient, Watcher {
 
     @Override
     public boolean shutdown() throws Exception {
-        // for each active node, disconnect them? call KVStore??
+
+        if (hashRing.getSize() == 0)
+            return true;
 
         CountDownLatch sig = new CountDownLatch(hashRing.getSize());
 
         for (Map.Entry<BigInteger, ECSNode> entry : hashRing.getActiveNodes().entrySet()) {
-
 
             logger.info("[ECS] Setting " + entry.getValue().getNodeName() + " to SHUTDOWN state!");
             ECSNode n = entry.getValue();
