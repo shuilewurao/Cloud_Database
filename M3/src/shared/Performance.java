@@ -3,6 +3,7 @@ package shared;
 import client.KVStore;
 import ecs.ECS;
 import ecs.IECSNode;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import shared.messages.KVMessage;
 
@@ -14,6 +15,8 @@ import java.util.Random;
 import static org.junit.Assert.*;
 
 public class Performance {
+
+    private Logger logger = Logger.getRootLogger();
 
     private long totalGetLatency;
     private long totalPutLatency;
@@ -28,7 +31,7 @@ public class Performance {
     private String CACHE_STRATEGY;
     private Integer CACHE_SIZE;
     private KVStore client;
-    private List<String> msgs = DataParser.parseDataFrom("allen-p/inbox");
+    private static List<String> msgs = DataParser.parseDataFrom("allen-p/inbox");
 
     public Performance(int cacheSize, String strategy) throws Exception {
         this.totalGetLatency = 0;
@@ -49,11 +52,10 @@ public class Performance {
         Thread.sleep(1000);
     }
 
-    public void addNodes(Integer count) throws InterruptedException {
-
+    public void addNodes(Integer count) {
         try {
             ecs.addNodes(count, this.CACHE_STRATEGY, this.CACHE_SIZE);
-            Thread.sleep(1000);
+            Thread.sleep(10000);
             ecs.start();
         } catch (KeeperException | InterruptedException e) {
             e.printStackTrace();
@@ -67,7 +69,9 @@ public class Performance {
 
         try {
             Collection<String> keys = map.keySet();
+
             ecs.removeNodes(keys);
+
         } catch (Exception e) {
             ex = e;
             e.printStackTrace();
@@ -104,74 +108,76 @@ public class Performance {
 
         this.client.disconnect();
         this.removeNodes();
-        Thread.sleep(200);
+        Thread.sleep(3000);
 
         /* ----- ADD1 ----- */
         start = System.nanoTime();
         this.addNodes(1);
         end = System.nanoTime();
         this.add1NodesLatency = end - start;
-        Thread.sleep(200);
+        Thread.sleep(3000);
 
         /* ----- REMOVE1 ----- */
         start = System.nanoTime();
         this.removeNodes();
         end = System.nanoTime();
         this.remove1NodesLatency = end - start;
+        Thread.sleep(3000);
 
-//        /* ----- ADD5 ----- */
-//        start = System.nanoTime();
-//        this.addNodes(5);
-//        end = System.nanoTime();
-//        this.add5NodesLatency = end - start;
-//        Thread.sleep(200);
-//
-//        /* ----- REMOVE5 ----- */
-//        start = System.nanoTime();
-//        this.removeNodes();
-//        end = System.nanoTime();
-//        this.remove5NodesLatency = end - start;
-//
-//        /* ----- ADD10 ----- */
-//        start = System.nanoTime();
-//        this.addNodes(10);
-//        end = System.nanoTime();
-//        this.add10NodesLatency = end - start;
-//        Thread.sleep(200);
-//
-//        /* ----- REMOVE10 ----- */
-//        start = System.nanoTime();
-//        this.removeNodes();
-//        end = System.nanoTime();
-//        this.remove10NodesLatency = end - start;
-//        Thread.sleep(200);
+        /* ----- ADD5 ----- */
+        start = System.nanoTime();
+        this.addNodes(5);
+        end = System.nanoTime();
+        this.add5NodesLatency = end - start;
+        Thread.sleep(3000);
+
+        /* ----- REMOVE5 ----- */
+        start = System.nanoTime();
+        this.removeNodes();
+        end = System.nanoTime();
+        this.remove5NodesLatency = end - start;
+        Thread.sleep(3000);
+
+        /* ----- ADD10 ----- */
+        start = System.nanoTime();
+        this.addNodes(10);
+        end = System.nanoTime();
+        this.add10NodesLatency = end - start;
+        Thread.sleep(10000);
+
+        /* ----- REMOVE10 ----- */
+        start = System.nanoTime();
+        this.removeNodes();
+        end = System.nanoTime();
+        this.remove10NodesLatency = end - start;
+
     }
 
     public void averageLatency() {
-        float totalAvgLat = (this.totalGetLatency + this.totalPutLatency) / (float) 10;
+        float totalAvgLat = (this.totalGetLatency + this.totalPutLatency) / (float) msgs.size();
         System.out.println("\tTotal Average Latency: " + totalAvgLat / 1000000);
     }
 
     public void averagePutLatency() {
-        float averagePutLat = this.totalPutLatency / (float) 10;
+        float averagePutLat = this.totalPutLatency / (float) msgs.size();
         System.out.println("\tAverage PUT Latency: " + averagePutLat / 1000000);
     }
 
     public void averageGetLatency() {
-        float averageGetLat = this.totalGetLatency / (float) 10;
+        float averageGetLat = this.totalGetLatency / (float) msgs.size();
         System.out.println("\tAverage GET Latency: " + averageGetLat / 1000000);
     }
 
     public void get1AddNodesTime() {
-        System.out.println("\tAdd 1 Node Latency: " + (this.add1NodesLatency / 1000000 - 1000));
+        System.out.println("\tAdd 1 Node Latency: " + (this.add1NodesLatency / 1000000 - 3000));
     }
 
     public void get5AddNodesTime() {
-        System.out.println("\tAdd 5 Node Latency: " + (this.add5NodesLatency / 1000000 - 1000));
+        System.out.println("\tAdd 5 Node Latency: " + (this.add5NodesLatency / 1000000 - 3000));
     }
 
     public void get10AddNodesTime() {
-        System.out.println("\tAdd 10 Node Latency: " + (this.add10NodesLatency / 1000000 - 1000));
+        System.out.println("\tAdd 10 Node Latency: " + (this.add10NodesLatency / 1000000 - 10000));
     }
 
     public void get1RemoveNodesTime() {
@@ -204,13 +210,14 @@ public class Performance {
             System.out.println("\n********** Latency in milliseconds **********");
 
             performance.get1AddNodesTime();
-//            performance.get5AddNodesTime();
-//            performance.get10AddNodesTime();
+            performance.get5AddNodesTime();
+            performance.get10AddNodesTime();
             System.out.println(" ");
             performance.get1RemoveNodesTime();
-//            performance.get5RemoveNodesTime();
-//            performance.get10RemoveNodesTime();
-//            System.out.println(" ");
+            performance.get5RemoveNodesTime();
+            performance.get10RemoveNodesTime();
+            System.out.println(" ");
+            System.out.println("\t # of kv pairs: " + msgs.size());
             performance.averageLatency();
             performance.averageGetLatency();
             performance.averagePutLatency();
