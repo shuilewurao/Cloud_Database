@@ -43,7 +43,7 @@ public class Performance {
 
         this.addNodes(1);
 
-        this.client = new KVStore("localhost", 50005);
+        this.client = new KVStore("localhost", 50000);
         this.client.connect();
 
         Thread.sleep(1000);
@@ -119,32 +119,32 @@ public class Performance {
         end = System.nanoTime();
         this.remove1NodesLatency = end - start;
 
-        /* ----- ADD5 ----- */
-        start = System.nanoTime();
-        this.addNodes(5);
-        end = System.nanoTime();
-        this.add5NodesLatency = end - start;
-        Thread.sleep(200);
-
-        /* ----- REMOVE5 ----- */
-        start = System.nanoTime();
-        this.removeNodes();
-        end = System.nanoTime();
-        this.remove5NodesLatency = end - start;
-
-        /* ----- ADD10 ----- */
-        start = System.nanoTime();
-        this.addNodes(10);
-        end = System.nanoTime();
-        this.add10NodesLatency = end - start;
-        Thread.sleep(200);
-
-        /* ----- REMOVE10 ----- */
-        start = System.nanoTime();
-        this.removeNodes();
-        end = System.nanoTime();
-        this.remove10NodesLatency = end - start;
-        Thread.sleep(200);
+//        /* ----- ADD5 ----- */
+//        start = System.nanoTime();
+//        this.addNodes(5);
+//        end = System.nanoTime();
+//        this.add5NodesLatency = end - start;
+//        Thread.sleep(200);
+//
+//        /* ----- REMOVE5 ----- */
+//        start = System.nanoTime();
+//        this.removeNodes();
+//        end = System.nanoTime();
+//        this.remove5NodesLatency = end - start;
+//
+//        /* ----- ADD10 ----- */
+//        start = System.nanoTime();
+//        this.addNodes(10);
+//        end = System.nanoTime();
+//        this.add10NodesLatency = end - start;
+//        Thread.sleep(200);
+//
+//        /* ----- REMOVE10 ----- */
+//        start = System.nanoTime();
+//        this.removeNodes();
+//        end = System.nanoTime();
+//        this.remove10NodesLatency = end - start;
+//        Thread.sleep(200);
     }
 
     public void averageLatency() {
@@ -204,13 +204,13 @@ public class Performance {
             System.out.println("\n********** Latency in milliseconds **********");
 
             performance.get1AddNodesTime();
-            performance.get5AddNodesTime();
-            performance.get10AddNodesTime();
+//            performance.get5AddNodesTime();
+//            performance.get10AddNodesTime();
             System.out.println(" ");
             performance.get1RemoveNodesTime();
-            performance.get5RemoveNodesTime();
-            performance.get10RemoveNodesTime();
-            System.out.println(" ");
+//            performance.get5RemoveNodesTime();
+//            performance.get10RemoveNodesTime();
+//            System.out.println(" ");
             performance.averageLatency();
             performance.averageGetLatency();
             performance.averagePutLatency();

@@ -145,7 +145,7 @@ public class ECSTest extends TestCase {
             e.printStackTrace();
         }
         assert ex == null;
-        HashMap<String, ECSNode> nodes = ecs.getAvailableServers();
+        Map<String, IECSNode> nodes = ecs.getNodes();
         for (IECSNode node : nodes.values()) {
             assertEquals(IKVServer.ServerStateType.SHUT_DOWN, node.getServerStateType());
         }
