@@ -384,6 +384,9 @@ public class KVDatabase implements IKVDatabase {
         }
 
         String result = stringList.toString();
+        if(stringList.length()==0){
+            return null;
+        }
         logger.debug("[DB] sent" + result);
 
         return result;
@@ -439,8 +442,6 @@ public class KVDatabase implements IKVDatabase {
             logger.error("[DB] Unable to make transfer data to server:" + this.portNo);
             return false;
         }
-
-
     }
 
 

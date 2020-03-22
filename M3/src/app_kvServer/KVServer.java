@@ -766,8 +766,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                 zk.getChildren(zkNodePath, this, null);
 
         } catch (KeeperException | InterruptedException e) {
-            logger.debug("[KVStore] Unable to process the watcher event");
-            e.printStackTrace();
+            logger.debug("[KVServer] Unable to process the watcher event");
+            logger.debug("[KVServer] "+e);
         }
     }
 

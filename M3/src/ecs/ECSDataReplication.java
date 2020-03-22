@@ -159,7 +159,7 @@ public class ECSDataReplication implements Watcher {
 //                if (!(zk.exists(toPath, false) == null))
 //                    ZK.deleteNoWatch(toPath);
                 if (!(zk.exists(fromPath, false) == null))
-                    ZK.deleteNoWatch(fromPath);
+                    ZK.delete(fromPath);
                 break;
             }
         }
