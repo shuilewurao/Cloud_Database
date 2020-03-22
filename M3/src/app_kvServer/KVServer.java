@@ -29,9 +29,7 @@ import java.io.IOException;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 import static ecs.ECS.*;
 
@@ -47,8 +45,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     private ServerSocket serverSocket;
     private boolean running;
 
-    private ArrayList<Thread> threadList;
-    private Thread serverThread;
+    private Set<ClientConnection> connections;
 
     private CachePolicy Cache;
     private KVDatabase DB;
@@ -118,8 +115,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
         this.cacheSize = cacheSize;
         this.strategy = CacheStrategy.valueOf(strategy);
-        threadList = new ArrayList<>();
-        serverThread = null;
+        //connections = new ArrayList<>();
+        //serverThread = null;
 
         serverState = ServerStateType.STOPPED;
         this.writeLocked = true;
@@ -260,6 +257,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     @Override
     public void run() {
 
+        connections = new HashSet<>();
         running = initializeServer();
 
         if (serverSocket != null) {
@@ -270,7 +268,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                             new ClientConnection(this, client);
                     Thread t = new Thread(connection);
                     t.start();
-                    threadList.add(t);
+                    connections.add(connection);
 
                     logger.info("[KVServer] Connected to "
                             + client.getInetAddress().getHostName()
@@ -282,11 +280,14 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                 }
             }
         }
+        for (ClientConnection connection : connections) {
+            connection.disconnect();
+        }
         logger.info("[KVServer] Server stopped.");
 
     }
 
-    private boolean isRunning() {
+    public boolean isRunning() {
         return this.running;
     }
 
@@ -329,15 +330,16 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     @Override
     public void close() {
-        running = false;
-
         try {
-            for (Thread thread : threadList) {
-                thread.interrupt();
+            if (serverSocket != null){
+                serverSocket.close();
             }
-            if (serverThread != null)
-                serverThread.interrupt();
-            serverSocket.close();
+//            String path = ZK_LIVE_SERVERS + "/" + this.port;
+//            if (zk.exists(path, false) != null) {
+//                zk.delete(path, zk.exists(path, false).getVersion());
+//            }
+            if (dataReplicationManager != null)
+                dataReplicationManager.clear();
             ZKAPP.close();
         } catch (IOException e) {
             logger.error("[KVServer] Error! " +
@@ -346,6 +348,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         } catch (InterruptedException e) {
             logger.error("Unable to close ZK session. ");
         }
+
+        running = false;
 
     }
 
@@ -488,17 +492,15 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             byte[] hashRingData = zk.getData(ZK_HASH_TREE, new Watcher() {
                 // handle hashRing update
                 public void process(WatchedEvent we) {
-                    if (!running) {
-                        return;
-                    }
+//                    if (!running) {
+//                        return;
+//                    }
                     try {
-                        byte[] hashRingData1 = zk.getData(ECS.ZK_HASH_TREE, this, null);
-                        hashRingString = new String(hashRingData1);
+                        byte[] hashRingData = zk.getData(ECS.ZK_HASH_TREE, this, null);
+                        hashRingString = new String(hashRingData);
                         hashRing = new ECSHashRing(hashRingString);
-                        ECSNode self_n = hashRing.getNodeByHash(MD5.HashInBI(getHostname() + ":" + port));
-                        if (self_n.getFlag() == ECSNodeMessage.ECSNodeFlag.KV_TRANSFER) {
-                            lockWrite();
-                        }
+
+                        hashRing.printAllNodes();
                         logger.info("[KVServer] Hash Ring updated");
 
                         if (dataReplicationManager != null) {
@@ -659,9 +661,6 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     }
 
-//    public ECSHashRing getMetaData() {
-//        return hashRing;
-//    }
 
     @Override
     public void process(WatchedEvent event) {
@@ -777,10 +776,6 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         return hashRingString;
     }
 
-    //    public ECSHashRing getHashRing() {
-//        return hashRing;
-//    }
-//
     public boolean isResponsible(String key, String cmd) {
 
         ECSNode node = hashRing.getNodeByHash(MD5.HashInBI(key));
@@ -802,21 +797,11 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     public boolean receiveTransferredData(String data) {
         lockWrite();
-        String msgPath = ZK_SERVER_PATH + "/" + port + ZK_OP_PATH;
         DB.receiveTransferdData(data);
         unlockWrite();
 
-        //       try {
-//            if (zk.exists(msgPath, false) == null) {
-//                ZKAPP.create(msgPath, IECSNode.ECSNodeFlag.TRANSFER_FINISH.name().getBytes());
         logger.debug("[KVServer] received finish " + data);
-//            }else{
-//                logger.debug("[KVServer] finished but can not create path in zk");
-//            }
-//        } catch (KeeperException | InterruptedException e) {
-//            e.printStackTrace();
-//            return false;
-//        }
+
         return true;
     }
 
