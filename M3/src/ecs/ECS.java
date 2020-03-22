@@ -348,11 +348,6 @@ public class ECS implements IECSClient, Watcher {
 
         Collection<ECSNode> nodes = addNodes(1, cacheStrategy, cacheSize);
 
-//        try {
-//            awaitNodes(1, 30000);
-//        } catch (Exception e) {
-//           logger.error("[ECS] "+e);
-//        }
 
         ECSNode added = nodes.iterator().next();
 
@@ -552,10 +547,9 @@ public class ECS implements IECSClient, Watcher {
 
 
     private void handleNodeFailure(ECSNode n) {
+        logger.info("[ECS] Server" + n.getNodeHash() + " just crashed");
 
         maintainRemoveInvariant(n);
-
-        logger.warn("[ECS] Server" + n.getNodeHash() + " just crashed");
 
         serverCount--;
         try {
@@ -591,12 +585,6 @@ public class ECS implements IECSClient, Watcher {
 
         logger.info("[ECS] Adding a new server to replace the crashed one.");
         addNode("FIFO", 1, true);
-
-//        try {
-//            start();
-//        } catch (KeeperException | InterruptedException e) {
-//            logger.error("[ECS] Could not start the server when restoring a node failure");
-//        }
 
 
         pushHashRingInTree();
@@ -635,6 +623,35 @@ public class ECS implements IECSClient, Watcher {
             logger.warn("[ECS] Caution! You will have fewer than 3 nodes remaining.");
         }
 
+        // if only one node on ring
+
+
+        if (hashRing.getSize() == 1) {
+            CountDownLatch sig = new CountDownLatch(nodeNames.size());
+            logger.info("[ECS]: Only one node in hash ring!");
+            assert nodeNames.size() == 1;
+            for (String name : nodeNames) {
+
+                assert name != null;
+
+                ECSNode n = hashRing.getNodeByServerName(name);
+
+                if (n == null) {
+                    logger.error("[ECS] node is not in Hash Ring: " + name);
+                    continue;
+                }
+
+
+                String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
+                broadcast(msgPath, IECSNode.ECSNodeFlag.SHUT_DOWN.name(), sig);
+
+                n.shutdown();
+                hashRing.removeNode(n);
+                availableServers.put(n.getNodeName(), n);
+            }
+            return true;
+        }
+
         List<ECSNode> toRemove = new ArrayList<>();
 
         for (String name : nodeNames) {
@@ -646,13 +663,16 @@ public class ECS implements IECSClient, Watcher {
                 continue;
             }
 
-            toRemove.add(n);
             maintainRemoveInvariant(n);
-            hashRing.removeNode(n);
         }
 
+        for (ECSNode n : toRemove) {
+            hashRing.removeNode(n);
+            n.shutdown();
+            availableServers.put(n.getNodeName(), n);
+        }
 
-        boolean ret = true;
+       boolean ret = true;
         CountDownLatch sig = new CountDownLatch(toRemove.size());
 
 
@@ -662,9 +682,6 @@ public class ECS implements IECSClient, Watcher {
 
             String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
             broadcast(msgPath, IECSNode.ECSNodeFlag.SHUT_DOWN.name(), sig);
-
-            n.shutdown();
-            availableServers.put(n.getNodeName(), n);
 
             try {
                 zk.delete(ZK_INIT_NODES + "/" + n.getPort(), -1);
@@ -676,7 +693,6 @@ public class ECS implements IECSClient, Watcher {
             logger.debug("[ECS] " + n.getNodeName() + " has been removed.");
         }
         //pushHashRingInZnode();
-        ret &= pushHashRingInTree();
 
         try {
             sig.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
@@ -684,35 +700,12 @@ public class ECS implements IECSClient, Watcher {
             logger.error("[ECS] latch timeout " + e);
         }
 
+        ret &= pushHashRingInTree();
+        hashRing.printAllNodes();
+        logger.info("[ECS] node removal has completed.");
+
         return ret;
 
-
-        // if only one node on ring
-
-        // TODO
-//        if (hashRing.getSize() == 1) {
-//            logger.info("[ECS]: Only one node in hash ring!");
-//            assert nodeNames.size() == 1;
-//            for (String name : nodeNames) {
-//
-//                assert name != null;
-//
-//                ECSNode n = hashRing.getNodeByServerName(name);
-//
-//                if (n == null) {
-//                    logger.error("[ECS] node is not in Hash Ring: " + name);
-//                    continue;
-//                }
-//
-//                String msgPath = ZK_SERVER_PATH + "/" + n.getNodePort() + ZK_OP_PATH;
-//                broadcast(msgPath, IECSNode.ECSNodeFlag.SHUT_DOWN.name(), sig);
-//
-//                n.shutdown();
-//                hashRing.removeNode(n);
-//                availableServers.put(n.getNodeName(), n);
-//            }
-//            return true;
-//        }
 
     }
 
@@ -866,7 +859,10 @@ public class ECS implements IECSClient, Watcher {
         List<ECSDataReplication> toReplicate = new ArrayList<>();
 
         boolean ret = true;
-        if (hashRing.getSize() == 3) {
+        if(hashRing.getSize() <= 1){
+            // do nothing
+        }
+        if (hashRing.getSize() <= 3) {
             ECSNode cNode = hashRing.getPrevNode(added.getNodeHash());
             toReplicate.add(new ECSDataReplication(cNode, added, new String[]{added.getNodeHash(), added.getNodeHash()}));
         } else {
@@ -882,6 +878,10 @@ public class ECS implements IECSClient, Watcher {
                 ECSNode toClear = hashRing.getOldLastReplication(c);
                 toReplicate.add(new ECSDataReplication(toClear, c.getNodeHashRange()));
             }
+
+            ECSNode last_5 = hashRing.getOldLastReplication(added);
+            toReplicate.add(new ECSDataReplication(last_5, added.getNodeHashRange()));
+
         }
 
         try {
@@ -912,7 +912,7 @@ public class ECS implements IECSClient, Watcher {
         List<ECSDataReplication> toReplicate = new ArrayList<>();
 
         boolean ret = true;
-        if (hashRing.getSize() == 3) {
+        if (hashRing.getSize() <= 3) {
             // No data transfer is needed
         } else {
             logger.info("[ECS] Identify remove invariant conditions");

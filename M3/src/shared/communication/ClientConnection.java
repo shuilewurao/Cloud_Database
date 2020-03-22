@@ -74,6 +74,12 @@ public class ClientConnection implements Runnable {
                     String msg_received = latestMsg.getMsg().trim();
                     logger.info("[ClientConnection] MSG: " + msg_received);
 
+                    if(!server.isRunning()){
+                        logger.info("Server not running");
+                        disconnect();
+                        return;
+                    }
+
                     String[] tokens = msg_received.split("\\" + DELIMITER);
 
                     String cmd = tokens[0];
@@ -367,6 +373,19 @@ public class ClientConnection implements Runnable {
         // TODO
         return server.receiveTransferredData(transferred_data);
 
+    }
+
+
+    public void disconnect() {
+        try {
+            if (clientSocket != null) {
+                this.input.close();
+                this.output.close();
+                clientSocket.close();
+            }
+        } catch (IOException e) {
+            logger.error("Unable to tear down connection!", e);
+        }
     }
 
 }
