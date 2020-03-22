@@ -106,9 +106,14 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             case 50007:
                 this.name = "server8";
                 break;
+            case 50008:
+                this.name = "server9";
+                break;
+            case 50009:
+                this.name = "server10";
+                break;
             default:
-                logger.error("[KVServer] Unknown port: " + port);
-                close();
+                this.name = "server";
         }
 
         this.cacheSize = cacheSize;
