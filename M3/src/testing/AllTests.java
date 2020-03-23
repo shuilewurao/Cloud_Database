@@ -62,6 +62,7 @@ public class AllTests {
         clientSuite.addTestSuite(InteractionTest.class);
 
         clientSuite.addTestSuite(ECSTest.class);
+
         clientSuite.addTestSuite(M3Test.class);
 
         return clientSuite;

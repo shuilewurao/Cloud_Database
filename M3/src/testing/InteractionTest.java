@@ -37,7 +37,7 @@ public class InteractionTest extends TestCase {
 
 
     @Test
-    public void testPut() throws IOException, InterruptedException {
+    public void testPut() throws Exception {
 
         logger.debug("[TEST] 1");
 
@@ -65,7 +65,7 @@ public class InteractionTest extends TestCase {
     }
 
     @Test
-    public void testUpdate() throws IOException, InterruptedException {
+    public void testUpdate() throws Exception {
 
         logger.debug("[TEST] 2");
 
@@ -98,7 +98,7 @@ public class InteractionTest extends TestCase {
     }
 
     @Test
-    public void testDelete() throws IOException, InterruptedException {
+    public void testDelete() throws Exception {
 
         logger.debug("[TEST] 3");
 
@@ -130,7 +130,7 @@ public class InteractionTest extends TestCase {
     }
 
     @Test
-    public void testGet() throws IOException, InterruptedException {
+    public void testGet() throws Exception {
 
         logger.debug("[TEST] 4");
 
@@ -157,7 +157,7 @@ public class InteractionTest extends TestCase {
     }
 
     @Test
-    public void testGetUnsetValue() throws IOException, InterruptedException {
+    public void testGetUnsetValue() throws Exception {
 
         logger.debug("[TEST] 5");
 

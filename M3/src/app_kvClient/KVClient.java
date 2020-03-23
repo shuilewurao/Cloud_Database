@@ -83,13 +83,18 @@ public class KVClient implements IKVClient {
                             try {
                                 KVMessage msg_receive = client.put(tokens[1], tokens[2]);
 
+                                if (msg_receive == null) {
+                                    logger.warn("[KVClient] Connection error! Please reconnect...");
+                                    break;
+                                }
+
                                 StatusType status = msg_receive.getStatus();
 
                                 if (status == null) {
-                                    logger.error("[KVClient] NULL status returned for PUT!");
+                                    logger.warn("[KVClient] NULL status returned for PUT!");
+                                    break;
                                 }
 
-                                assert status != null;
                                 System.out.println(PROMPT + "Returned status: " + status.name());
 
                                 if (status == StatusType.PUT_SUCCESS) {

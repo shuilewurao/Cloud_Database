@@ -16,6 +16,7 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,6 +44,8 @@ public class KVStore implements KVCommInterface {
     private String address;
     private int port;
 
+    ECSHashRing hashRing = new ECSHashRing();
+
     public KVStore(String address, int port) { // throws UnknownHostException, IOException {
 
         this.address = address;
@@ -52,7 +55,7 @@ public class KVStore implements KVCommInterface {
     }
 
     @Override
-    public void connect() throws IOException {
+    public void connect() throws Exception {
         this.clientSocket = new Socket(this.address, this.port);
         this.listeners = new HashSet<>();
         logger.info("[KVStore] Connection established");
@@ -71,7 +74,6 @@ public class KVStore implements KVCommInterface {
             tearDownConnection();
             for (IKVClient listener : listeners) {
                 listener.handleStatus(IKVClient.SocketStatus.DISCONNECTED);
-                listener = null;
 
             }
         } catch (IOException ioe) {
@@ -122,20 +124,23 @@ public class KVStore implements KVCommInterface {
             logger.debug("[KVStore] msg to send: " + msg);
 
             TextMessage msg_send = new TextMessage(msg);
+            try {
+                sendMessage(msg_send);
 
-            sendMessage(msg_send);
-
-            //TextMessage msg_receive = receiveMessage();
-            TextMessage msg_receive = handleServerNotResponsible(receiveMessage(), msg_send, key);
+                //TextMessage msg_receive = receiveMessage();
+                TextMessage msg_receive = handleServerNotResponsible(receiveMessage(), msg_send, key);
 
             /*
                 return message should be a StatusType string
                 to be converted to KVMessage
              */
 
-            msg = msg_receive.getMsg().trim();
+                msg = msg_receive.getMsg().trim();
 
-            return new KVConvertMessage(key, value, msg);
+                return new KVConvertMessage(key, value, msg);
+            } catch (Exception e) {
+                return failureHandling(new KVConvertMessage(key, value, "PUT"));
+            }
 
         } else {
             logger.debug("[KVStore] key value error! Returning default status PUT_ERROR");
@@ -144,40 +149,46 @@ public class KVStore implements KVCommInterface {
     }
 
     @Override
-    public KVMessage get(String key) throws Exception {
+    public KVMessage get(String key) {
         if (checkKeyValue(key, "")) {
 
             String msg = "GET" + DELIMITER + key + DELIMITER;
             logger.debug("[KVStore] GET msg to send: " + msg);
 
             TextMessage msg_send = new TextMessage(msg);
+            TextMessage msg_receive;
+            try {
+                sendMessage(msg_send);
+                msg_receive = handleServerNotResponsible(receiveMessage(), msg_send, key);
+                msg = msg_receive.getMsg().trim();
+                /*
+                    return msg should be
+                    KVMessage + DELIMITER + KEY + DELIMITER + VALUE (Optional)
+                 */
 
-            sendMessage(msg_send);
+                String[] tokens = msg.split("\\" + DELIMITER);
+                logger.debug("[KVStore] KVMsg from KVStore.get: " + msg);
 
-            //TextMessage msg_receive = receiveMessage();
-            TextMessage msg_receive = handleServerNotResponsible(receiveMessage(), msg_send, key);
+                String value = "";
 
-            msg = msg_receive.getMsg().trim();
+                if (tokens.length == 1) {
+                    return new KVConvertMessage(null, value, tokens[0]);
+                }
 
-            /*
-                return msg should be
-                KVMessage + DELIMITER + KEY + DELIMITER + VALUE (Optional)
-             */
+                if (tokens.length == 3) {
+                    value = tokens[2];
+                }
 
-            String[] tokens = msg.split("\\" + DELIMITER);
-            logger.debug("[KVStore] KVMsg from KVStore.get: " + msg);
+                return new KVConvertMessage(tokens[1], value, tokens[0]);
+            } catch (Exception e) {
 
-            String value = "";
-
-            if (tokens.length == 1) {
-                return new KVConvertMessage(null, value, tokens[0]);
+                try {
+                    return failureHandling(new KVConvertMessage(key, "", "GET"));
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    return null;
+                }
             }
-
-            if (tokens.length == 3) {
-                value = tokens[2];
-            }
-
-            return new KVConvertMessage(tokens[1], value, tokens[0]);
 
         } else {
             return new KVConvertMessage(key, "", "GET_ERROR");
@@ -206,11 +217,11 @@ public class KVStore implements KVCommInterface {
         byte[] msgBytes = msg.getMsgBytes();
         output.write(msgBytes, 0, msgBytes.length);
         output.flush();
-        logger.info("[KVStore] Send message: '" + msg.getMsg() + "'");
+        logger.info("[KVStore] Send message: " + msg.getMsg());
     }
 
-    private TextMessage receiveMessage() throws IOException {
-
+    private TextMessage receiveMessage() throws Exception {
+        logger.info("[KVStore] msg receiving...");
         int index = 0;
         byte[] msgBytes = null, tmp;
         byte[] bufferBytes = new byte[BUFFER_SIZE];
@@ -218,6 +229,8 @@ public class KVStore implements KVCommInterface {
         /* read first char from stream */
         byte read = (byte) input.read();
         boolean reading = true;
+
+        int cnt = 0;
 
         while (read != 13 && reading) {/* carriage return */
             /* if buffer filled, copy to msg array */
@@ -250,6 +263,11 @@ public class KVStore implements KVCommInterface {
 
             /* read next char from stream */
             read = (byte) input.read();
+            cnt++;
+
+            if (cnt >= DROP_SIZE) {
+                throw new Exception();
+            }
         }
 
         if (msgBytes == null) {
@@ -303,15 +321,14 @@ public class KVStore implements KVCommInterface {
         return true;
     }
 
-    public TextMessage sendMovedData(String movedData) throws IOException {
+    public TextMessage sendMovedData(String movedData) throws Exception {
         logger.debug("[KVStore] sending transferred data: " + movedData);
         sendMessage(new TextMessage("Transferring_Data" + DELIMITER + movedData));
         return receiveMessage();
 
     }
 
-
-    private TextMessage handleServerNotResponsible(TextMessage msg_received, TextMessage msg_sent, String key) throws IOException {
+    private TextMessage handleServerNotResponsible(TextMessage msg_received, TextMessage msg_sent, String key) throws Exception {
 
         /*
         msg_received: KVMessage + DELIMITER + KEY + DELIMITER + VALUE (Optional)
@@ -340,7 +357,7 @@ public class KVStore implements KVCommInterface {
         } else if (tokens[0].equals(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name())) {
 
             logger.debug("[KVStore]: hashRing received:" + tokens[1]);
-            ECSHashRing hashRing = new ECSHashRing(tokens[1]);
+            hashRing = new ECSHashRing(tokens[1]);
 
             BigInteger hash = MD5.HashInBI(key);
             ECSNode newServer = hashRing.getNodeByHash(hash);
@@ -372,5 +389,38 @@ public class KVStore implements KVCommInterface {
 
         } else assert tokens.length <= 1 || tokens[1].equals(key);
         return msg_received;
+    }
+
+    private KVMessage failureHandling(KVMessage req) throws Exception {
+
+        logger.debug("[KVStore] Failure handling...");
+
+        disconnect();
+
+        BigInteger hash = MD5.HashInBI(req.getKey());
+        if (hashRing.getSize() == 0 || hashRing == null) {
+            logger.warn("[KVStore] No server information available...");
+            return null;
+        }
+
+        ECSNode toRemove = hashRing.getNodeByHash(hash);
+        logger.info("[KVStore] removing " + toRemove.getNodeName());
+        hashRing.removeNode(toRemove);
+        ECSNode newServer = hashRing.getNodeByHash(hash);
+        try {
+            if (newServer != null) {
+                this.address = newServer.getNodeHost();
+                this.port = newServer.getNodePort();
+                logger.info("[KVStore] connecting to " + this.address + ":" + this.port);
+                connect();
+                if (req.getStatus().equals(KVMessage.StatusType.PUT)) {
+                    return this.put(req.getKey(), req.getValue());
+                }
+                return this.get(req.getKey());
+            }
+            return null;
+        } catch (IOException e) {
+            return failureHandling(req);
+        }
     }
 }
