@@ -37,7 +37,7 @@ public class ECS implements IECSClient, Watcher {
     private static ZK ZKAPP = new ZK(ZK_HOST);
     private ZooKeeper zk;
     //public static int ZK_PORT = 2181;
-    private static final String LOCAL_HOST = "localhost";
+    private static final String LOCAL_HOST = "127.0.0.1";
     public static final String ZK_SERVER_PATH = "/server";
     public static final String ZK_HASH_TREE = "/metadata";
     public static final String ZK_OP_PATH = "/op";
@@ -131,6 +131,9 @@ public class ECS implements IECSClient, Watcher {
                 logger.info("[ECS] creating new node...");
 
                 try {
+                    if(host=="localhost" || host==LOCAL_HOST){
+                        host=ZK_HOST;
+                    }
                     addingAvailableServerNodes(name, host, port);
                 } catch (Exception e) {
                     logger.error("[ECS] Error! Cannot create node: " + name);
@@ -674,8 +677,7 @@ public class ECS implements IECSClient, Watcher {
         if (availableServers.containsKey(name)) {
             logger.error("[ECS] Error! Server: " + name + " already added!\n");
             System.exit(1);
-        }
-        ECSNode node = new ECSNode(name, host, port);
+        }ECSNode node = new ECSNode(name, host, port);
 
         availableServers.put(name, node);
     }
