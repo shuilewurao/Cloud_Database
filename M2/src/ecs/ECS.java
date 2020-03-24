@@ -10,6 +10,8 @@ import shared.HashingFunction.MD5;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -31,10 +33,11 @@ public class ECS implements IECSClient, Watcher {
     /*
     ZooKeeper instance
      */
-    private static ZK ZKAPP = new ZK();
+    public static final String ZK_HOST = getCurrentHost();
+    private static ZK ZKAPP = new ZK(ZK_HOST);
     private ZooKeeper zk;
-    public static final String ZK_HOST = "127.0.0.1";
     //public static int ZK_PORT = 2181;
+    private static final String LOCAL_HOST = "localhost";
     public static final String ZK_SERVER_PATH = "/server";
     public static final String ZK_HASH_TREE = "/metadata";
     public static final String ZK_OP_PATH = "/op";
@@ -49,6 +52,13 @@ public class ECS implements IECSClient, Watcher {
 
     //public enum OPERATIONS {START, STOP, SHUT_DOWN, UPDATE, TRANSFER, INIT, STATE_CHANGE, KV_TRANSFER, TRANSFER_FINISH}
 
+    public static String getCurrentHost() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            return LOCAL_HOST;
+        }
+    }
 
     /**
      * @param configFilePath
@@ -178,8 +188,10 @@ public class ECS implements IECSClient, Watcher {
                 JAR_PATH,
                 String.valueOf(node.getNodePort()),
                 String.valueOf(node.getCacheSize()),
-                node.getReplacementStrategy());
-        String sshCmd = "ssh -o StrictHostKeyChecking=no -n " + "localhost" + " nohup " + javaCmd +
+                node.getReplacementStrategy(),
+                ZK_HOST);
+        //String sshCmd = "ssh -o StrictHostKeyChecking=no -n " + "localhost" + " nohup " + javaCmd +
+        String sshCmd = "ssh -o StrictHostKeyChecking=no -n " + node.getHost() + " nohup " + javaCmd +
                 "   > " + PWD + "/logs/Server_" + node.getNodePort() + ".log &";
         try {
             Runtime.getRuntime().exec(sshCmd);

@@ -4,21 +4,32 @@ import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.ACL;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 public class ZK {
 
     private static ZooKeeper zk;
-    private static final String ZK_HOST = "localhost";
+    private static final String LOCAL_HOST = "localhost";
+    //public static final String ZK_HOST = getCurrentHost();
     private static final int ZK_TIMEOUT = 2000;
+    public static final String ZK_PORT = "2181";
 
     //public int ZK_PORT = 2181;
     //public static final String ZK_SERVER_PATH = "/server";
     public final CountDownLatch connectedSignal = new CountDownLatch(1);
+    public static String ZK_HOST;
+
+    public ZK(String zk_host){
+        ZK_HOST = zk_host;
+    }
+
+
 
     public ZooKeeper connect() throws IOException, IllegalStateException {
-        zk = new ZooKeeper(ZK_HOST, ZK_TIMEOUT, watchedEvent -> {
+        zk = new ZooKeeper(ZK_HOST+":"+ZK_PORT, ZK_TIMEOUT, watchedEvent -> {
             if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
                 connectedSignal.countDown();
             }

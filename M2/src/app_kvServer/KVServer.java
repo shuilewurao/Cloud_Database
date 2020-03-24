@@ -48,12 +48,46 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     private ServerStateType serverState;
     private boolean writeLocked;
 
-    private static ZK ZKAPP = new ZK();
+    //private static ZK ZKAPP = new ZK();
+    private static ZK ZKAPP;
     private static ZooKeeper zk;
 
     private String hashRingString;
     private ECSHashRing hashRing;
     private String zkNodePath;
+
+    public KVServer(int port, int cacheSize, String strategy, String zkHost) {
+        ZKAPP = new ZK(zkHost);
+        this.port = port;
+        this.cacheSize = cacheSize;
+        this.strategy = CacheStrategy.valueOf(strategy);
+        threadList = new ArrayList<>();
+        serverThread = null;
+
+        switch (strategy) {
+            case "FIFO":
+                Cache = new FIFO(cacheSize);
+                break;
+            case "LRU":
+                Cache = new LRU(cacheSize);
+                break;
+            case "LFU":
+                Cache = new LFU(cacheSize);
+                break;
+            default:
+                this.strategy = CacheStrategy.None;
+                logger.error("[KVServer] Invalid Cache Strategy!");
+                // TODO: handling
+                break;
+        }
+
+        this.zkNodePath = ZK_SERVER_PATH + "/" + port;
+        this.DB = new KVDatabase(port);
+        serverState = ServerStateType.STOPPED;
+        this.writeLocked = true;
+
+        initKVServer();
+    }
 
     /**
      * Start KV Server at given port
@@ -320,10 +354,10 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     public static void main(String[] args) throws IOException {
         try {
             new LogSetup("logs/server.log", Level.DEBUG);
-            if (args.length != 3) {
+            if (args.length < 3 || args.length >4) {
                 logger.error("[KVServer] Error! Invalid number of arguments!");
                 logger.error("[KVServer] Usage: Server <port> <cacheSize> <strategy>!");
-            } else {
+            } else if(args.length == 3){
                 int port = Integer.parseInt(args[0]);
                 int cacheSize = Integer.parseInt(args[1]);
                 String strategy = args[2];
@@ -333,7 +367,20 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                         strategy
                 );
                 new Thread(server).start();
+            }else{
+                int port = Integer.parseInt(args[0]);
+                int cacheSize = Integer.parseInt(args[1]);
+                String strategy = args[2];
+                String zkHost = args[3];
+                KVServer server = new KVServer(
+                        port,
+                        cacheSize,
+                        strategy,
+                        zkHost
+                );
+                new Thread(server).start();
             }
+
         } catch (IOException e) {
             logger.error("[KVServer] Error! Unable to initialize logger!");
             e.printStackTrace();
