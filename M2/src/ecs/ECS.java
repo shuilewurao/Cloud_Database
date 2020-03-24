@@ -131,7 +131,7 @@ public class ECS implements IECSClient, Watcher {
                 logger.info("[ECS] creating new node...");
 
                 try {
-                    if(host=="localhost" || host==LOCAL_HOST){
+                    if(host.equals("localhost") || host.equals(LOCAL_HOST)){
                         host=ZK_HOST;
                     }
                     addingAvailableServerNodes(name, host, port);
