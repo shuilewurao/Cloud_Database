@@ -10,14 +10,9 @@ import java.util.concurrent.CountDownLatch;
 public class ZK {
 
     private static ZooKeeper zk;
-    private static final String LOCAL_HOST = "localhost";
-    //public static final String ZK_HOST = getCurrentHost();
     private static final int ZK_TIMEOUT = 2000;
     public static final String ZK_PORT = "2181";
 
-
-    //public int ZK_PORT = 2181;
-    //public static final String ZK_SERVER_PATH = "/server";
     public static CountDownLatch connectedSignal = new CountDownLatch(1);
     public static String ZK_HOST;
 

@@ -64,107 +64,6 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     private KVServerDataReplicationManager dataReplicationManager;
     private boolean replicable = true;
 
-    public KVServer(int port, int cacheSize, String strategy, String zkHost) {
-        ZKAPP = new ZK(zkHost);
-        // TODO Auto-generated method stub
-        this.port = port;
-
-        switch (port) {
-            case 50000:
-                this.name = "server1";
-                break;
-            case 50001:
-                this.name = "server2";
-                break;
-            case 50002:
-                this.name = "server3";
-                break;
-            case 50003:
-                this.name = "server4";
-                break;
-            case 50004:
-                this.name = "server5";
-                break;
-            case 50005:
-                this.name = "server6";
-                break;
-            case 50006:
-                this.name = "server7";
-                break;
-            case 50007:
-                this.name = "server8";
-                break;
-            case 50008:
-                this.name = "server9";
-                break;
-            case 50009:
-                this.name = "server10";
-                break;
-            case 50010:
-                this.name = "server11";
-                break;
-            case 50011:
-                this.name = "server12";
-                break;
-            case 50012:
-                this.name = "server13";
-                break;
-            case 50013:
-                this.name = "server14";
-                break;
-            case 50014:
-                this.name = "server15";
-                break;
-            case 50015:
-                this.name = "server16";
-                break;
-            case 50016:
-                this.name = "server17";
-                break;
-            case 50017:
-                this.name = "server18";
-                break;
-            case 50018:
-                this.name = "server19";
-            case 50019:
-                this.name = "server20";
-                break;
-            default:
-                this.name = "server";
-        }
-
-        this.cacheSize = cacheSize;
-        this.strategy = CacheStrategy.valueOf(strategy);
-        //connections = new ArrayList<>();
-        //serverThread = null;
-
-        serverState = ServerStateType.STOPPED;
-        this.writeLocked = true;
-
-        this.zkNodePath = ZK_SERVER_PATH + "/" + port;
-
-        this.DB = new KVDatabase(port);
-
-        initKVServer();
-
-        switch (strategy) {
-            case "FIFO":
-                Cache = new FIFO(cacheSize);
-                break;
-            case "LRU":
-                Cache = new LRU(cacheSize);
-                break;
-            case "LFU":
-                Cache = new LFU(cacheSize);
-                break;
-            default:
-                this.strategy = CacheStrategy.None;
-                logger.error("[KVServer] Invalid Cache Strategy!");
-                // TODO: handling
-                break;
-        }
-    }
-
 
     /**
      * Start KV Server at given port
@@ -177,7 +76,9 @@ public class KVServer implements IKVServer, Runnable, Watcher {
      *                  currently not contained in the cache. Options are "FIFO", "LRU",
      *                  and "LFU".
      */
-    public KVServer(int port, int cacheSize, String strategy) {
+
+    KVServer(int port, int cacheSize, String strategy, String zkHost) {
+        ZKAPP = new ZK(zkHost);
         // TODO Auto-generated method stub
         this.port = port;
 
@@ -512,7 +413,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     public static void main(String[] args) throws IOException {
         try {
             new LogSetup("logs/server.log", Level.ALL);
-            if (args.length < 3 ) {
+            if (args.length < 3 || args.length >4) {
                 logger.error("[KVServer] Error! Invalid number of arguments!");
                 logger.error("[KVServer] Usage: Server <port> <cacheSize> <strategy>!");
             } else if(args.length == 3){
@@ -522,7 +423,8 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                 KVServer server = new KVServer(
                         port,
                         cacheSize,
-                        strategy
+                        strategy,
+                        LOCAL_HOST
                 );
                 new Thread(server).start();
             }else {

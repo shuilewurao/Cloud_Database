@@ -39,7 +39,7 @@ public class ECS implements IECSClient, Watcher {
     public static final String LOCAL_HOST= "127.0.0.1";
     public static final String ZK_HOST = getCurrentHost();
     private static ZK ZKAPP = new ZK(ZK_HOST);
-    //public static int ZK_PORT = 2181;
+
     public static final String ZK_SERVER_PATH = "/server";
     public static final String ZK_HASH_TREE = "/metadata";
     public static final String ZK_OP_PATH = "/op";
@@ -135,7 +135,7 @@ public class ECS implements IECSClient, Watcher {
 
                 try {
 
-                        if(host=="localhost" || host==LOCAL_HOST){
+                        if(host.equals("localhost") || host.equals(LOCAL_HOST)){
                             host=ZK_HOST;
                         }
                     addingAvailableServerNodes(name, host, port);
