@@ -13,6 +13,8 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class ECS implements IECSClient, Watcher {
 
@@ -30,9 +32,13 @@ public class ECS implements IECSClient, Watcher {
     /*
     ZooKeeper instance
      */
-    private static ZK ZKAPP = new ZK();
+    //private static ZK ZKAPP = new ZK();
+
+
     private ZooKeeper zk;
-    public static final String ZK_HOST = "127.0.0.1";
+    public static final String LOCAL_HOST= "127.0.0.1";
+    public static final String ZK_HOST = getCurrentHost();
+    private static ZK ZKAPP = new ZK(ZK_HOST);
     //public static int ZK_PORT = 2181;
     public static final String ZK_SERVER_PATH = "/server";
     public static final String ZK_HASH_TREE = "/metadata";
@@ -47,6 +53,14 @@ public class ECS implements IECSClient, Watcher {
     //private static final String ZK_STOP_CMD = "zookeeper-3.4.11/bin/zkServer.sh stop";
 
     private int serverCount = 0;
+
+    public static String getCurrentHost() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            return LOCAL_HOST;
+        }
+    }
 
 
     /**
@@ -120,6 +134,10 @@ public class ECS implements IECSClient, Watcher {
                 logger.debug("[ECS] creating new node...");
 
                 try {
+
+                        if(host=="localhost" || host==LOCAL_HOST){
+                            host=ZK_HOST;
+                        }
                     addingAvailableServerNodes(name, host, port);
                 } catch (Exception e) {
                     logger.error("[ECS] Error! Cannot create node: " + name);
@@ -214,8 +232,10 @@ public class ECS implements IECSClient, Watcher {
                 JAR_PATH,
                 String.valueOf(node.getNodePort()),
                 String.valueOf(node.getCacheSize()),
-                node.getReplacementStrategy());
-        String sshCmd = "ssh -o StrictHostKeyChecking=no -n " + "localhost" + " nohup " + javaCmd +
+                node.getReplacementStrategy(),
+                ZK_HOST);
+        //String sshCmd = "ssh -o StrictHostKeyChecking=no -n " + "localhost" + " nohup " + javaCmd +
+        String sshCmd = "ssh -o StrictHostKeyChecking=no -n " + node.getHost() + " nohup " + javaCmd +
                 "   > " + PWD + "/logs/Server_" + node.getNodePort() + ".log &";
         try {
             Runtime.getRuntime().exec(sshCmd);
