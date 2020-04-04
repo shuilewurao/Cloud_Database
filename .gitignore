@@ -22,3 +22,16 @@ M3/M3.iml
 M2/zookeeper-3.4.11/*
 M3/out/
 M3/MyStore
+M4/*.MF
+M4/.idea/
+M4/bin/
+M4/*.jar
+M4/.DS_Store
+M4/zookeeper.out
+M4/logs/
+M4/.DS_Store
+M4/M4.iml
+M4/zookeeper-3.4.11/*
+M4/out/
+M4/MyStore
+~            
