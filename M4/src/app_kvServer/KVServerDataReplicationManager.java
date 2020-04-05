@@ -18,6 +18,7 @@ public class KVServerDataReplicationManager {
     private ECSNode thisNode;
     private List<KVServerDataReplication> replicationList;
     private final String prompt = "[KVServerDRManagr] ";
+    private boolean recover=false;
 
     public KVServerDataReplicationManager(String name, String host, int port) {
         this.replicationList = new ArrayList<>();
@@ -41,7 +42,8 @@ public class KVServerDataReplicationManager {
         for (Iterator<KVServerDataReplication> it = replicationList.iterator(); it.hasNext(); ) {
             KVServerDataReplication r = it.next();
 
-            if (!toReplicate.contains(r)) {
+            //if (!toReplicate.contains(r)) {
+            if(!containsReplica(toReplicate, r)){
                 logger.info(prompt + r.getServerName() + " disconnected from " + thisNode.getNodeName());
                 r.disconnect();
                 it.remove();
@@ -49,7 +51,8 @@ public class KVServerDataReplicationManager {
         }
 
         for (KVServerDataReplication r : toReplicate) {
-            if (!replicationList.contains(r)) {
+            if(!containsReplica(replicationList, r)){
+            //if (!replicationList.contains(r)) {
                 logger.info(prompt + r.getServerName() + " connects to " + thisNode.getNodeName());
                 r.connect();
                 replicationList.add(r);
@@ -57,11 +60,31 @@ public class KVServerDataReplicationManager {
         }
     }
 
-    public void forward(String cmd, String k, String v) throws IOException {
+    public void setRecoverMode(boolean rec){
+        recover=rec;
+    }
+
+    public void unsetRecoverMode(){
+        recover=false;
+    }
+
+    public boolean forward(String cmd, String k, String v, long ts, int port) throws IOException {
+        boolean ret = true;
         for (KVServerDataReplication r : replicationList) {
             logger.debug(prompt + " data replication from " + this.thisNode.getNodeName() + " to " + r.getServerName());
-            r.dataReplication(cmd, k, v);
+            if(recover) {
+                ret &=r.dataReplication(cmd, k, v, ts, port, true);
+            }else{
+                ret &=r.dataReplication(cmd, k, v, ts, port, false);
+            }
+
+
+            if(ret==false){
+                logger.error("[KVServerDRManager] Failed to replicate from "+ this.thisNode.getNodeName() + " to " + r.getServerName());
+                return ret;
+            }
         }
+        return ret;
     }
 
     public void clear() {
@@ -69,5 +92,16 @@ public class KVServerDataReplicationManager {
             r.disconnect();
         }
         replicationList.clear();
+    }
+
+
+    private boolean containsReplica(List<KVServerDataReplication> list, KVServerDataReplication target){
+        for(KVServerDataReplication r: list){
+            if(r.getServerName().equals(target.getServerName())){
+                return true;
+            }
+        }
+        return false;
+
     }
 }

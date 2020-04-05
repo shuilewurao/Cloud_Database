@@ -5,6 +5,7 @@ import app_kvServer.CacheManager.FIFO;
 import app_kvServer.CacheManager.LFU;
 import app_kvServer.CacheManager.LRU;
 import app_kvServer.Database.KVDatabase;
+import app_kvServer.Database.WALEntry;
 import client.KVStore;
 import ecs.*;
 import logger.LogSetup;
@@ -25,7 +26,7 @@ import shared.communication.ClientConnection;
 import shared.messages.KVMessage;
 import shared.messages.TextMessage;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -64,6 +65,14 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     private KVServerDataReplicationManager dataReplicationManager;
     private boolean replicable = true;
 
+    private String WALName;
+    private File WAL;
+    private long lsn = 0;
+    private long lastCommitedLsn = 0;
+    private long[] vectorClock = new long[20];
+
+    private int clockID;
+
 
     /**
      * Start KV Server at given port
@@ -81,6 +90,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         ZKAPP = new ZK(zkHost);
         // TODO Auto-generated method stub
         this.port = port;
+        clockID = port - 50000;
 
         switch (port) {
             case 50000:
@@ -155,6 +165,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         this.writeLocked = true;
 
         this.zkNodePath = ZK_SERVER_PATH + "/" + port;
+        openWALLog();
 
         this.DB = new KVDatabase(port);
 
@@ -184,6 +195,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         ZKAPP = new ZK(LOCAL_HOST);
         // TODO Auto-generated method stub
         this.port = port;
+        clockID = port - 50000;
 
         switch (port) {
             case 50000:
@@ -258,6 +270,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         this.writeLocked = true;
 
         this.zkNodePath = ZK_SERVER_PATH + "/" + port;
+        openWALLog();
 
         this.DB = new KVDatabase(port);
 
@@ -282,6 +295,41 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
     }
 
+    public void openWALLog() {
+        this.WALName = "LUT-" + port + ".txt";
+        WAL = new File(this.WALName);
+
+        boolean fileDNE = false;
+        try {
+            fileDNE = WAL.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (fileDNE) {
+            logger.info("[KVServer] New WAL file created");
+        } else {
+            logger.info("[KVServer] WAL file found");
+        }
+
+
+    }
+
+    public void appendWAL(String data) {
+        try {
+            //File file = new File(WALName);
+            FileWriter fr = new FileWriter(WAL, true);
+            BufferedWriter br = new BufferedWriter(fr);
+            PrintWriter pr = new PrintWriter(br);
+            pr.println(data);
+            pr.close();
+
+            br.close();
+            fr.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            logger.error("[KVServer] error in appending WAL");
+        }
+    }
 
 
     @Override
@@ -357,9 +405,19 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         }
     }
 
-    @Override
-    public void putKV(String key, String value) throws Exception {
+    //@Override
+    public void putKV(String key, String value, String cmd, long ts, int clientPort) throws Exception {
         try {
+            lockWrite();
+
+            if (lsn < ts) {
+                lsn = ts;
+            } else {
+                lsn++;
+            }
+            WALEntry wal_entry = new WALEntry(lsn, key, value, cmd, clientPort, ts, vectorClock);
+            appendWAL(wal_entry.getEntry());
+
             KVMessage.StatusType status = DB.putKV(key, value);
             if (getCacheStrategy() != CacheStrategy.None) {
                 if (Cache != null) {
@@ -370,11 +428,49 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                     logger.error("[KVServer] Cache does not exist.");
                 }
             }
+            unlockWrite();
+            if (cmd.equals("PUT")) {
+                boolean ret = dataReplicationManager.forward("PUT", key, value, ts, clientPort);
+                if (ret == false) {
+                    int retry = 5;
+                    while (retry > 0) {
+                        ret = dataReplicationManager.forward("PUT", key, value, ts, clientPort);
+                        if (ret) {
+                            break;
+                        }
+                        retry--;
+                        Thread.sleep(300);
+                    }
+
+                    if (retry == 0) {
+                        logger.error("[KVServer] Something wrong during PUT_REPLICATE.");
+
+                        //throw new Exception("[KVServer] Something wrong during PUT_REPLICATE.");
+                    }
+
+                }
+            }
+            lastCommitedLsn = lsn;
         } catch (Exception e) {
             logger.error(e);
             throw e;
         }
     }
+
+    /*
+    This avoids duplicate writes.
+     */
+    public boolean checkCompatibility(long ts, int clientPort, String cmd, String key) {
+        if (lsn < ts) {
+            return true;
+        } else if (lastCommitedLsn < ts) {
+            // check if already logged
+            // Note: use [ts, clientPort] to identify a client message request
+
+        }
+        return true;
+    }
+
 
     @Override
     public void clearCache() {
@@ -468,7 +564,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     @Override
     public void close() {
         try {
-            if (serverSocket != null){
+            if (serverSocket != null) {
                 serverSocket.close();
             }
 //            String path = ZK_LIVE_SERVERS + "/" + this.port;
@@ -495,6 +591,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
      */
     public void start() {
         // TODO: move run() & main() to this function
+
         serverState = ServerStateType.STARTED;
         unlockWrite();
         logger.info("[KVServer] Port " + port + " has started");
@@ -517,10 +614,10 @@ public class KVServer implements IKVServer, Runnable, Watcher {
     public static void main(String[] args) throws IOException {
         try {
             new LogSetup("logs/server.log", Level.ALL);
-            if (args.length < 3 || args.length >4) {
+            if (args.length < 3 || args.length > 4) {
                 logger.error("[KVServer] Error! Invalid number of arguments!");
                 logger.error("[KVServer] Usage: Server <port> <cacheSize> <strategy>!");
-            } else if(args.length == 3){
+            } else if (args.length == 3) {
                 int port = Integer.parseInt(args[0]);
                 int cacheSize = Integer.parseInt(args[1]);
                 String strategy = args[2];
@@ -530,7 +627,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
                         strategy
                 );
                 new Thread(server).start();
-            }else {
+            } else {
                 int port = Integer.parseInt(args[0]);
                 int cacheSize = Integer.parseInt(args[1]);
                 String strategy = args[2];
@@ -545,7 +642,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
             }
 
 
-    } catch (IOException e) {
+        } catch (IOException e) {
             logger.error("[KVServer] Error! Unable to initialize logger!");
             e.printStackTrace();
             System.exit(1);
@@ -624,10 +721,11 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         // if the server crashed previously, its storage may be out-of-synch (i.e. missing latest update or deletion).
         try {
             //remove the crashed znode
-            String path = ZK_CRASHED_NODES+"/"+port;
+            String path = ZK_CRASHED_NODES + "/" + port;
             if (zk.exists(path, false) != null) {
                 DB.clearStorage();
                 ZK.deleteNoWatch(path);
+               // replayFromWAL();
                 logger.info("Clear storage for the crashed server.");
             }
 
@@ -656,6 +754,9 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
                         if (dataReplicationManager != null) {
                             dataReplicationManager.update(hashRing);
+                            if (lsn > lastCommitedLsn && serverState==ServerStateType.STARTED) {
+                                redoUncommitedWAL(false);
+                            }
                         }
                     } catch (KeeperException | InterruptedException | IOException e) {
                         logger.info("[KVServer] Unable to update the metadata node");
@@ -918,7 +1019,7 @@ public class KVServer implements IKVServer, Runnable, Watcher {
 
         } catch (KeeperException | InterruptedException e) {
             logger.debug("[KVServer] Unable to process the watcher event");
-            logger.debug("[KVServer] "+e);
+            logger.debug("[KVServer] " + e);
         }
     }
 
@@ -940,7 +1041,15 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         if (cmd.equals("GET") || cmd.equals("PUT_REPLICATE")) {
             Collection<ECSNode> replicationNodes =
                     hashRing.getReplicas(node);
-            responsible = responsible || replicationNodes.contains(thisServer);
+            for (ECSNode replica : replicationNodes) {
+                if (replica.getName().equals(this.name)) {
+                    logger.debug("[KVServer] Responsible replicas for key " + key + " :" + replica.getName() + " V.S. " + this.name);
+                    return true;
+                }
+                //logger.debug("[KVServer] Responsible replicas for key "+key+" :"+replica.getName());
+            }
+
+            //responsible = responsible || replicationNodes.contains(thisServer);
 
         }
         return responsible;
@@ -960,4 +1069,123 @@ public class KVServer implements IKVServer, Runnable, Watcher {
         return this.dataReplicationManager;
 
     }
+
+
+    public void incrementClock() {
+        long old = vectorClock[clockID];
+        vectorClock[clockID] = old + 1;
+    }
+
+    public void updateClock(long[] ts) {
+        for (int i = 0; i < 20; i++) {
+            if (i != clockID) {
+                if (vectorClock[i] < ts[i]) {
+                    vectorClock[i] = ts[i];
+                }
+            }
+        }
+        incrementClock();
+    }
+
+    private void redoUncommitedWAL(boolean recover) {
+        if (lsn > lastCommitedLsn) {
+
+        }
+
+        try {
+            RandomAccessFile raf = new RandomAccessFile(this.WAL, "r");
+            String line, curKey, curValue;
+            while ((line = raf.readLine()) != null) {
+                // convert line from ISO to UTF-8
+                line = new String(line.getBytes("ISO-8859-1"), "UTF-8");
+
+                String[] strs = line.split(Constants.DELIM);
+                if (line.isEmpty()) {
+                    break;
+                }
+
+                long local_lsn = Long.parseLong(decodeValue(strs[0]));
+                if (local_lsn < lsn && local_lsn > lastCommitedLsn) {
+                    String key = decodeValue(strs[1]);
+                    String value = decodeValue(strs[2]);
+                    long msg_ts = Long.parseLong(decodeValue(strs[5]));
+                    int client_port = Integer.parseInt(decodeValue(strs[4]));
+
+                    if (decodeValue(strs[3]).equals("PUT")) {
+                        // redo PUT
+                        lockWrite();
+                        try {
+                            KVMessage.StatusType status = DB.putKV(key, value);
+                        } catch (Exception e) {
+                            logger.debug("redo WAL " + e);
+                        }
+                        unlockWrite();
+
+                        dataReplicationManager.setRecoverMode(recover);
+                        boolean ret = dataReplicationManager.forward("PUT", key, value, msg_ts, client_port); // TODO
+                        dataReplicationManager.unsetRecoverMode();
+                        if (ret == false) {
+                            // TODO
+                            break;
+                        }
+                        lastCommitedLsn = local_lsn;
+                    } else if (decodeValue(strs[3]).equals("PUT_REPLICATE")) {
+                        lockWrite();
+                        try {
+                            KVMessage.StatusType status = DB.putKV(key, value);
+                        } catch (Exception e) {
+                            logger.debug("redo WAL " + e);
+                        }
+                        unlockWrite();
+                        lastCommitedLsn = local_lsn;
+                    }
+
+                }
+            }
+            raf.close();
+            if (lastCommitedLsn == lsn) {
+                logger.info("redo WAL recovery is done");
+            }
+
+        } catch (IOException fnf) {
+            logger.error("WAL file not found", fnf);
+            //throw fnf;
+        }
+    }
+
+    private String decodeValue(String value) {
+        return value.replaceAll("\\\\r", "\r")
+                .replaceAll("\\\\n", "\n")
+                .replaceAll(Constants.ESCAPED_ESCAPER, Constants.ESCAPER);
+    }
+
+
+    private void replayFromWAL() {
+        try {
+            RandomAccessFile raf = new RandomAccessFile(this.WAL, "r");
+            String line, curKey, curValue;
+            while ((line = raf.readLine()) != null)
+            {
+            }
+            // convert line from ISO to UTF-8
+
+            if(!line.isEmpty()){
+                line = new String(line.getBytes("ISO-8859-1"), "UTF-8");
+
+                String[] strs = line.split(Constants.DELIM);
+
+                lsn = Long.parseLong(decodeValue(strs[0]));
+
+            }
+
+            logger.debug("Replay with lsn: "+lsn);
+            redoUncommitedWAL(true);
+
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

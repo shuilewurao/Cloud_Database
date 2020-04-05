@@ -154,7 +154,7 @@ public class ClientConnection implements Runnable {
         }
     }
 
-    private String cmdPut(String cmd, String key, String value) {
+    private String cmdPut(String cmd, String key, String value, String ts, int clientPort) {
     	/*
     		return msg should be a StatusType string
     	 */
@@ -162,11 +162,11 @@ public class ClientConnection implements Runnable {
         boolean inStorage = server.inStorage(key);
 
         try {
-            server.putKV(key, value);
+            server.putKV(key, value, cmd, Long.parseLong(ts), clientPort);
 
-            if (cmd.equals("PUT")) {
-                dataReplicationManager.forward(cmd, key, value);
-            }
+//            if (cmd.equals("PUT")) {
+//                boolean ret = dataReplicationManager.forward(cmd, key, value);
+//            }
 
             if (inStorage && value.equals("")) {
                 return "DELETE_SUCCESS";
@@ -310,7 +310,7 @@ public class ClientConnection implements Runnable {
             }
 
         } else {
-            if (this.server.getServerState() == IKVServer.ServerStateType.STOPPED) {
+            if (this.server.getServerState() == IKVServer.ServerStateType.STOPPED && !cmd.equals("RECOVER_REPLICATE")) {
                 // TODO: also needs to check if it is a ECS request
 
                 logger.debug("[ClientConnection] current server state is:" + this.server.getServerState().name());
@@ -332,15 +332,22 @@ public class ClientConnection implements Runnable {
 
             } else {
                 switch (cmd) {
+                    case "RECOVER_REPLICATE":
                     case "PUT_REPLICATE":
                         logger.info("[ClientConnection] processing for PUT_REPLICATE");
                     case "PUT":
                         String value = "";
-                        if (tokens.length == 3) {
+                        String ts="";
+                        int port=0;
+                        if (tokens.length >= 3) {
                             value = tokens[2];
+                            if(tokens.length > 3){
+                                ts = tokens[3];
+                                port=Integer.parseInt(tokens[4]);
+                            }
                         }
                         try {
-                            msg_send = new TextMessage(cmdPut(cmd, key, value));
+                            msg_send = new TextMessage(cmdPut(cmd, key, value, ts, port));
                         } catch (Exception e) {
                             logger.error("[ClientConnection] Error! " + e);
                             e.printStackTrace();

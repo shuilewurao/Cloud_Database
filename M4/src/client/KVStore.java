@@ -44,6 +44,8 @@ public class KVStore implements KVCommInterface {
     private String address;
     private int port;
 
+    private long timestamp=0;
+
     ECSHashRing hashRing = new ECSHashRing();
 
     public KVStore(String address, int port) { // throws UnknownHostException, IOException {
@@ -119,7 +121,7 @@ public class KVStore implements KVCommInterface {
 
             String msg;
 
-            msg = "PUT" + DELIMITER + key + DELIMITER + value;
+            msg = "PUT" + DELIMITER + key + DELIMITER + value + DELIMITER +(++timestamp) + DELIMITER + clientSocket.getLocalPort();
 
             logger.debug("[KVStore] msg to send: " + msg);
 
@@ -148,10 +150,14 @@ public class KVStore implements KVCommInterface {
         }
     }
 
+
+
+
     @Override
     public KVMessage get(String key) {
         if (checkKeyValue(key, "")) {
 
+            timestamp++;
             String msg = "GET" + DELIMITER + key + DELIMITER;
             logger.debug("[KVStore] GET msg to send: " + msg);
 

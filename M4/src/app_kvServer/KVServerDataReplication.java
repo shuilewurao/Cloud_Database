@@ -39,14 +39,20 @@ public class KVServerDataReplication {
         return name;
     }
 
-    public void dataReplication(String cmd, String k, String v) {
+    public boolean dataReplication(String cmd, String k, String v, long ts, int port, boolean recover) {
         assert !cmd.equals("PUT");
 
         logger.debug(prompt + " data replication in " + this.name);
 
         String msg;
 
-        msg = "PUT_REPLICATE" + Constants.DELIMITER + k + Constants.DELIMITER + v;
+        String command;
+        if(recover){
+            command="RECOVER_REPLICATE";
+        }else{
+            command="PUT_REPLICATE";
+        }
+        msg = command + Constants.DELIMITER + k + Constants.DELIMITER + v + Constants.DELIMITER + ts +  Constants.DELIMITER + port;
         String msg_receive;
 
         try {
@@ -56,11 +62,15 @@ public class KVServerDataReplication {
 
             logger.debug(prompt + "msg received: " + msg_receive);
 
-            if (!tokens[0].equals("PUT_SUCCESS") && !tokens[0].equals("PUT_UPDATE") && !tokens[0].equals("DELETE_SUCCESS"))
+            if (!tokens[0].equals("PUT_SUCCESS") && !tokens[0].equals("PUT_UPDATE") && !tokens[0].equals("DELETE_SUCCESS")) {
                 logger.warn(prompt + cmd + " " + k + " " + v + " in " + this.name + " failed: " + tokens[0]);
+                return false;
+            }
+            return true;
         } catch (IOException e) {
             logger.error(prompt + "Error! " + e);
             e.printStackTrace();
+            return false;
         }
 
     }

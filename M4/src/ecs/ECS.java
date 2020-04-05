@@ -470,11 +470,10 @@ public class ECS implements IECSClient, Watcher {
                 e.printStackTrace();
             }
         }
-
-        pushHashRingInTree();
         //pushHashRingInZnode();
 
         setupNodes(result);
+
 
         try {
             awaitNodes(count, 30000);
@@ -504,11 +503,6 @@ public class ECS implements IECSClient, Watcher {
             }
             start_script(n);
         }
-
-        // create znode with watches for failure detection on each alive server
-        for (ECSNode n : nodes) {
-            registerFailureDetectionZNode(n.getNodePort(), n.getNodeHash());
-        }
         try {
             // TODO
             sig.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
@@ -516,6 +510,14 @@ public class ECS implements IECSClient, Watcher {
             e.printStackTrace();
             logger.debug("[ECS] timeout when initializing");
         }
+
+        pushHashRingInTree();
+
+        // create znode with watches for failure detection on each alive server
+        for (ECSNode n : nodes) {
+            registerFailureDetectionZNode(n.getNodePort(), n.getNodeHash());
+        }
+
 
         return null;
     }

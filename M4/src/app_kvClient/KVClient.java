@@ -92,7 +92,8 @@ public class KVClient implements IKVClient {
 
                                 if (status == null) {
                                     logger.warn("[KVClient] NULL status returned for PUT!");
-                                    break;
+                                    status =  StatusType.PUT_ERROR;
+                                    //break;
                                 }
 
                                 System.out.println(PROMPT + "Returned status: " + status.name());
@@ -163,6 +164,7 @@ public class KVClient implements IKVClient {
                 }
 
                 break;
+
             case "get":
                 if (tokens.length == 2) {
                     if (client != null && client.isRunning()) {
