@@ -480,7 +480,6 @@ public class ECS implements IECSClient, Watcher {
         } catch (Exception e) {
             logger.error("[ECS] " + e);
         }
-
         return result;
 
     }
@@ -503,6 +502,8 @@ public class ECS implements IECSClient, Watcher {
             }
             start_script(n);
         }
+        pushHashRingInTree();
+
         try {
             // TODO
             sig.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
@@ -511,7 +512,6 @@ public class ECS implements IECSClient, Watcher {
             logger.debug("[ECS] timeout when initializing");
         }
 
-        pushHashRingInTree();
 
         // create znode with watches for failure detection on each alive server
         for (ECSNode n : nodes) {

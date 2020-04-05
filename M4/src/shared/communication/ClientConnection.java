@@ -292,6 +292,7 @@ public class ClientConnection implements Runnable {
 
     private void handleClientRequest(String cmd, String key, String[] tokens, String msg_received) throws IOException {
         TextMessage msg_send;
+        boolean WALsynch=false;
 
         // checks for distributed servers
         if (cmd.equals("Transferring_Data")) {
@@ -347,11 +348,17 @@ public class ClientConnection implements Runnable {
                             }
                         }
                         try {
-                            msg_send = new TextMessage(cmdPut(cmd, key, value, ts, port));
+                            String stat=cmdPut(cmd, key, value, ts, port);
+
+                            msg_send = new TextMessage(stat);
+                            if(stat.equals("PUT_UPDATE") || stat.equals("PUT_SUCCESS") || stat.equals("DELETE_ERROR")){
+                                WALsynch=true;
+                            }
+
                         } catch (Exception e) {
                             logger.error("[ClientConnection] Error! " + e);
                             e.printStackTrace();
-                            msg_send = new TextMessage("PUT_ERROR + exception");
+                            msg_send = new TextMessage("PUT_ERROR+exception");
                         }
                         break;
                     case "GET":
@@ -364,7 +371,8 @@ public class ClientConnection implements Runnable {
                                 msg_send = new TextMessage("GET_SUCCESS" + Constants.DELIMITER + key + Constants.DELIMITER + value_return);
                             }
                         } catch (Exception e) {
-                            msg_send = new TextMessage("GET_ERROR + exception");
+                            msg_send = new TextMessage("GET_ERROR+exception");
+
                         }
                         break;
 
@@ -374,6 +382,9 @@ public class ClientConnection implements Runnable {
             }
         }
         sendMessage(msg_send);
+        if(WALsynch) {
+            //server.WAL_fsynch();
+        }
     }
 
     public boolean cmdTransfer(String transferred_data) {

@@ -26,6 +26,7 @@ public class KVServerDataReplication {
     private static final int DROP_SIZE = Constants.DROP_SIZE;
 
     private String prompt = "[KVServerDR] ";
+    private long lastCommitedLsn=0;
 
 
     public KVServerDataReplication(ECSNode n) {
@@ -37,6 +38,9 @@ public class KVServerDataReplication {
 
     public String getServerName() {
         return name;
+    }
+    public int getServerPort() {
+        return port;
     }
 
     public boolean dataReplication(String cmd, String k, String v, long ts, int port, boolean recover) {
@@ -183,6 +187,14 @@ public class KVServerDataReplication {
         TextMessage msg = new TextMessage(msgBytes);
         logger.debug("[KVStore] Received message from server: " + msg.getMsg().trim());
         return msg;
+    }
+
+    public void commit(long lsn){
+        lastCommitedLsn=lsn;
+    }
+
+    public long getLsn(){
+        return lastCommitedLsn;
     }
 
 }

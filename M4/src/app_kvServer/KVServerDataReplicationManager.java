@@ -19,6 +19,7 @@ public class KVServerDataReplicationManager {
     private List<KVServerDataReplication> replicationList;
     private final String prompt = "[KVServerDRManagr] ";
     private boolean recover=false;
+    private long lastCommitedLsn=0;
 
     public KVServerDataReplicationManager(String name, String host, int port) {
         this.replicationList = new ArrayList<>();
@@ -68,6 +69,13 @@ public class KVServerDataReplicationManager {
         recover=false;
     }
 
+    public void commit(long lsn){
+        lastCommitedLsn=lsn;
+        for (KVServerDataReplication r : replicationList) {
+            r.commit(lastCommitedLsn);
+        }
+    }
+
     public boolean forward(String cmd, String k, String v, long ts, int port) throws IOException {
         boolean ret = true;
         for (KVServerDataReplication r : replicationList) {
@@ -78,11 +86,27 @@ public class KVServerDataReplicationManager {
                 ret &=r.dataReplication(cmd, k, v, ts, port, false);
             }
 
-
             if(ret==false){
                 logger.error("[KVServerDRManager] Failed to replicate from "+ this.thisNode.getNodeName() + " to " + r.getServerName());
                 return ret;
             }
+        }
+        return ret;
+    }
+
+    public boolean forward_rollback(String cmd, String k, String v, long ts, int port) throws IOException {
+        boolean ret = true;
+        for (KVServerDataReplication r : replicationList) {
+            logger.debug(prompt + " data replication from " + this.thisNode.getNodeName() + " to " + r.getServerName());
+            if(recover) {
+                ret &=r.dataReplication(cmd, k, v, ts, port, true);
+            }else{
+                ret &=r.dataReplication(cmd, k, v, ts, port, false);
+            }
+        }
+        if(ret==false){
+            logger.error("[KVServerDRManager] Failed to replicate from "+ this.thisNode.getNodeName() );
+            //return ret;
         }
         return ret;
     }
@@ -103,5 +127,17 @@ public class KVServerDataReplicationManager {
         }
         return false;
 
+    }
+
+    public void updateLSNForNewReplica(long lsn, int target){
+        for (KVServerDataReplication r : replicationList) {
+            if(r.getServerPort()==target){
+                r.commit(lsn);
+            }
+        }
+    }
+
+    public List<KVServerDataReplication> getReplicationList(){
+        return replicationList;
     }
 }
