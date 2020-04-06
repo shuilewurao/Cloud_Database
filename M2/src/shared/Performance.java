@@ -53,7 +53,7 @@ public class Performance {
     }
 
     public void addNodes(Integer count) {
-
+        System.out.println("count: " + count);
         try {
             ecs.addNodes(count, this.CACHE_STRATEGY, this.CACHE_SIZE);
             Thread.sleep(10000);
@@ -112,7 +112,6 @@ public class Performance {
         Thread.sleep(3000);
 
         /* ----- ADD1 ----- */
-        System.out.println("Add 1");
         start = System.nanoTime();
         this.addNodes(1);
         end = System.nanoTime();
@@ -120,7 +119,6 @@ public class Performance {
         Thread.sleep(3000);
 
         /* ----- REMOVE1 ----- */
-        System.out.println("Remove 1");
         start = System.nanoTime();
         this.removeNodes();
         end = System.nanoTime();
@@ -128,23 +126,20 @@ public class Performance {
         Thread.sleep(3000);
 
         /* ----- ADD5 ----- */
-        System.out.println("Add 5");
         start = System.nanoTime();
         this.addNodes(5);
         end = System.nanoTime();
         this.add5NodesLatency = end - start;
-        Thread.sleep(5000);
+        Thread.sleep(3000);
 
         /* ----- REMOVE5 ----- */
-        System.out.println("Remove 5");
         start = System.nanoTime();
         this.removeNodes();
         end = System.nanoTime();
         this.remove5NodesLatency = end - start;
-        Thread.sleep(5000);
+        Thread.sleep(3000);
 
         /* ----- ADD10 ----- */
-        System.out.println("Add 10");
         start = System.nanoTime();
         this.addNodes(10);
         end = System.nanoTime();
@@ -152,7 +147,6 @@ public class Performance {
         Thread.sleep(10000);
 
         /* ----- REMOVE10 ----- */
-        System.out.println("Remove 10");
         start = System.nanoTime();
         this.removeNodes();
         end = System.nanoTime();
@@ -176,11 +170,11 @@ public class Performance {
     }
 
     public void get1AddNodesTime() {
-        System.out.println("\tAdd 1 Node Latency: " + (this.add1NodesLatency / 1000000 - 10000));
+        System.out.println("\tAdd 1 Node Latency: " + (this.add1NodesLatency / 1000000 - 3000));
     }
 
     public void get5AddNodesTime() {
-        System.out.println("\tAdd 5 Node Latency: " + (this.add5NodesLatency / 1000000 - 10000));
+        System.out.println("\tAdd 5 Node Latency: " + (this.add5NodesLatency / 1000000 - 3000));
     }
 
     public void get10AddNodesTime() {

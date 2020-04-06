@@ -13,7 +13,6 @@ public class ConnectionTest extends TestCase {
         Exception ex = null;
 
         KVStore kvClient = new KVStore("localhost", 51000);
-        System.out.println("new KVStore");
 
         try {
             kvClient.connect();
