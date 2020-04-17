@@ -30,6 +30,11 @@
   <property name="performancemanifest.file" value="PERFORMANCE_MANIFEST.MF"/>
   <property name="performancemain.class" value="shared.Performance"/>
 
+  <!-- Configuration for redundancy performance application -->
+  <property name="redundancyperformancejar.file" value="m3-redundancyperformance.jar"/>
+  <property name="redundancyperformancemanifest.file" value="REDUNDANCYPERFORMANCE_MANIFEST.MF"/>
+  <property name="redundancyperformancemain.class" value="shared.RedundancyPerformance"/>
+
   <!-- path to libraries-->
   <path id="external.jars">
     <fileset dir="${lib.dir}" includes="**/*.jar"/>
@@ -149,8 +154,26 @@
     </jar>
   </target>
 
+  <!-- build performance jar -->
+  <target name="build-redundancyperformance-jar" depends="build">
+    <delete file="${redundancyperformancejar.file}" />
+    <delete file="${redundancyperformancemanifest.file}" />
+
+    <manifest file="${redundancyperformancemanifest.file}" >
+      <attribute name="built-by" value="${user.name}" />
+      <attribute name="Main-Class" value="${redundancyperformancemain.class}" />
+      <attribute name="Class-Path" value="${project.classpath}"/>
+    </manifest>
+
+    <jar destfile="${redundancyperformancejar.file}" basedir="${build.dir}"
+         manifest="${redundancyperformancemanifest.file}">
+      <fileset dir="${build.dir}" includes="**/*.class" />
+      <zipgroupfileset dir="${lib.dir}" includes="**/*.jar" />
+    </jar>
+  </target>
+
   <!-- generate separate jar files for client and server application -->
-  <target name="build-jar" depends="build-client-jar, build-server-jar, build-ecs-jar, build-performance-jar" />
+  <target name="build-jar" depends="build-client-jar, build-server-jar, build-ecs-jar, build-performance-jar, build-redundancyperformance-jar" />
 
   <!-- run test cases -->
   <target name="test" depends="build">

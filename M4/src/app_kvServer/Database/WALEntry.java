@@ -3,6 +3,7 @@ package app_kvServer.Database;
 import shared.Constants;
 
 import java.util.Arrays;
+import java.util.Collection;
 
 public class WALEntry {
     private long LSN;
@@ -13,21 +14,23 @@ public class WALEntry {
     int client_port;
     long msg_ts;
 
-    public WALEntry(long seq, String key, String value, String cmd, int clientPort, long msg_ts, long[] ts){
-        LSN=seq;
-        K=key;
-        V=value;
-        type=cmd;
-        timestamp=ts;
-        client_port= clientPort;
+    public WALEntry(long seq, String key, String value, String cmd, int clientPort, long msg_ts, long[] ts) {
+        LSN = seq;
+        K = key;
+        V = value;
+        type = cmd;
+        this.msg_ts = msg_ts;
+        timestamp = ts;
+        client_port = clientPort;
     }
 
-    public String getEntry(){
-        return LSN+Constants.DELIM +
-                K +Constants.DELIM +
+    public String getEntry() {
+        return LSN + Constants.DELIM +
+                K + Constants.DELIM +
                 V + Constants.DELIM +
                 encodeValue(type) + Constants.DELIM +
                 client_port + Constants.DELIM +
+                this.msg_ts + Constants.DELIM +
                 msg_ts + Constants.DELIM +
                 Arrays.toString(timestamp) + "\r\n";
     }

@@ -54,6 +54,16 @@ public class ECSClient implements IECSClient {
         String[] tokens = cmdLineTrim.split("\\s+");
 
         switch (tokens[0]) {
+            case "sync":
+                if (tokens.length == 1) {
+                    client.sync();
+
+                } else {
+                    logger.error("[ECSClient] user input error for command \"sync\"!");
+                    printError("Invalid number of parameters!");
+                }
+                break;
+
             case "shutdown":
                 if (client != null) {
                     if (shutdown()) {
@@ -119,8 +129,6 @@ public class ECSClient implements IECSClient {
                 break;
             case "remove":
                 if (tokens.length >= 2) {
-
-
                     try {
                         String[] indexArr = Arrays.stream(tokens, 1, tokens.length).toArray(String[]::new);
 
@@ -134,7 +142,6 @@ public class ECSClient implements IECSClient {
                     logger.error("[ECSClient] user input error for command \"remove\"!");
                     printError("Invalid number of parameters!");
                 }
-
 
                 break;
             case "start":

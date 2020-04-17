@@ -45,6 +45,7 @@ public class Performance {
         Thread.sleep(1000);
 
         this.addNodes(1);
+        Thread.sleep(1000);
 
         this.client = new KVStore("localhost", 50000);
         this.client.connect();

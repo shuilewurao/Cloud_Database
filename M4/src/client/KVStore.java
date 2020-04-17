@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -44,7 +45,7 @@ public class KVStore implements KVCommInterface {
     private String address;
     private int port;
 
-    private long timestamp=0;
+    private long timestamp = 0;
 
     ECSHashRing hashRing = new ECSHashRing();
 
@@ -121,7 +122,7 @@ public class KVStore implements KVCommInterface {
 
             String msg;
 
-            msg = "PUT" + DELIMITER + key + DELIMITER + value + DELIMITER +(++timestamp) + DELIMITER + clientSocket.getLocalPort();
+            msg = "PUT" + DELIMITER + key + DELIMITER + value + DELIMITER + new Date().getTime() + DELIMITER + clientSocket.getLocalPort();
 
             logger.debug("[KVStore] msg to send: " + msg);
 
@@ -149,8 +150,6 @@ public class KVStore implements KVCommInterface {
             return new KVConvertMessage(key, value, "PUT_ERROR");
         }
     }
-
-
 
 
     @Override
@@ -353,7 +352,7 @@ public class KVStore implements KVCommInterface {
         tokens[1] = KEY
         tokens[2] = VALUE (optional)
          */
-        logger.debug("Test "+ tokens[0]+"llll");
+        logger.debug("Test " + tokens[0] + "llll");
 
         if (tokens[0].equals(KVMessage.StatusType.SERVER_STOPPED.name())) {
 
@@ -394,11 +393,11 @@ public class KVStore implements KVCommInterface {
 
             return new_msg_receive;
 
-        } else if(tokens[0].trim().equals(KVMessage.StatusType.PUT_ERROR.name())){
-            int retry=8;
+        } else if (tokens[0].trim().equals(KVMessage.StatusType.PUT_ERROR.name())) {
+            int retry = 8;
             logger.debug("[KVStore] retry for put: ");
-            TextMessage new_msg_receive=msg_received;
-            while(retry > 0){
+            TextMessage new_msg_receive = msg_received;
+            while (retry > 0) {
                 logger.debug("[KVStore] retry for put: ");
                 sendMessage(msg_sent);
                 new_msg_receive = receiveMessage();
@@ -408,14 +407,14 @@ public class KVStore implements KVCommInterface {
 
                 tokens = msg.split("\\" + DELIMITER);
 
-                if(tokens[0].equals(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name())){
+                if (tokens[0].equals(KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name())) {
                     handleServerNotResponsible(new_msg_receive, msg_sent, key);
                 }
                 //if(!tokens[0].equals(KVMessage.StatusType.PUT_ERROR.name())){
                 //    return new_msg_receive;
                 //}
-                if(tokens[0].trim().equals(KVMessage.StatusType.PUT_SUCCESS.name()) ||
-                        tokens[0].trim().equals(KVMessage.StatusType.PUT_UPDATE.name())){
+                if (tokens[0].trim().equals(KVMessage.StatusType.PUT_SUCCESS.name()) ||
+                        tokens[0].trim().equals(KVMessage.StatusType.PUT_UPDATE.name())) {
                     return new_msg_receive;
                 }
 
@@ -425,8 +424,7 @@ public class KVStore implements KVCommInterface {
             }
             return new_msg_receive;
 
-        }
-        else assert tokens.length <= 1 || tokens[1].equals(key);
+        } else assert tokens.length <= 1 || tokens[1].equals(key);
         return msg_received;
     }
 

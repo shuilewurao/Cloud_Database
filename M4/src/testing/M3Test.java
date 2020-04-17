@@ -151,28 +151,7 @@ public class M3Test extends TestCase {
         ecs.shutdown();
     }
 
-    public void test04NodeFailureDetection() throws Exception {
-
-        ECS ecs = new ECS("./ecs.config");
-
-        ecs.addNodes(3, "FIFO", 10);
-        Thread.sleep(1000);
-
-        ecs.start();
-
-        Process p;
-
-        String cmd = "./killNode.sh 50000";
-        p = Runtime.getRuntime().exec(cmd);
-
-        Thread.sleep(3000);
-
-        assert ecs.getNodes().size() == 3;
-        ecs.shutdown();
-
-    }
-
-    public void test05NodeFailureRecovery() throws Exception {
+    public void test04NodeFailureRecovery() throws Exception {
 
         ECS ecs = new ECS("./ecs.config");
 
@@ -192,72 +171,7 @@ public class M3Test extends TestCase {
         ecs.shutdown();
     }
 
-    public void test06ReplicaGet() throws Exception {
-
-        String key = "a";
-        String value = "bar";
-
-        ECS ecs = new ECS("./ecs.config");
-
-        ecs.addNodes(3, "FIFO", 10);
-        Thread.sleep(1000);
-
-        ecs.start();
-
-        KVStore client = new KVStore("localhost", 50000);
-        client.connect();
-        Thread.sleep(1000);
-
-        client.put(key, value);
-
-        Collection<String> toRemove = new ArrayList<>();
-
-        Map<String, IECSNode> replicas = ecs.getNodes();
-
-        for (Map.Entry<String, IECSNode> entry : replicas.entrySet()) {
-
-            ECSNode n = (ECSNode) entry.getValue();
-
-            KVStore newClient = new KVStore("localhost", n.getNodePort());
-            newClient.connect();
-
-            assert newClient.get(key).getValue().equals(value);
-            newClient.disconnect();
-        }
-        client.disconnect();
-        ecs.shutdown();
-    }
-
-    public void test07ReplicaPut() throws Exception {
-        String key = "a";
-        String value = "bar";
-
-        ECS ecs = new ECS("./ecs.config");
-
-        ecs.addNodes(3, "FIFO", 10);
-        Thread.sleep(1000);
-
-        ecs.start();
-
-        KVStore client = new KVStore("localhost", 50000);
-        client.connect();
-        Thread.sleep(1000);
-
-        client.put(key, value);
-
-
-        Map<String, IECSNode> replicas = ecs.getNodes();
-
-        for (Map.Entry<String, IECSNode> entry : replicas.entrySet()) {
-
-            ECSNode n = (ECSNode) entry.getValue();
-            //
-        }
-        client.disconnect();
-        ecs.shutdown();
-    }
-
-    public void test08HashRingAddingNode() {
+    public void test05HashRingAddingNode() {
         ECSHashRing hashRing = new ECSHashRing();
 
         ECSNode tmp = new ECSNode("server1", "localhost", 50001);
@@ -276,7 +190,7 @@ public class M3Test extends TestCase {
         hashRing.removeAllNode();
     }
 
-    public void test09HashRingRemovingNode() {
+    public void test06HashRingRemovingNode() {
         ECSHashRing hashRing = new ECSHashRing();
 
         ECSNode tmp = new ECSNode("server1", "localhost", 50001);
@@ -295,51 +209,5 @@ public class M3Test extends TestCase {
         assert hashRing.getReplicas(tmp).size() == 2;
 
         hashRing.removeAllNode();
-    }
-
-    public void test10Consistency() throws Exception {
-        int cnt = 0;
-
-        String key = "a";
-        String value = "bar";
-        String newValue = "barbar";
-
-        ECS ecs = new ECS("./ecs.config");
-
-        ecs.addNodes(3, "FIFO", 10);
-        Thread.sleep(1000);
-
-        ecs.start();
-
-        KVStore client = new KVStore("localhost", 50000);
-        client.connect();
-        Thread.sleep(1000);
-
-        client.put(key, value);
-
-        Process p;
-        String cmd = "./killNode.sh 50001";
-        p = Runtime.getRuntime().exec(cmd);
-
-        client.put(key, newValue);
-
-        Thread.sleep(3000);
-
-        Map<String, IECSNode> replicas = ecs.getNodes();
-
-        for (Map.Entry<String, IECSNode> entry : replicas.entrySet()) {
-            cnt++;
-            ECSNode n = (ECSNode) entry.getValue();
-
-            KVStore newClient = new KVStore("localhost", n.getNodePort());
-            newClient.connect();
-
-            assert newClient.get(key).getValue().equals(newValue);
-
-            newClient.disconnect();
-        }
-        assert cnt == 3;
-        client.disconnect();
-        ecs.shutdown();
     }
 }

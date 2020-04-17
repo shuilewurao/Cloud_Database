@@ -74,7 +74,7 @@ public class ClientConnection implements Runnable {
                     String msg_received = latestMsg.getMsg().trim();
                     logger.info("[ClientConnection] MSG: " + msg_received);
 
-                    if(!server.isRunning()){
+                    if (!server.isRunning()) {
                         logger.info("Server not running");
                         disconnect();
                         return;
@@ -92,45 +92,6 @@ public class ClientConnection implements Runnable {
                     // checks for distributed servers
                     handleClientRequest(cmd, key, tokens, msg_received);
 
-/*
-                    switch (cmd) {
-                        case "PUT":
-
-                            String value = "null";
-                            if (tokens.length == 3) {
-                                value = tokens[2];
-                            }
-                            try {
-                                msg_send = new TextMessage(cmdPut(key, value));
-                            } catch (Exception e) {
-                                msg_send = new TextMessage("PUT_ERROR + exception");
-                            }
-
-                            break;
-                        case "GET":
-                            try {
-                                String value_return = cmdGet(key);
-
-                                if (value_return.equals("GET_ERROR")) {
-                                    msg_send = new TextMessage("GET_ERROR");
-                                } else {
-                                    msg_send = new TextMessage("GET_SUCCESS" + DELIMITER + key + DELIMITER + value_return);
-                                }
-                            } catch (Exception e) {
-                                msg_send = new TextMessage("GET_ERROR + exception");
-                            }
-
-                            break;
-                        default:
-                            msg_send = new TextMessage("CMD NOT RECOGNIZED: " + cmd);
-                    }
-
-                    sendMessage(msg_send);
-
- */
-
-                    /* connection either terminated by the client or lost due to
-                     * network problems*/
                 } catch (IOException ioe) {
                     logger.error("[ClientConnection] Error! Connection lost!");
                     isOpen = false;
@@ -291,8 +252,9 @@ public class ClientConnection implements Runnable {
 
 
     private void handleClientRequest(String cmd, String key, String[] tokens, String msg_received) throws IOException {
+
         TextMessage msg_send;
-        boolean WALsynch=false;
+        boolean WALsynch = false;
 
         // checks for distributed servers
         if (cmd.equals("Transferring_Data")) {
@@ -311,6 +273,7 @@ public class ClientConnection implements Runnable {
             }
 
         } else {
+
             if (this.server.getServerState() == IKVServer.ServerStateType.STOPPED && !cmd.equals("RECOVER_REPLICATE")) {
                 // TODO: also needs to check if it is a ECS request
 
@@ -325,10 +288,9 @@ public class ClientConnection implements Runnable {
                         KVMessage.StatusType.SERVER_NOT_RESPONSIBLE.name() + Constants.DELIMITER + hashRingStr);
 
             } else if (this.server.isWriteLocked() &&
-                    (cmd.equals(KVMessage.StatusType.PUT.name()) ||
-                            cmd.equals(KVMessage.StatusType.PUT_REPLICATE.name())
-                    ) //TODO: PUT_REPLICATE
+                    (cmd.equals(KVMessage.StatusType.PUT.name()) || cmd.equals(KVMessage.StatusType.PUT_REPLICATE.name()))
             ) {
+                //TODO: PUT_REPLICATE
                 msg_send = new TextMessage(KVMessage.StatusType.SERVER_WRITE_LOCK.name());
 
             } else {
@@ -338,21 +300,24 @@ public class ClientConnection implements Runnable {
                         logger.info("[ClientConnection] processing for PUT_REPLICATE");
                     case "PUT":
                         String value = "";
-                        String ts="";
-                        int port=0;
+                        String ts = "";
+                        int port = 0;
                         if (tokens.length >= 3) {
                             value = tokens[2];
-                            if(tokens.length > 3){
+                            if (tokens.length > 3) {
                                 ts = tokens[3];
-                                port=Integer.parseInt(tokens[4]);
+                                port = Integer.parseInt(tokens[4]);
                             }
                         }
                         try {
-                            String stat=cmdPut(cmd, key, value, ts, port);
+
+                            logger.debug("[ClientConnection] ts = " + ts);
+
+                            String stat = cmdPut(cmd, key, value, ts, port);
 
                             msg_send = new TextMessage(stat);
-                            if(stat.equals("PUT_UPDATE") || stat.equals("PUT_SUCCESS") || stat.equals("DELETE_ERROR")){
-                                WALsynch=true;
+                            if (stat.equals("PUT_UPDATE") || stat.equals("PUT_SUCCESS") || stat.equals("DELETE_ERROR")) {
+                                WALsynch = true;
                             }
 
                         } catch (Exception e) {
@@ -382,7 +347,7 @@ public class ClientConnection implements Runnable {
             }
         }
         sendMessage(msg_send);
-        if(WALsynch) {
+        if (WALsynch) {
             //server.WAL_fsynch();
         }
     }

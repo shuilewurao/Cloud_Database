@@ -16,7 +16,9 @@ public interface IECSNode {
         UPDATE,
         TRANSFER_FINISH,
         SEND,
-        DELETE
+        DELETE,
+        PUT,
+        PUT_REPLICATE
     }
 
 

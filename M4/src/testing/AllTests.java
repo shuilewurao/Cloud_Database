@@ -18,9 +18,11 @@ public class AllTests {
     public static KVServer server_LFU;
     public static ECS ecs;
 
+    public static String cmd = "./rm_LUT.sh";
+
     static {
         try {
-            new LogSetup("logs/testing/test.log", Level.ALL);
+            new LogSetup("logs/testing/test.log", Level.ERROR);
 
             ecs = new ECS("./ecs.config");
             Thread.sleep(1000);
@@ -57,11 +59,15 @@ public class AllTests {
         clientSuite.addTestSuite(ConnectionTest.class);
         ecs.shutdown();
 
-        //clientSuite.addTestSuite(HashRingTest.class);
+        clientSuite.addTestSuite(HashRingTest.class);
 
-        //clientSuite.addTestSuite(InteractionTest.class);
+        clientSuite.addTestSuite(InteractionTest.class);
 
-        //clientSuite.addTestSuite(ECSTest.class);
+        Runtime.getRuntime().exec(cmd);
+
+        clientSuite.addTestSuite(ECSTest.class);
+
+        Runtime.getRuntime().exec(cmd);
 
         clientSuite.addTestSuite(M3Test.class);
 

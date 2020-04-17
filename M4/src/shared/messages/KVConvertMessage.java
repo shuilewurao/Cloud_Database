@@ -15,8 +15,6 @@ public class KVConvertMessage implements KVMessage {
 
         String trimmedStatus = status.trim();
 
-        logger.debug("[KVConvertMsg] Parsing trimmed status: " + trimmedStatus);
-
         switch (trimmedStatus) {
             case "GET":
                 this.status = StatusType.GET;

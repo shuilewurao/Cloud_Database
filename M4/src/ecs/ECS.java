@@ -34,9 +34,8 @@ public class ECS implements IECSClient, Watcher {
      */
     //private static ZK ZKAPP = new ZK();
 
-
     private ZooKeeper zk;
-    public static final String LOCAL_HOST= "127.0.0.1";
+    public static final String LOCAL_HOST = "127.0.0.1";
     public static final String ZK_HOST = getCurrentHost();
     private static ZK ZKAPP = new ZK(ZK_HOST);
 
@@ -46,6 +45,8 @@ public class ECS implements IECSClient, Watcher {
     public static final String ZK_LIVE_SERVERS = "/failure_detection";
     public static final String ZK_INIT_NODES = "/awaitNodes";
     public static final String ZK_CRASHED_NODES = "/crashed";
+
+    public static final String ZK_WC = "/weak_consistency";
 
     private static final String PWD = System.getProperty("user.dir");
     //private static final String RUN_SERVER_SCRIPT = "script.sh";
@@ -61,7 +62,6 @@ public class ECS implements IECSClient, Watcher {
             return LOCAL_HOST;
         }
     }
-
 
     /**
      * @param configFilePath path to confid file ecs.config
@@ -135,9 +135,9 @@ public class ECS implements IECSClient, Watcher {
 
                 try {
 
-                        if(host.equals("localhost") || host.equals(LOCAL_HOST)){
-                            host=ZK_HOST;
-                        }
+                    if (host.equals("localhost") || host.equals(LOCAL_HOST)) {
+                        host = ZK_HOST;
+                    }
                     addingAvailableServerNodes(name, host, port);
                 } catch (Exception e) {
                     logger.error("[ECS] Error! Cannot create node: " + name);
@@ -147,6 +147,7 @@ public class ECS implements IECSClient, Watcher {
                 logger.info("[ECS] New node added to available servers: " + name);
 
             }
+
             reader.close();
 
             assert availableServers != null;
@@ -176,14 +177,12 @@ public class ECS implements IECSClient, Watcher {
             } else {
                 List<String> children = zk.getChildren(ZK_INIT_NODES, false, null);
                 if (!children.isEmpty()) {
-                    for (int i = 0; i < children.size(); i++) {
-                        zk.delete(ZK_INIT_NODES + "/" + children.get(i), -1);
+                    for (String child : children) {
+                        zk.delete(ZK_INIT_NODES + "/" + child, -1);
                     }
                 }
             }
-        } catch (KeeperException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+        } catch (KeeperException | InterruptedException e) {
             e.printStackTrace();
         }
 
@@ -194,8 +193,8 @@ public class ECS implements IECSClient, Watcher {
             } else {
                 List<String> children = zk.getChildren(ZK_LIVE_SERVERS, false, null);
                 if (!children.isEmpty()) {
-                    for (int i = 0; i < children.size(); i++) {
-                        ZK.deleteNoWatch(ZK_LIVE_SERVERS + "/" + children.get(i));
+                    for (String child : children) {
+                        ZK.deleteNoWatch(ZK_LIVE_SERVERS + "/" + child);
                     }
                 }
             }
@@ -214,9 +213,17 @@ public class ECS implements IECSClient, Watcher {
             logger.error("Could not create the znode for monitoring the liveness of servers");
         }
 
+        try {
+            if (zk.exists(ZK_WC, false) == null) {
+                ZKAPP.create(ZK_WC, "".getBytes());
+            }
+        } catch (KeeperException | InterruptedException e) {
+            e.printStackTrace();
+            logger.error("Could not create the znode for weak consistency");
+        }
+
         logger.info("[ECS] Initializing Logical Hash Ring...");
 
-        // TODO: initial state of hash ring?
         hashRing = new ECSHashRing();
 
         pushHashRingInTree();
@@ -234,7 +241,7 @@ public class ECS implements IECSClient, Watcher {
                 String.valueOf(node.getCacheSize()),
                 node.getReplacementStrategy(),
                 ZK_HOST);
-        //String sshCmd = "ssh -o StrictHostKeyChecking=no -n " + "localhost" + " nohup " + javaCmd +
+
         String sshCmd = "ssh -o StrictHostKeyChecking=no -n " + node.getHost() + " nohup " + javaCmd +
                 "   > " + PWD + "/logs/Server_" + node.getNodePort() + ".log &";
         try {
@@ -247,7 +254,6 @@ public class ECS implements IECSClient, Watcher {
     }
 
     @Override
-
     public boolean start() throws KeeperException, InterruptedException {
         List<ECSNode> toStart = new ArrayList<>();
         boolean ret = true;
@@ -283,7 +289,7 @@ public class ECS implements IECSClient, Watcher {
         ret &= pushHashRingInTree();
         //ret &= pushHashRingInZnode();
 
-        if (ret == false) {
+        if (!ret) {
             logger.debug("[ECS] Unable to fully start");
         }
 
@@ -337,6 +343,7 @@ public class ECS implements IECSClient, Watcher {
         hashRing.removeAllNode();
 
         sig.await(Constants.TIMEOUT, TimeUnit.MILLISECONDS);
+
         logger.info("[ECS] Shut down all the servers.");
         //pushHashRingInZnode();
 
@@ -460,8 +467,8 @@ public class ECS implements IECSClient, Watcher {
                     ZK.update(znodePath, "".getBytes());
                     List<String> children = zk.getChildren(znodePath, false, null);
                     if (!children.isEmpty()) {
-                        for (int j = 0; j < children.size(); j++) {
-                            ZK.deleteNoWatch(znodePath + "/" + children.get(j));
+                        for (String child : children) {
+                            ZK.deleteNoWatch(znodePath + "/" + child);
                         }
                     }
 
@@ -590,7 +597,7 @@ public class ECS implements IECSClient, Watcher {
         //ret &=pushHashRingInZnode();
         ret &= pushHashRingInTree();
 
-        if (ret == false) {
+        if (!ret) {
             logger.error("[ECS] Errors in updating hash ring for handling server failure.");
         }
 
@@ -608,7 +615,6 @@ public class ECS implements IECSClient, Watcher {
 
         logger.info("[ECS] Adding a new server to replace the crashed one.");
         addNode("FIFO", 1, true);
-
 
         pushHashRingInTree();
 
@@ -648,7 +654,6 @@ public class ECS implements IECSClient, Watcher {
 
         // if only one node on ring
 
-
         if (hashRing.getSize() == 1) {
             CountDownLatch sig = new CountDownLatch(nodeNames.size());
             logger.info("[ECS]: Only one node in hash ring!");
@@ -687,6 +692,7 @@ public class ECS implements IECSClient, Watcher {
             }
 
             maintainRemoveInvariant(n);
+            toRemove.add(n);
         }
 
         for (ECSNode n : toRemove) {
@@ -695,7 +701,7 @@ public class ECS implements IECSClient, Watcher {
             availableServers.put(n.getNodeName(), n);
         }
 
-       boolean ret = true;
+        boolean ret = true;
         CountDownLatch sig = new CountDownLatch(toRemove.size());
 
 
@@ -728,7 +734,6 @@ public class ECS implements IECSClient, Watcher {
         logger.info("[ECS] node removal has completed.");
 
         return ret;
-
 
     }
 
@@ -882,7 +887,7 @@ public class ECS implements IECSClient, Watcher {
         List<ECSDataReplication> toReplicate = new ArrayList<>();
 
         boolean ret = true;
-        if(hashRing.getSize() <= 1){
+        if (hashRing.getSize() <= 1) {
             // do nothing
         }
         if (hashRing.getSize() <= 3) {
@@ -911,10 +916,7 @@ public class ECS implements IECSClient, Watcher {
             for (ECSDataReplication replication : toReplicate) {
                 ret &= replication.start(zk);
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            ret &= false;
-        } catch (KeeperException e) {
+        } catch (InterruptedException | KeeperException e) {
             e.printStackTrace();
             ret &= false;
         } finally {
@@ -945,7 +947,6 @@ public class ECS implements IECSClient, Watcher {
                 toReplicate.add(new ECSDataReplication(c, toReceive, c.getNodeHashRange()));
             }
 
-
             ECSNode nextNode = hashRing.getNextNode(remove.getNodeHash());
             toReplicate.add(new ECSDataReplication(
                     nextNode,
@@ -963,6 +964,36 @@ public class ECS implements IECSClient, Watcher {
         } finally {
             return ret;
         }
+    }
 
+    public void sync() throws KeeperException, InterruptedException {
+
+        System.out.println("ECSClient >> Performing Weak Consistency... Setting synchronization point...");
+
+        if (zk.exists(ZK_WC, false) == null) {
+            System.out.println("ECSClient >> No client request information available, nothing to sync to.");
+        } else {
+
+            for (String child : zk.getChildren(ZK_WC, false, null)) {
+                String latestRequest = new String(ZK.read(ZK_WC + "/" + child));
+                String[] tokens = latestRequest.split(Constants.DELIM);
+
+                System.out.println("ECSClient >> Convergence established, syncing to the below request for server " + child);
+                System.out.println("ECSClient >>     From client: " + tokens[0]);
+                System.out.println("ECSClient >>     request: " + tokens[1] + " " + tokens[2] + " " + tokens[3]);
+
+                zk.delete(ZK_WC + "/" + child, zk.exists(ZK_WC + "/" + child, false).getVersion());
+
+                String request = tokens[1] + Constants.DELIMITER + tokens[2] + Constants.DELIMITER + tokens[3] + Constants.DELIMITER+ tokens[0];
+
+                if (zk.exists(ZK_SERVER_PATH + "/" + child + ZK_OP_PATH, false) == null) {
+                    ZKAPP.create(ZK_SERVER_PATH + "/" + child + ZK_OP_PATH, request.getBytes());
+                } else {
+                    ZK.update(ZK_SERVER_PATH + "/" + child + ZK_OP_PATH, request.getBytes());
+                }
+            }
+        }
+
+        System.out.println("ECSClient >> Completed Weak Consistency!");
     }
 }
